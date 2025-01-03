@@ -63,7 +63,7 @@ export const CloudResources: React.FC = () => {
   const [filteredProviders, setFilteredProviders] = useState(mockProviders);
   const [filteredAllocation, setFilteredAllocation] = useState(mockAllocation);
 
-  const handleFilterChange = (filters: FilterType) => {
+  const handleFilterChange = (filters: FilterType) => { 
     // In a real application, you would:
     // 1. Make API calls with the filter parameters
     // 2. Update the state with the filtered data
@@ -79,6 +79,15 @@ export const CloudResources: React.FC = () => {
       setFilteredProviders(filtered);
     } else {
       setFilteredProviders(mockProviders);
+    }
+    if(filters.resourceType){
+      const filtered = mockAllocation.filter(r=>
+        r.name.toLowerCase() === filters.resourceType?.toLowerCase()
+      );
+      setFilteredAllocation(filtered)
+    }
+    else{
+      setFilteredAllocation(mockAllocation)
     }
   };
 

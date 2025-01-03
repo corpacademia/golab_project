@@ -9,7 +9,7 @@ interface UserFormProps {
   initialData?: any;
 }
 
-export const UserForm: React.FC<UserFormProps> = ({
+export const UserForm: React.FC<UserFormProps> = ({ 
   onSubmit,
   onCancel,
   initialData
@@ -22,6 +22,11 @@ export const UserForm: React.FC<UserFormProps> = ({
     handleSubmit
     
   } = useUserForm(initialData, onSubmit);
+
+  // const handleRefresh = async()=>{
+  //     location.reload(true);
+  // }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">

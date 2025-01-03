@@ -75,7 +75,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
                   </span>
                 </td>
                 <td className="py-4 text-gray-400">
-                  {new Date(user.lastActive).toLocaleDateString()}
+                  {user.lastactive}
                 </td>
                 <td className="py-4">
                   <div className="flex items-center space-x-2">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Shield, AlertCircle } from 'lucide-react';
 import { UserRole } from '../../types';
+import axios from 'axios';
 
 interface UserRoleUpgradeProps {
   userId: string;
@@ -30,11 +31,15 @@ export const UserRoleUpgrade: React.FC<UserRoleUpgradeProps> = ({ userId, curren
     setError(null);
 
     try {
-      // TODO: Implement API call
-      await fetch(`/api/users/${userId}/role`, {
-        method: 'PUT',
-        body: JSON.stringify({ role: newRole })
-      });
+      //update user role api endpoint
+      const update = await axios.put('http://localhost:3000/api/v1/updateUserRole',{
+             userId:userId,
+             role:newRole,
+      })
+      if(!update.data.success){
+        setError('Failed to upgrade role. Please try again.');
+      }
+      location.reload(true)
       // Refresh page or update state
     } catch (err) {
       setError('Failed to upgrade role. Please try again.');

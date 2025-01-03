@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { OrganizationList } from '../../organizations/components/OrganizationList';
 import { OrganizationFilters } from '../../organizations/components/OrganizationFilters';
@@ -45,20 +45,51 @@ const mockOrganizations: Organization[] = [
   }
 ];
 
-const mockStats = {
-  totalOrganizations: 24,
-  activeUsers: 2500,
-  totalLabs: 450,
-  monthlyRevenue: 128500
-};
+// const mockStats = {
+//   totalOrganizations: 24,
+//   activeUsers: 2500,
+//   totalLabs: 450,
+//   monthlyRevenue: 128500
+// };
 
 export const Organizations: React.FC = () => {
   const [organizations, setOrganizations] = useState(mockOrganizations);
+  const [filterData,setFilterData] = useState([]);
+  const [mockStats,setMockStats] = useState({
+    totalOrganizations: 0,
+  activeUsers: 0,
+  totalLabs: 0,
+  monthlyRevenue: 0
+  })
 
-  const handleFilterChange = (filters: any) => {
-    console.log('Applying filters:', filters);
-    // TODO: Implement filtering logic
-  };
+  useEffect(()=>{
+    const getData = async ()=>{
+       
+    }
+  },[])
+
+  const [filters, setFilters] = useState({
+      search: "",
+      type: "",
+      status: "",
+      subscriptionTier:"",
+    });
+    const handleFilterChange = (update: { key: string; value: string }) => {
+      const updatedFilters = { ...filters, [update.key]: update.value };
+      setFilters(updatedFilters);
+    }
+    //filter the data
+    useEffect(()=>{
+         const filter = mockOrganizations.filter((org)=>{
+          const matchesSearch = !filters.search || org.name.toLowerCase().includes(filters.search.toLowerCase());
+          const matchesType = !filters.type || org.type.toLocaleLowerCase().includes(filters.type.toLowerCase());
+          const matchesStatus = !filters.status || org.status.toLowerCase().includes(filters.status.toLowerCase());
+          const matchesTier = !filters.subscriptionTier || org.subscriptionTier.toLowerCase().includes(filters.subscriptionTier.toLowerCase());
+
+          return matchesSearch && matchesType && matchesStatus && matchesTier;
+         })
+         setFilterData(filter)
+    },[filters])
 
   const handleViewDetails = (org: Organization) => {
     console.log('Viewing details for:', org);
@@ -78,10 +109,10 @@ export const Organizations: React.FC = () => {
 
       <OrganizationStats stats={mockStats} />
       
-      <OrganizationFilters onFilterChange={handleFilterChange} />
+      <OrganizationFilters onFilterChange={handleFilterChange} filters={filters} setFilters={setFilters}/>
       
       <OrganizationList 
-        organizations={organizations}
+        organizations={filterData}
         onViewDetails={handleViewDetails}
       />
     </div>

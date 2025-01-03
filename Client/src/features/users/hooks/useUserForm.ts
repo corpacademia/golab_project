@@ -78,8 +78,11 @@ export const useUserForm = (
           ...prev,
           submit: 'Failed to add user. Please try again.'
         }));
+       } 
+       
+       location.reload(true);
       }
-    } catch (error) {
+    catch (error) {
       setErrors(prev => ({
         ...prev,
         submit:error?.response?.data?.detail ||  'Failed to add user. Please try again.'

@@ -53,19 +53,19 @@ import axios from 'axios';
 
 
 
-const mockStats = {
-  totalUsers: 2547,
-  activeUsers: 1893,
-  trainers: 156,
-  organizations: 42
-};
+
 
 export const UsersPage: React.FC = () => {
   const [originalUsers,setOriginalUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
+  const [mockStats,setMockstats] = useState({
+    totalUsers: 0,
+          activeUsers: 0,
+          trainers: 0,
+          organizations: 0
+  })
 
   useEffect(()=>{
     const getUsers=async ()=>{
@@ -73,6 +73,18 @@ export const UsersPage: React.FC = () => {
         const response = await axios.get('http://localhost:3000/api/v1/allUsers')
         setOriginalUsers(response.data.data)
         setUsers(response.data.data)
+         console.log(response.data.data)
+          let  totalUsers = response.data.data.length
+          let activeUsers = 1894
+          let trainers = response.data.data.filter((u)=>(  u.role ==='trainer' )).length;
+          const distinctOrganizations = new Set(
+            response.data.data
+              .map(org => org.organization)
+              .filter(name => name !== null && name !== undefined) // Exclude null or undefined
+          );
+          let organizations = distinctOrganizations.size
+          setMockstats({...mockStats,totalUsers,activeUsers,trainers,organizations})
+        
       }
       catch(error){
         console.log(error)

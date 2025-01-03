@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
+import axios from 'axios';
 
 // Comprehensive mock user profiles
 const mockUserProfiles: Record<string, UserProfile> = {
@@ -124,17 +125,20 @@ export const useUserProfile = (userId: string) => {
     const fetchUser = async () => {
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // await new Promise(resolve => setTimeout(resolve, 500));
         
-        const userData = mockUserProfiles[userId];
-        if (!userData) {
+        // const userData = mockUserProfiles[userId];
+        const userData = await axios.post(`http://localhost:3000/api/v1/getuserdata/${userId}`)
+        if (!userData.data.success) {
           throw new Error('User not found');
         }
         
-        setUser(userData);
-      } catch (err) {
+        setUser(userData.data.response);
+      } 
+      catch (err) {
         setError(err as Error);
-      } finally {
+      } 
+      finally {
         setIsLoading(false);
       }
     };

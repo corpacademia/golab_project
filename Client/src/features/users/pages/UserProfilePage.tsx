@@ -13,7 +13,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 
 export const UserProfilePage: React.FC = () => {
   const { userId } = useParams();
-  const { user, isLoading, error } = useUserProfile(userId!);
+  const { user, isLoading, error } = useUserProfile(userId);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading user profile</div>;
@@ -21,22 +21,22 @@ export const UserProfilePage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <UserProfileHeader user={user} />
+      <UserProfileHeader user={user.user} />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <OrganizationAssignment 
           userId={userId!}
-          currentOrganization={user.organization}
+          currentOrganization={user.user.organization}
         />
         <UserRoleUpgrade 
           userId={userId!}
-          currentRole={user.role}
+          currentRole={user.user.role}
         />
       </div>
 
-      {user.role === 'trainer' ? (
+      {user.user.role === 'trainer' ? (
         <TrainerStats userId={userId!} />
-      ) : user.role === 'orgadmin' ? (
+      ) : user.user.role === 'orgadmin' ? (
         <OrgAdminStats userId={userId!} />
       ) : (
         <>

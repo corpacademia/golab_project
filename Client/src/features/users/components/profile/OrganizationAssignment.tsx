@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Building2, AlertCircle, UserX } from 'lucide-react';
+import axios from 'axios';
 
 interface OrganizationAssignmentProps {
   userId: string;
@@ -19,7 +20,7 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
   userId,
   currentOrganization
 }) => {
-  const [selectedOrg, setSelectedOrg] = useState<string>('');
+  const [selectedOrg, setSelectedOrg] = useState({});
   const [isAssigning, setIsAssigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,16 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
 
     try {
       // TODO: Implement API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+      const update_user_field = await axios.put('http://localhost:3000/api/v1/updateUserOrganization',{
+        userId:userId,
+        values:selectedOrg,
+      })
+      console.log(update_user_field)
+      if(!update_user_field.data.success){
+        setError('Failed to assign organization. Please try again.')
+      }
+      location.reload(true)
       // Refresh user data after successful assignment
     } catch (err) {
       setError('Failed to assign organization. Please try again.');
@@ -83,7 +93,7 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
           >
             <option value="">Select an organization</option>
             {availableOrganizations.map(org => (
-              <option key={org.id} value={org.id}>
+              <option key={org.id} value={[org.name,org.type]}>
                 {org.name} ({org.type})
               </option>
             ))}
