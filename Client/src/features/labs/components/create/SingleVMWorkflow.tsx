@@ -4,6 +4,7 @@ import { CloudProviderSelector } from './steps/CloudProviderSelector';
 import { VMSizeSelector } from './steps/VMSizeSelector';
 import { AIRecommendations } from './steps/AIRecommendations';
 import { DeploymentStatus } from './steps/DeploymentStatus';
+import { LabDetailsInput } from './steps/LabDetailsInput';
 import { ChevronLeft } from 'lucide-react';
 
 interface SingleVMWorkflowProps {
@@ -13,6 +14,9 @@ interface SingleVMWorkflowProps {
 export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) => {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState({
+    title: '',
+    description: '',
+    duration: 60,
     platform: '',
     cloudProvider: '',
     vmSize: null,
@@ -34,13 +38,33 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
         Back to Lab Types
       </button>
 
-      {step === 1 && <PlatformSelector onSelect={(platform) => updateConfig({ platform })} />}
-      {step === 2 && config.platform === 'cloud' && (
-        <CloudProviderSelector onSelect={(provider) => updateConfig({ cloudProvider: provider })} />
+      {step === 1 && (
+        <LabDetailsInput 
+          onNext={(details) => updateConfig(details)} 
+        />
       )}
-      {step === 3 && <VMSizeSelector onSelect={(size) => updateConfig({ vmSize: size })} />}
-      {step === 4 && <AIRecommendations config={config} onConfirm={(region) => updateConfig({ region })} />}
-      {step === 5 && <DeploymentStatus config={config} />}
+      {step === 2 && (
+        <PlatformSelector 
+          onSelect={(platform) => updateConfig({ platform })} 
+        />
+      )}
+      {step === 3 && config.platform === 'cloud' && (
+        <CloudProviderSelector 
+          onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
+        />
+      )}
+      {step === 4 && (
+        <VMSizeSelector 
+          onSelect={(size) => updateConfig({ vmSize: size })} 
+        />
+      )}
+      {step === 5 && (
+        <AIRecommendations 
+          config={config} 
+          onConfirm={(region) => updateConfig({ region })} 
+        />
+      )}
+      {step === 6 && <DeploymentStatus config={config} />}
     </div>
   );
 };
