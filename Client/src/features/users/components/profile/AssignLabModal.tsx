@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BookOpen, AlertCircle } from 'lucide-react';
+import { X, BookOpen, AlertCircle, Clock } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 
 interface AssignLabModalProps {
@@ -8,16 +8,8 @@ interface AssignLabModalProps {
   userId: string;
 }
 
-interface Lab {
-  id: string;
-  title: string;
-  description: string;
-  duration: number;
-  technologies: string[];
-}
-
 // Mock available labs - Replace with API call
-const availableLabs: Lab[] = [
+const availableLabs = [
   {
     id: '1',
     title: 'Advanced Cloud Architecture',
@@ -47,12 +39,18 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   userId
 }) => {
   const [selectedLab, setSelectedLab] = useState<string>('');
+  const [duration, setDuration] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
 
   const handleAssign = async () => {
     if (!selectedLab) {
       setError('Please select a lab');
+      return;
+    }
+
+    if (!duration || duration <= 0) {
+      setError('Please specify a valid duration');
       return;
     }
 
@@ -108,6 +106,25 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Duration (minutes)
+            </label>
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-primary-400" />
+              <input
+                type="number"
+                min="1"
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value))}
+                placeholder="Enter duration in minutes"
+                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none
+                         focus:ring-2 focus:ring-primary-500/20 transition-colors"
+              />
+            </div>
+          </div>
+
           {selectedLab && (
             <div className="p-4 bg-dark-300/50 rounded-lg">
               <div className="flex items-center space-x-3 mb-2">
@@ -131,7 +148,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
                 ))}
               </div>
               <div className="text-sm text-gray-400">
-                Duration: {availableLabs.find(l => l.id === selectedLab)?.duration} minutes
+                Recommended duration: {availableLabs.find(l => l.id === selectedLab)?.duration} minutes
               </div>
             </div>
           )}
