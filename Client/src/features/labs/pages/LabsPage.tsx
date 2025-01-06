@@ -1,20 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Plus } from 'lucide-react';
+import { Plus, BookOpen } from 'lucide-react';
 import { LabTypeCard } from '../components/LabTypeCard';
 import { LabTypeOverview } from '../components/admin/LabTypeOverview';
 import { LabManagementTabs } from '../components/admin/LabManagementTabs';
 import { LabType } from '../types';
 
-// Mock data for lab metrics
-const labMetrics: Record<LabType, {
-  activeUsers: number;
-  averageUsage: number;
-  uptime: number;
-  incidents: number;
-  costTrend: number;
-}> = {
+const labMetrics = {
   catalogue: {
     activeUsers: 1245,
     averageUsage: 78,
@@ -59,7 +52,6 @@ const labMetrics: Record<LabType, {
   }
 };
 
-// Mock data for lab counts
 const labCounts: Record<LabType, number> = {
   catalogue: 245,
   'cloud-vm': 128,
@@ -75,14 +67,13 @@ export const LabsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('settings');
 
   const handleTypeSelect = (type: LabType) => {
-    setSelectedType(type);
-    setActiveTab('settings');
-    // console.log(selectedType)
+    if (type === 'catalogue') {
+      navigate('/dashboard/labs/catalogue');
+    } else {
+      setSelectedType(type);
+      setActiveTab('settings');
+    }
   };
- 
-  // useEffect(()=>{
-  //       localStorage.setItem('formData',JSON.stringify(selectedType))
-  // },[])
 
   return (
     <div className="space-y-6">
@@ -96,13 +87,22 @@ export const LabsPage: React.FC = () => {
           </p>
         </div>
         
-        <button 
-          onClick={() => navigate('/dashboard/labs/create')}
-          className="btn-primary"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Lab Environment
-        </button>
+        <div className="flex space-x-4">
+          <button 
+            onClick={() => navigate('/dashboard/labs/catalogue')}
+            className="btn-secondary"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            View Catalogue
+          </button>
+          <button 
+            onClick={() => navigate('/dashboard/labs/create')}
+            className="btn-primary"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Lab Environment
+          </button>
+        </div>
       </div>
 
       {selectedType && (
