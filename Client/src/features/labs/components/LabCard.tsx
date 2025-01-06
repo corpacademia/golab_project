@@ -9,6 +9,7 @@ interface LabCardProps {
 }
 
 export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
+  console.log(lab)
   return (
     <div 
       className="glass-panel hover:border-primary-500/30 transition-all duration-300 cursor-pointer" 
@@ -47,11 +48,15 @@ export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
       
       <div className="mt-4">
         <div className="flex flex-wrap gap-2">
-          {lab.technologies.map((tech) => (
+          {/* {lab.technologies.map((tech) => (
             <span key={tech} className="px-2 py-1 text-xs font-medium bg-dark-300/50 text-primary-300 rounded-full">
               {tech}
             </span>
-          ))}
+          ))} */}
+           <span  className="px-2 py-1 text-xs font-medium bg-dark-300/50 text-primary-300 rounded-full">
+              {lab.provider}
+            </span>
+
         </div>
       </div>
       
