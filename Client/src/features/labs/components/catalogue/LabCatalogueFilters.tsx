@@ -1,7 +1,11 @@
 import React from 'react';
 import { Search, Filter } from 'lucide-react';
 
-export const LabCatalogueFilters: React.FC = () => {
+interface LabCatalogueFiltersProps {
+  onFilterChange?: (filters: any) => void;
+}
+
+export const LabCatalogueFilters: React.FC<LabCatalogueFiltersProps> = ({ onFilterChange }) => {
   return (
     <div className="glass-panel">
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">

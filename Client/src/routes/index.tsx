@@ -10,6 +10,7 @@ import { Organizations } from '../features/dashboard/pages/Organizations';
 import { UsersPage } from '../features/users/pages/UsersPage';
 import { UserProfilePage } from '../features/users/pages/UserProfilePage';
 import { LabsPage } from '../features/labs/pages/LabsPage';
+import { CataloguePage } from '../features/labs/pages/CataloguePage';
 import { CreateLabEnvironment } from '../features/labs/pages/CreateLabEnvironment';
 import { CloudResources } from '../features/dashboard/pages/CloudResources';
 import { Settings } from '../features/dashboard/pages/Settings';
@@ -30,78 +31,16 @@ export const AppRoutes: React.FC = () => {
         }
       >
         {/* Superadmin Routes */}
-        <Route 
-          index 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <SuperAdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="organizations" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <Organizations />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="users" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <UsersPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="users/:userId" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <UserProfilePage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="labs" 
-          element={
-            <ProtectedRoute>
-              <LabsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="labs/create" 
-          element={
-            <ProtectedRoute>
-              <CreateLabEnvironment />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="cloud" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <CloudResources />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="reports" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin', 'orgadmin', 'trainer']}>
-              <ReportsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="settings" 
-          element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
+        <Route index element={<Overview />} />
+        <Route path="organizations" element={<Organizations />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="users/:userId" element={<UserProfilePage />} />
+        <Route path="labs" element={<LabsPage />} />
+        <Route path="labs/catalogue" element={<CataloguePage />} />
+        <Route path="labs/create" element={<CreateLabEnvironment />} />
+        <Route path="cloud" element={<CloudResources />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       <Route path="/" element={<LoginForm />} />
