@@ -1,6 +1,7 @@
 import React from 'react';
-import { Clock, Tag, BookOpen, Star } from 'lucide-react';
+import { Clock, Tag, BookOpen, Star, Cpu } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import { TechnologyBadge } from './TechnologyBadge';
 import { Lab } from '../../types';
 
 interface CatalogueCardProps {
@@ -9,7 +10,7 @@ interface CatalogueCardProps {
 
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   return (
-    <div className="flex flex-col h-[280px] overflow-hidden rounded-xl border border-primary-500/10 
+    <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
@@ -28,19 +29,17 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           </div>
         </div>
 
-        {/* Technologies */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {/* {lab.technologies.slice(0, 3).map(tech => (
-            <span key={tech} 
-              className="px-2 py-1 text-xs font-medium bg-dark-300/50 
-                       text-primary-300 rounded-full">
-              {tech}
-            </span>
-          ))} */}
-          <span  
-              className="px-2 py-1 text-xs font-medium bg-dark-300/50 
-                       text-primary-300 rounded-full">
-            </span>
+        {/* Technologies Section */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Cpu className="h-4 w-4 text-primary-400" />
+            <span className="text-sm font-medium text-gray-300">Technologies</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {lab.technologies.map(tech => (
+              <TechnologyBadge key={tech} name={tech} />
+            ))}
+          </div>
         </div>
 
         {/* Metrics */}
@@ -52,6 +51,10 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           <div className="flex items-center">
             <Tag className="h-4 w-4 mr-1 text-primary-400" />
             {lab.type}
+          </div>
+          <div className="flex items-center">
+            <BookOpen className="h-4 w-4 mr-1 text-primary-400" />
+            {lab.prerequisites?.length || 0} Prerequisites
           </div>
         </div>
 

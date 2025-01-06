@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Lab } from '../types';
-import axios from 'axios';
 
 // Mock data - Replace with API call
 const mockLabs: Lab[] = [
@@ -28,11 +27,8 @@ export const useLabs = () => {
     const fetchLabs = async () => {
       try {
         // Simulate API call
-        // await new Promise(resolve => setTimeout(resolve, 500));
-        // setLabs(mockLabs);
-        const catalogues = await axios.get("http://localhost:3000/api/v1/getCatalogues")
-        setLabs(catalogues.data.data)
-
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setLabs(mockLabs);
       } finally {
         setIsLoading(false);
       }
