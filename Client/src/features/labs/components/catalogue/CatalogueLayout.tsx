@@ -2,6 +2,7 @@ import React from 'react';
 import { Brain } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { AIRecommendations } from './AIRecommendations';
+import { RecommendedSidebar } from './RecommendedSidebar';
 
 interface CatalogueLayoutProps {
   children: React.ReactNode;
@@ -11,9 +12,10 @@ export const CatalogueLayout: React.FC<CatalogueLayoutProps> = ({ children }) =>
   const [showRecommendations, setShowRecommendations] = React.useState(false);
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 min-w-0 max-w-5xl mx-auto">
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-display font-bold">
@@ -32,6 +34,13 @@ export const CatalogueLayout: React.FC<CatalogueLayoutProps> = ({ children }) =>
             </button>
           </div>
           {children}
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:w-80 flex-shrink-0">
+          <div className="sticky top-6">
+            <RecommendedSidebar />
+          </div>
         </div>
       </div>
 
