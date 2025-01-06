@@ -1,16 +1,19 @@
 import React from 'react';
 import { Brain } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import { AIRecommendations } from './AIRecommendations';
 
 interface CatalogueLayoutProps {
   children: React.ReactNode;
 }
 
 export const CatalogueLayout: React.FC<CatalogueLayoutProps> = ({ children }) => {
+  const [showRecommendations, setShowRecommendations] = React.useState(false);
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-display font-bold">
@@ -20,7 +23,10 @@ export const CatalogueLayout: React.FC<CatalogueLayoutProps> = ({ children }) =>
                 Browse our collection of hands-on labs and learning paths
               </p>
             </div>
-            <button className="btn-primary whitespace-nowrap">
+            <button 
+              onClick={() => setShowRecommendations(true)}
+              className="btn-primary whitespace-nowrap"
+            >
               <Brain className="h-4 w-4 mr-2" />
               Get AI Recommendations
             </button>
@@ -28,6 +34,11 @@ export const CatalogueLayout: React.FC<CatalogueLayoutProps> = ({ children }) =>
           {children}
         </div>
       </div>
+
+      <AIRecommendations 
+        isOpen={showRecommendations} 
+        onClose={() => setShowRecommendations(false)} 
+      />
     </div>
   );
 };
