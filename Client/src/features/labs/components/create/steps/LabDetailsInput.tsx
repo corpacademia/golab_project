@@ -16,6 +16,9 @@ export const LabDetailsInput: React.FC<LabDetailsInputProps> = ({ onNext }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onNext(details);
+    const storedData = JSON.parse(localStorage.getItem('formData'))|| {}
+     const updatedData = {...storedData,details}
+     localStorage.setItem('formData',JSON.stringify(updatedData))
   };
 
   return (
@@ -66,7 +69,7 @@ export const LabDetailsInput: React.FC<LabDetailsInputProps> = ({ onNext }) => {
             </label>
             <input
               type="number"
-              min="15"
+              // min="1"
               step="15"
               value={details.duration}
               onChange={(e) => setDetails(prev => ({ ...prev, duration: parseInt(e.target.value) }))}
