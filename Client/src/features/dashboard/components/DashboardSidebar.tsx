@@ -17,12 +17,13 @@ import {
 export const DashboardSidebar: React.FC = () => {
   const { user } = useAuthStore();
 
- const menuItems = {
+  const menuItems = {
     superadmin: [
       { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
       { icon: Building2, label: 'Organizations', path: '/dashboard/organizations' },
       { icon: Users, label: 'Users', path: '/dashboard/users' },
       { icon: BookOpen, label: 'Labs', path: '/dashboard/labs' },
+      { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Cloud, label: 'Cloud Resources', path: '/dashboard/cloud' },
       { icon: FileText, label: 'Reports', path: '/dashboard/reports' },
       { icon: Settings, label: 'Settings', path: '/dashboard/settings' }
@@ -31,6 +32,7 @@ export const DashboardSidebar: React.FC = () => {
       { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
       { icon: Users, label: 'Team', path: '/dashboard/team' },
       { icon: BookOpen, label: 'Labs', path: '/dashboard/labs' },
+      { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Award, label: 'Assessments', path: '/dashboard/assessments' },
       { icon: Brain, label: 'AI Lab Builder', path: '/dashboard/lab-builder' },
       { icon: FileText, label: 'Reports', path: '/dashboard/reports' },
@@ -40,6 +42,7 @@ export const DashboardSidebar: React.FC = () => {
       { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
       { icon: Users, label: 'Students', path: '/dashboard/students' },
       { icon: BookOpen, label: 'Labs', path: '/dashboard/labs' },
+      { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Award, label: 'Assessments', path: '/dashboard/assessments' },
       { icon: FileText, label: 'Reports', path: '/dashboard/reports' },
       { icon: GraduationCap, label: 'Progress', path: '/dashboard/progress' }
@@ -47,6 +50,7 @@ export const DashboardSidebar: React.FC = () => {
     user: [
       { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
       { icon: BookOpen, label: 'My Labs', path: '/dashboard/my-labs' },
+      { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Brain, label: 'Learning Path', path: '/dashboard/learning-path' },
       { icon: Award, label: 'Assessments', path: '/dashboard/assessments' },
       { icon: Cloud, label: 'Cloud Usage', path: '/dashboard/cloud-usage' }
