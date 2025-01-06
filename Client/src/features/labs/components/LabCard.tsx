@@ -11,15 +11,15 @@ interface LabCardProps {
 export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
   return (
     <div 
-      className="glass-panel hover:border-primary-500/30 transition-all duration-300 cursor-pointer" 
+      className="p-6 hover:transform hover:scale-[1.02] transition-all duration-300 cursor-pointer" 
       onClick={() => onSelect?.(lab)}
     >
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-lg font-semibold mb-2">
             <GradientText>{lab.title}</GradientText>
           </h3>
-          <p className="mt-1 text-sm text-gray-400">{lab.description}</p>
+          <p className="text-sm text-gray-400 mb-4">{lab.description}</p>
         </div>
         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
           lab.status === 'available' ? 'bg-primary-500/20 text-primary-300' :
@@ -30,7 +30,7 @@ export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
         </span>
       </div>
       
-      <div className="mt-4 flex items-center space-x-4 text-sm text-gray-400">
+      <div className="flex items-center space-x-4 text-sm text-gray-400 mb-4">
         <div className="flex items-center">
           <Clock className="h-4 w-4 mr-1 text-primary-400" />
           {lab.duration} mins
@@ -45,7 +45,7 @@ export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
         </div>
       </div>
       
-      <div className="mt-4">
+      <div className="mb-4">
         <div className="flex flex-wrap gap-2">
           {lab.technologies.map((tech) => (
             <span key={tech} className="px-2 py-1 text-xs font-medium bg-dark-300/50 text-primary-300 rounded-full">
@@ -55,7 +55,7 @@ export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
         </div>
       </div>
       
-      <div className="mt-4 flex justify-between items-center">
+      <div className="flex justify-between items-center pt-4 border-t border-primary-500/10">
         <span className="text-lg font-bold">
           <GradientText>${lab.price}</GradientText>
         </span>
