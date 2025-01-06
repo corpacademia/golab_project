@@ -8,8 +8,8 @@ interface LabCatalogueFiltersProps {
 export const LabCatalogueFilters: React.FC<LabCatalogueFiltersProps> = ({ onFilterChange }) => {
   return (
     <div className="glass-panel">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-        <div className="relative flex-1">
+      <div className="flex flex-col space-y-4">
+        <div className="relative w-full">
           <input
             type="text"
             placeholder="Search labs..."
@@ -21,7 +21,7 @@ export const LabCatalogueFilters: React.FC<LabCatalogueFiltersProps> = ({ onFilt
         </div>
 
         <div className="flex flex-wrap gap-4">
-          <select className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
+          <select className="flex-1 min-w-[150px] px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
                           text-gray-300 focus:border-primary-500/40 focus:outline-none">
             <option value="">All Technologies</option>
             <option value="aws">AWS</option>
@@ -29,7 +29,7 @@ export const LabCatalogueFilters: React.FC<LabCatalogueFiltersProps> = ({ onFilt
             <option value="kubernetes">Kubernetes</option>
           </select>
 
-          <select className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
+          <select className="flex-1 min-w-[150px] px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
                           text-gray-300 focus:border-primary-500/40 focus:outline-none">
             <option value="">All Levels</option>
             <option value="beginner">Beginner</option>
@@ -37,7 +37,7 @@ export const LabCatalogueFilters: React.FC<LabCatalogueFiltersProps> = ({ onFilt
             <option value="advanced">Advanced</option>
           </select>
 
-          <button className="btn-secondary">
+          <button className="btn-secondary whitespace-nowrap">
             <Filter className="h-4 w-4 mr-2" />
             More Filters
           </button>
