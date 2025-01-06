@@ -12,10 +12,10 @@ interface CatalogueCardProps {
 
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   return (
-    <div className="flex flex-col h-[420px] overflow-hidden rounded-xl border border-primary-500/10 
+    <div className="flex flex-col h-[380px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                    hover:translate-y-[-2px]">
+                    hover:translate-y-[-2px] group">
       <div className="p-6 flex flex-col h-full">
         {/* Header */}
         <div className="flex justify-between items-start gap-4 mb-4">
@@ -56,15 +56,10 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <GradientText>${lab.price}</GradientText>
             </span>
             <button className="w-full sm:w-auto px-6 py-2.5 rounded-lg font-medium
-                           relative overflow-hidden
                            bg-gradient-to-r from-primary-500 to-secondary-500
-                           hover:from-primary-400 hover:to-secondary-400
-                           transform hover:scale-105 transition-all duration-300
-                           text-white shadow-lg shadow-primary-500/20
-                           before:absolute before:inset-0
-                           before:bg-gradient-to-r before:from-transparent 
-                           before:via-white/20 before:to-transparent
-                           before:translate-x-[-200%] hover:before:animate-shimmer">
+                           group-hover:from-primary-400 group-hover:to-secondary-400
+                           transform group-hover:scale-105 transition-all duration-300
+                           text-white shadow-lg shadow-primary-500/20">
               Start Lab
             </button>
           </div>
