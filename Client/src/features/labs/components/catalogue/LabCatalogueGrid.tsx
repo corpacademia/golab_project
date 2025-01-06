@@ -22,7 +22,7 @@ export const LabCatalogueGrid: React.FC = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-4">
       {labs.map(lab => (
-        <div key={lab.id} className="glass-panel border border-primary-500/10 hover:border-primary-500/30 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10">
+        <div key={lab.id} className="glass-panel border border-primary-500/10 hover:border-primary-500/30 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10">
           <LabCard lab={lab} />
         </div>
       ))}
