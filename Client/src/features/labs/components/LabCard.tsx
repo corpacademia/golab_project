@@ -87,7 +87,7 @@ export const LabCard: React.FC<LabCardProps> = ({ lab, onSelect }) => {
                    before:bg-gradient-to-r before:from-transparent 
                    before:via-white/20 before:to-transparent
                    before:translate-x-[-200%] hover:before:animate-shimmer">
-          Start Lab
+          start lab
         </button>
       </div>
     </div>

@@ -6,6 +6,7 @@ export const useAssignLab = (userId: string, onSuccess: () => void) => {
   const [error, setError] = useState<string | null>(null);
 
   const assignLab = async (formData: AssignLabFormData) => {
+    
     if (!formData.labId) {
       setError('Please select a lab');
       return;

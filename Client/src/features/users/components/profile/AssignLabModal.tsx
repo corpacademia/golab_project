@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, BookOpen, AlertCircle, Clock } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface AssignLabModalProps {
   isOpen: boolean;
@@ -9,29 +10,29 @@ interface AssignLabModalProps {
 }
 
 // Mock available labs - Replace with API call
-const availableLabs = [
-  {
-    id: '1',
-    title: 'Advanced Cloud Architecture',
-    description: 'Design and implement scalable cloud solutions',
-    duration: 180,
-    technologies: ['AWS', 'Azure', 'GCP']
-  },
-  {
-    id: '2',
-    title: 'Kubernetes in Production',
-    description: 'Deploy and manage production-grade Kubernetes clusters',
-    duration: 240,
-    technologies: ['Kubernetes', 'Docker', 'Helm']
-  },
-  {
-    id: '3',
-    title: 'CI/CD Pipeline Implementation',
-    description: 'Build automated deployment pipelines',
-    duration: 120,
-    technologies: ['Jenkins', 'GitLab', 'GitHub Actions']
-  }
-];
+// const availableLabs = [
+//   {
+//     id: '1',
+//     title: 'Advanced Cloud Architecture',
+//     description: 'Design and implement scalable cloud solutions',
+//     duration: 180,
+//     technologies: ['AWS', 'Azure', 'GCP']
+//   },
+//   {
+//     id: '2',
+//     title: 'Kubernetes in Production',
+//     description: 'Deploy and manage production-grade Kubernetes clusters',
+//     duration: 240,
+//     technologies: ['Kubernetes', 'Docker', 'Helm']
+//   },
+//   {
+//     id: '3',
+//     title: 'CI/CD Pipeline Implementation',
+//     description: 'Build automated deployment pipelines',
+//     duration: 120,
+//     technologies: ['Jenkins', 'GitLab', 'GitHub Actions']
+//   }
+// ];
 
 export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   isOpen,
@@ -42,6 +43,17 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const [duration, setDuration] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [availableLabs , setAvailableLabs] = useState([]);
+  const [selectedLabDetails , setSelectedLabDetails] = useState();
+
+  const admin= JSON.parse(localStorage.getItem('auth'))
+  useEffect(()=>{
+       const fetch = async()=>{
+        const data = await axios.get('http://localhost:3000/api/v1/getCatalogues')
+        setAvailableLabs(data.data.data)
+       }
+       fetch();
+  },[])
 
   const handleAssign = async () => {
     if (!selectedLab) {
@@ -53,19 +65,38 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
       setError('Please specify a valid duration');
       return;
     }
-
-    setIsAssigning(true);
-    setError(null);
-
+    const lab = availableLabs.filter((lab)=>{
+      return lab.lab_id.includes(selectedLab)
+    })
+    setSelectedLabDetails(lab)
     try {
-      // TODO: Implement API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      onClose();
-    } catch (err) {
-      setError('Failed to assign lab. Please try again.');
-    } finally {
+      const assign = await axios.post('http://localhost:3000/api/v1/assignlab',{
+        lab:lab,
+        duration:duration,
+        userId:userId,
+        assign_admin_id:admin.result.id
+      })
+     if(assign.data.success){
+      // onSuccess()
+      setIsAssigning(true);  
+     }
+     
+    } catch (error) {
+      setIsAssigning(false);
+      setError(error.response.data.message);
+    }
+    
+    finally {
       setIsAssigning(false);
     }
+    // try {
+      // TODO: Implement API call
+      // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    //   onClose();
+    // } catch (err) {
+    //   setError('Failed to assign lab. Please try again.');
+    // } 
+    
   };
 
   if (!isOpen) return null;
@@ -99,7 +130,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
             >
               <option value="">Select a lab</option>
               {availableLabs.map(lab => (
-                <option key={lab.id} value={lab.id}>
+                <option key={lab.lab_id} value={lab.lab_id}>
                   {lab.title}
                 </option>
               ))}
@@ -130,14 +161,14 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
               <div className="flex items-center space-x-3 mb-2">
                 <BookOpen className="h-5 w-5 text-primary-400" />
                 <h3 className="font-medium text-gray-200">
-                  {availableLabs.find(l => l.id === selectedLab)?.title}
+                  {availableLabs.find(l => l.lab_id === selectedLab)?.title}
                 </h3>
               </div>
               <p className="text-sm text-gray-400 mb-2">
-                {availableLabs.find(l => l.id === selectedLab)?.description}
+                {availableLabs.find(l => l.lab_id === selectedLab)?.description}
               </p>
               <div className="flex flex-wrap gap-2 mb-2">
-                {availableLabs.find(l => l.id === selectedLab)?.technologies.map(tech => (
+                {/* {availableLabs.find(l => l.lab_id === selectedLab)?.technologies.map(tech => (
                   <span 
                     key={tech}
                     className="px-2 py-1 text-xs font-medium rounded-full
@@ -145,10 +176,18 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
                   >
                     {tech}
                   </span>
-                ))}
+                ))} */}
+                 
+                  <span 
+                    className="px-2 py-1 text-xs font-medium rounded-full
+                             bg-primary-500/20 text-primary-300"
+                  >
+                    {availableLabs.find(l => l.lab_id === selectedLab)?.provider}
+                  </span>
+                
               </div>
               <div className="text-sm text-gray-400">
-                Recommended duration: {availableLabs.find(l => l.id === selectedLab)?.duration} minutes
+                Recommended duration: {availableLabs.find(l => l.lab_id === selectedLab)?.duration} minutes
               </div>
             </div>
           )}

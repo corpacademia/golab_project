@@ -62,7 +62,12 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         data:data,
         user:user,
       })
+      if(!response.data.success){
+            return
+      }
       localStorage.removeItem('formData');
+
+      // const ec2_script = await axios.get('http://localhost:3000/api/v1/python/aws/ec2')
     }
     catch(error){
       console.log(error)

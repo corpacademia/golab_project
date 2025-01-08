@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Lab } from '../types';
+import axios from 'axios';
+
 
 // Mock data - Replace with API call
 const mockLabs: Lab[] = [
@@ -19,16 +21,26 @@ const mockLabs: Lab[] = [
   // Add more mock labs...
 ];
 
+
 export const useLabs = () => {
   const [labs, setLabs] = useState<Lab[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // const [filters,setFilters]=useState({
+  //   search:'',
+  //   technology:"",
+  //   level:'',
+  // })
+  
   useEffect(() => {
     const fetchLabs = async () => {
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setLabs(mockLabs);
+        // await new Promise(resolve => setTimeout(resolve, 500));
+        // setLabs(mockLabs);
+        const catalogues = await axios.get("http://localhost:3000/api/v1/getCatalogues")
+        setLabs(catalogues.data.data)
+
       } finally {
         setIsLoading(false);
       }
@@ -36,6 +48,7 @@ export const useLabs = () => {
 
     fetchLabs();
   }, []);
+
 
   return { labs, isLoading };
 };

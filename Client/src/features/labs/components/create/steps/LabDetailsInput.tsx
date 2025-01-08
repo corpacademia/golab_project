@@ -12,9 +12,11 @@ export const LabDetailsInput: React.FC<LabDetailsInputProps> = ({ onNext }) => {
     description: '',
     duration: 60 // Default duration in minutes
   });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const prevData = JSON.parse(localStorage.getItem('formData')) || {}
+    const updatedData = {...prevData, details};
+    localStorage.setItem('formData',JSON.stringify(updatedData))
     onNext(details);
   };
 

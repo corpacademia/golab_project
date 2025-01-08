@@ -73,7 +73,6 @@ export const UsersPage: React.FC = () => {
         const response = await axios.get('http://localhost:3000/api/v1/allUsers')
         setOriginalUsers(response.data.data)
         setUsers(response.data.data)
-         console.log(response.data.data)
           let  totalUsers = response.data.data.length
           let activeUsers = 1894
           let trainers = response.data.data.filter((u)=>(  u.role ==='trainer' )).length;

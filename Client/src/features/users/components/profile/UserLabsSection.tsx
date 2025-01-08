@@ -9,11 +9,9 @@ interface UserLabsSectionProps {
 }
 
 export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
-  const { labs, isLoading } = useUserLabs(userId);
+  const { labs , labStatus , isLoading } = useUserLabs(userId);
   const [isAssignModalOpen, setIsAssignModalOpen] = React.useState(false);
-
   if (isLoading) return <div>Loading labs...</div>;
-
   return (
     <div className="glass-panel">
       <div className="flex justify-between items-center mb-6">
@@ -30,8 +28,8 @@ export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
       </div>
 
       <div className="space-y-4">
-        {labs.map(lab => (
-          <div key={lab.id} className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors">
+        {labs.map((lab,index) => (
+          <div key={lab.lab_id} className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors">
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">
                 <BookOpen className="h-5 w-5 text-primary-400" />
@@ -40,13 +38,16 @@ export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
                   <p className="text-sm text-gray-400">{lab.description}</p>
                 </div>
               </div>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                lab.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
-                lab.status === 'in-progress' ? 'bg-amber-500/20 text-amber-300' :
-                'bg-primary-500/20 text-primary-300'
-              }`}>
-                {lab.status}
-              </span>
+              {/* {labStatus.map((lab)=>( */}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  lab.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                  lab.status === 'in_progress' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-primary-500/20 text-primary-300'
+                }`}>
+                  {labStatus[index].status}
+                </span>
+              {/* ))} */}
+              
             </div>
           </div>
         ))}

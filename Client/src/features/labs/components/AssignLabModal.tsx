@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { LabSelector } from './LabSelector';
 import { DurationInput } from './DurationInput';
 import { LabDetails } from './LabDetails';
 import { useAssignLab } from '../hooks/useAssignLab';
-import { availableLabs } from '../data/mockLabs';
+import axios from 'axios';
+// import { availableLabs } from '../data/mockLabs';
 
 interface AssignLabModalProps {
   isOpen: boolean;
@@ -21,11 +22,18 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const [selectedLab, setSelectedLab] = useState<string>('');
   const [duration, setDuration] = useState<number>(0);
   const { assignLab, isAssigning, error } = useAssignLab(userId, onClose);
+  const [availableLabs,setAvailableLabs] = useState([])
 
+  useEffect(()=>{
+    const fetch = async()=>{
+        const lab = await axios.get('http://localhost:3000/api/v1/getCatalogues')
+        setAvailableLabs(lab.data.data)
+    }
+    fetch();
+},[])
   if (!isOpen) return null;
-
-  const selectedLabData = availableLabs.find(lab => lab.id === selectedLab);
-
+  const selectedLabData = availableLabs.find(lab => lab.lab_id === selectedLab);
+ console.log('working')
   const handleAssign = () => {
     assignLab({ labId: selectedLab, duration });
   };

@@ -25,6 +25,7 @@ export const CatalogueGrid: React.FC<CatalogueGridProps> = ({ labs, isLoading })
   const recommendedLabs = labs.slice(0, 2);
   const remainingLabs = labs.slice(2);
 
+
   return (
     <div className="space-y-8">
       <RecommendedLabs labs={recommendedLabs} />

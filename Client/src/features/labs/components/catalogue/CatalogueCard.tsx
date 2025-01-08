@@ -9,6 +9,7 @@ interface CatalogueCardProps {
 }
 
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
+  const user = JSON.parse(localStorage.getItem('auth')) || {}
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -33,12 +34,12 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
             <Cpu className="h-4 w-4 text-primary-400" />
-            <span className="text-sm font-medium text-gray-300">Technologies</span>
+            <span className="text-sm font-medium text-gray-300">Cloud</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {lab.technologies.map(tech => (
-              <TechnologyBadge key={tech} name={tech} />
-            ))}
+            {/* {lab.technologies.map(tech => ( */}
+              <TechnologyBadge key={lab.provider} name={lab.provider} />
+            {/* ))} */}
           </div>
         </div>
 
@@ -69,7 +70,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                            hover:from-primary-400 hover:to-secondary-400
                            transform hover:scale-105 transition-all duration-300
                            text-white shadow-lg shadow-primary-500/20">
-              Start Lab
+              {user?.result?.role ==='user' ? 'Start Lab' : 'Preview'}
             </button>
           </div>
         </div>
