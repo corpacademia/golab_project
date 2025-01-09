@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { Plus, BookOpen } from 'lucide-react';
@@ -6,65 +6,156 @@ import { LabTypeCard } from '../components/LabTypeCard';
 import { LabTypeOverview } from '../components/admin/LabTypeOverview';
 import { LabManagementTabs } from '../components/admin/LabManagementTabs';
 import { LabType } from '../types';
+import axios from 'axios';
 
-const labMetrics = {
-  catalogue: {
-    activeUsers: 1245,
-    averageUsage: 78,
-    uptime: 99.9,
-    incidents: 0,
-    costTrend: 5
-  },
-  'cloud-vm': {
-    activeUsers: 856,
-    averageUsage: 82,
-    uptime: 99.8,
-    incidents: 2,
-    costTrend: 8
-  },
-  'dedicated-vm': {
-    activeUsers: 425,
-    averageUsage: 91,
-    uptime: 99.95,
-    incidents: 1,
-    costTrend: 3
-  },
-  cluster: {
-    activeUsers: 156,
-    averageUsage: 75,
-    uptime: 99.7,
-    incidents: 3,
-    costTrend: 12
-  },
-  'cloud-slice': {
-    activeUsers: 678,
-    averageUsage: 68,
-    uptime: 99.85,
-    incidents: 1,
-    costTrend: 15
-  },
-  emulator: {
-    activeUsers: 342,
-    averageUsage: 72,
-    uptime: 99.9,
-    incidents: 0,
-    costTrend: 4
-  }
-};
+// const labMetrics = {
+//   catalogue: {
+//     activeUsers: 1245,
+//     averageUsage: 78,
+//     uptime: 99.9,
+//     incidents: 0,
+//     costTrend: 5
+//   },
+//   'cloud-vm': {
+//     activeUsers: 856,
+//     averageUsage: 82,
+//     uptime: 99.8,
+//     incidents: 2,
+//     costTrend: 8
+//   },
+//   'dedicated-vm': {
+//     activeUsers: 425,
+//     averageUsage: 91,
+//     uptime: 99.95,
+//     incidents: 1,
+//     costTrend: 3
+//   },
+//   cluster: {
+//     activeUsers: 156,
+//     averageUsage: 75,
+//     uptime: 99.7,
+//     incidents: 3,
+//     costTrend: 12
+//   },
+//   'cloud-slice': {
+//     activeUsers: 678,
+//     averageUsage: 68,
+//     uptime: 99.85,
+//     incidents: 1,
+//     costTrend: 15
+//   },
+//   emulator: {
+//     activeUsers: 342,
+//     averageUsage: 72,
+//     uptime: 99.9,
+//     incidents: 0,
+//     costTrend: 4
+//   }
+// };
 
-const labCounts: Record<LabType, number> = {
-  catalogue: 245,
-  'cloud-vm': 128,
-  'dedicated-vm': 64,
-  cluster: 32,
-  'cloud-slice': 96,
-  emulator: 48
-};
+// const labCounts: Record<LabType, number> = {
+//   catalogue: 245,
+//   'cloud-vm': 128,
+//   'dedicated-vm': 64,
+//   cluster: 32,
+//   'cloud-slice': 96,
+//   emulator: 48
+// };
 
 export const LabsPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<LabType | null>(null);
   const [activeTab, setActiveTab] = useState('settings');
+  const [metrics, setMetrics] = useState({
+    catalogue: {
+      activeUsers: 1245,
+      averageUsage: 78,
+      uptime: 99.9,
+      incidents: 0,
+      costTrend: 5,
+    },
+    "cloud-vm": {
+      activeUsers: 856,
+      averageUsage: 82,
+      uptime: 99.8,
+      incidents: 2,
+      costTrend: 8,
+    },
+    "dedicated-vm": {
+      activeUsers: 425,
+      averageUsage: 91,
+      uptime: 99.95,
+      incidents: 1,
+      costTrend: 3,
+    },
+    cluster: {
+      activeUsers: 156,
+      averageUsage: 75,
+      uptime: 99.7,
+      incidents: 3,
+      costTrend: 12,
+    },
+    "cloud-slice": {
+      activeUsers: 678,
+      averageUsage: 68,
+      uptime: 99.85,
+      incidents: 1,
+      costTrend: 15,
+    },
+    emulator: {
+      activeUsers: 342,
+      averageUsage: 72,
+      uptime: 99.9,
+      incidents: 0,
+      costTrend: 4,
+    },
+  });
+  const [labCounts , setLabCounts] = useState({
+    catalogue: 245,
+      'cloud-vm': 128,
+      'dedicated-vm': 64,
+      cluster: 32,
+      'cloud-slice': 96,
+      emulator: 48
+  })
+  //update the labcounts
+  const updateCount = async(updates)=>{
+         setLabCounts((prev) => ({
+            ...prev,
+            ...updates
+         }))
+  }
+
+   // Function to update a specific service's metric
+   const updateMultipleMetrics = (updates) => {
+    setMetrics((prevMetrics) => {
+      const updatedMetrics = { ...prevMetrics };
+
+      for (const [service, newValues] of Object.entries(updates)) {
+        updatedMetrics[service] = {
+          ...updatedMetrics[service],
+          ...newValues,
+        };
+      }
+
+      return updatedMetrics;
+    });
+  };
+
+  useEffect(()=>{
+
+    const data = async()=>{
+    const response = await axios.get('http://localhost:3000/api/v1/allUsers')
+    const activeUsers = response.data.data.filter((user)=>user.status === 'active').length
+
+    //setstate
+    const updates = {catalogue:{'activeUsers':activeUsers}}
+    const updateCountData = {catalogue:4,'cloud-vm':2}
+    updateMultipleMetrics(updates)
+    updateCount(updateCountData)
+    }
+    data();
+  },[])
 
   const handleTypeSelect = (type: LabType) => {
     if (type === 'catalogue') {
@@ -74,7 +165,6 @@ export const LabsPage: React.FC = () => {
       setActiveTab('settings');
     }
   };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -109,7 +199,7 @@ export const LabsPage: React.FC = () => {
         <>
           <LabTypeOverview 
             type={selectedType}
-            metrics={labMetrics[selectedType]}
+            metrics={metrics[selectedType]}
           />
           <LabManagementTabs
             type={selectedType}

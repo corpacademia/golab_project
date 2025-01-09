@@ -74,7 +74,7 @@ export const UsersPage: React.FC = () => {
         setOriginalUsers(response.data.data)
         setUsers(response.data.data)
           let  totalUsers = response.data.data.length
-          let activeUsers = 1894
+          let activeUsers = response.data.data.filter((u)=>(  u.status ==='active' )).length;
           let trainers = response.data.data.filter((u)=>(  u.role ==='trainer' )).length;
           const distinctOrganizations = new Set(
             response.data.data
