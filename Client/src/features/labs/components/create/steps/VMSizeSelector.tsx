@@ -6,6 +6,7 @@ interface VMSizeConfig {
   cpu: number;
   ram: number;
   storage: number;
+  os?: string;
 }
 
 interface VMSizeSelectorProps {
@@ -15,8 +16,9 @@ interface VMSizeSelectorProps {
 export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
   const [config, setConfig] = useState<VMSizeConfig>({
     cpu: 2,
-    ram: 4,
-    storage: 100
+    ram: 2,
+    storage: 50,
+    os: 'windows'
   });
 
   const handleSubmit = () => {
@@ -34,6 +36,26 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
 
       <div className="glass-panel space-y-6">
         <div className="space-y-4">
+          <div>
+            <label className="flex items-center text-gray-300 mb-2">
+              Operating System
+            </label>
+            <select
+              value={config.os}
+              onChange={(e) => setConfig(prev => ({ ...prev, os: e.target.value }))}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+            >
+              <option value="ubuntu">ubuntu</option>
+              <option value="linux">linux</option>
+              <option value="windows">windows</option>
+              <option value="rhel">rhel</option>
+              {/* <option value="windows-server-2019">Windows Server 2019</option>
+              <option value="windows-server-2022">Windows Server 2022</option> */}
+            </select>
+          </div>
+
           <div>
             <label className="flex items-center text-gray-300 mb-2">
               <Cpu className="h-4 w-4 mr-2" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Brain, Check, DollarSign, Globe } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import axios from 'axios';
@@ -10,46 +10,60 @@ interface AIRecommendationsProps {
 
 export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, onConfirm }) => {
   // Mock AI recommendations
-  const recommendations = {
-    instances: [
-      {
-        type: 't3.large',
-        provider: 'AWS',
-        region: 'us-east-1',
-        cost: 0.0832,
-        specs: {
-          cpu: '2 vCPU',
-          ram: '8 GB',
-          network: 'Up to 5 Gbps'
-        }
-      },
-      {
-        type: 't3.xlarge',
-        provider: 'AWS',
-        region: 'us-west-2',
-        cost: 0.1664,
-        specs: {
-          cpu: '4 vCPU',
-          ram: '16 GB',
-          network: 'Up to 5 Gbps'
-        }
+  // const recommendations = {
+  //   instances: [
+  //     {
+  //       type: 't3.large',
+  //       provider: 'AWS',
+  //       region: 'us-east-1',
+  //       cost: 0.0832,
+  //       specs: {
+  //         cpu: '2 vCPU',
+  //         ram: '8 GB',
+  //         network: 'Up to 5 Gbps'
+  //       }
+  //     },
+  //     {
+  //       type: 't3.xlarge',
+  //       provider: 'AWS',
+  //       region: 'us-west-2',
+  //       cost: 0.1664,
+  //       specs: {
+  //         cpu: '4 vCPU',
+  //         ram: '16 GB',
+  //         network: 'Up to 5 Gbps'
+  //       }
+  //     }
+  //   ],
+  //   regions: [
+  //     {
+  //       name: 'us-east-1',
+  //       location: 'N. Virginia',
+  //       latency: '45ms',
+  //       cost: 1.0
+  //     },
+  //     {
+  //       name: 'us-west-2',
+  //       location: 'Oregon',
+  //       latency: '85ms',
+  //       cost: 0.95
+  //     }
+  //   ]
+  // };
+  const [recommendations , setRecommendations] = useState([]);
+  // const [selectedOS, setSelectedOS] = useState(''); 
+  // setSelectedOS(config.vmSize.os)
+  useEffect(()=>{
+      const fetch = async()=>{
+        const result = await axios.post('http://localhost:3000/api/v1/getInstances',{
+          cpu:config.vmSize.cpu,
+          ram:config.vmSize.ram,
+          storage:config.vmSize.storage,
+        })
+        setRecommendations(result.data.result)
       }
-    ],
-    regions: [
-      {
-        name: 'us-east-1',
-        location: 'N. Virginia',
-        latency: '45ms',
-        cost: 1.0
-      },
-      {
-        name: 'us-west-2',
-        location: 'Oregon',
-        latency: '85ms',
-        cost: 0.95
-      }
-    ]
-  };
+      fetch();
+  },[])
   const handleData=async (instance)=>{
     const storedData = JSON.parse(localStorage.getItem('formData'))|| {}
     const updatedData = {...storedData,instance}
@@ -62,12 +76,8 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         data:data,
         user:user,
       })
-      if(!response.data.success){
-            return
-      }
+      // const terraform = await axios.get('http://localhost:3000/api/v1/python/aws/ec2')
       localStorage.removeItem('formData');
-
-      // const ec2_script = await axios.get('http://localhost:3000/api/v1/python/aws/ec2')
     }
     catch(error){
       console.log(error)
@@ -75,6 +85,25 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
    
 
   }
+  // Function to get price based on OS
+  const getPriceByOS = (instance) => {
+    switch (config.vmSize.os) {
+      case 'linux':
+        return instance.ondemand_linux_base_pricing;
+      case 'windows':
+        return instance.ondemand_windows_base_pricing;
+      case 'ubuntu':
+        return instance.ondemand_ubuntu_pro_base_pricing;
+      case 'suse':
+        return instance.ondemand_suse_base_pricing;
+      case 'rhel':
+        return instance.ondemand_rhel_base_pricing;
+      default:
+        return 0; // Fallback to Linux
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-display font-semibold">
@@ -91,40 +120,40 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
           </div>
 
           <div className="space-y-4">
-            {recommendations.instances.map((instance, index) => (
+            {recommendations.map((instance, index) => (
               <div 
-                key={instance.type}
+                key={instance.instancename}
                 className="p-4 bg-dark-300/50 rounded-lg"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h4 className="font-medium text-gray-200">{instance.type}</h4>
+                    <h4 className="font-medium text-gray-200">{instance.instancename}</h4>
                     <p className="text-sm text-gray-400">{instance.provider} • {instance.region}</p>
                   </div>
                   <div className="flex items-center text-emerald-400">
                     <DollarSign className="h-4 w-4 mr-1" />
-                    <span>${instance.cost}/hour</span>
+                    <span>{getPriceByOS(instance)}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <span className="block text-gray-400">CPU</span>
-                    <span className="text-gray-200">{instance.specs.cpu}</span>
+                    <span className="text-gray-200">{instance.vcpu}</span>
                   </div>
                   <div>
                     <span className="block text-gray-400">Memory</span>
-                    <span className="text-gray-200">{instance.specs.ram}</span>
+                    <span className="text-gray-200">{instance.memory}</span>
                   </div>
                   <div>
                     <span className="block text-gray-400">Network</span>
-                    <span className="text-gray-200">{instance.specs.network}</span>
+                    <span className="text-gray-200">{instance.networkperformance}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => {onConfirm(instance.region)
-                    handleData(instance.type)
+                    handleData(instance.instancename)
                   }}
                   className="mt-4 w-full btn-primary"
                 >
@@ -144,7 +173,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
             </h3>
           </div>
 
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             {recommendations.regions.map((region) => (
               <div 
                 key={region.name}
@@ -164,7 +193,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

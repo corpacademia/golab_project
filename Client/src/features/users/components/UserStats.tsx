@@ -12,7 +12,6 @@ interface UserStatsProps {
 }
 
 export const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
-  console.log(stats)
   const metrics = [
     {
       label: 'Total Users',
