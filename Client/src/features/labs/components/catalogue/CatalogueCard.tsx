@@ -70,7 +70,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                            hover:from-primary-400 hover:to-secondary-400
                            transform hover:scale-105 transition-all duration-300
                            text-white shadow-lg shadow-primary-500/20">
-              {user?.result?.role ==='user' ? 'Start Lab' : 'Preview'}
+              {user?.result?.role ==='user' ? 'Buy Lab' : 'Preview'}
             </button>
           </div>
         </div>
