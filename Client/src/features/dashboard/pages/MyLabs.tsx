@@ -2,12 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { 
   Clock, Tag, BookOpen, Play, FolderX, Brain, 
-  ExternalLink, Sparkles, Target, TrendingUp, 
-  BarChart, Award, Search, Filter
+  Search, Filter, Sparkles, Target, TrendingUp
 } from 'lucide-react';
 import axios from 'axios';
 
-// Add interfaces for filters
 interface Filters {
   search: string;
   provider: string;
@@ -59,7 +57,6 @@ export const MyLabs: React.FC = () => {
   useEffect(() => {
     let result = [...labs];
 
-    // Apply search filter
     if (filters.search) {
       result = result.filter(lab => 
         lab.title.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -67,12 +64,10 @@ export const MyLabs: React.FC = () => {
       );
     }
 
-    // Apply provider filter
     if (filters.provider) {
       result = result.filter(lab => lab.provider.toLowerCase() === filters.provider.toLowerCase());
     }
 
-    // Apply status filter
     if (filters.status) {
       result = result.filter((lab, index) => 
         labStatus[index]?.status === filters.status
@@ -92,62 +87,120 @@ export const MyLabs: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-display font-bold">
-          <GradientText>My Labs</GradientText>
-        </h1>
-        
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search labs..."
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none
-                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
-            />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+      {/* Header and Filters */}
+      <div className="glass-panel p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="flex-1">
+            <h1 className="text-2xl font-display font-bold mb-2">
+              <GradientText>My Labs</GradientText>
+            </h1>
+            <p className="text-gray-400">Track your progress and continue your learning journey</p>
           </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search labs..."
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none
+                         focus:ring-2 focus:ring-primary-500/20 transition-colors"
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+            </div>
 
-          <select
-            value={filters.provider}
-            onChange={(e) => setFilters(prev => ({ ...prev, provider: e.target.value }))}
-            className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                     text-gray-300 focus:border-primary-500/40 focus:outline-none
-                     focus:ring-2 focus:ring-primary-500/20 transition-colors"
-          >
-            <option value="">All Providers</option>
-            <option value="aws">AWS</option>
-            <option value="azure">Azure</option>
-            <option value="ibm">IBM</option>
-            <option value="oracle">Oracle</option>
-          </select>
+            <select
+              value={filters.provider}
+              onChange={(e) => setFilters(prev => ({ ...prev, provider: e.target.value }))}
+              className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+            >
+              <option value="">All Providers</option>
+              <option value="aws">AWS</option>
+              <option value="azure">Azure</option>
+              <option value="ibm">IBM</option>
+              <option value="oracle">Oracle</option>
+            </select>
 
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                     text-gray-300 focus:border-primary-500/40 focus:outline-none
-                     focus:ring-2 focus:ring-primary-500/20 transition-colors"
-          >
-            <option value="">All Status</option>
-            <option value="completed">Completed</option>
-            <option value="in_progress">In Progress</option>
-            <option value="pending">Pending</option>
-          </select>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+            >
+              <option value="">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="in_progress">In Progress</option>
+              <option value="pending">Pending</option>
+            </select>
 
-          <button 
-            onClick={() => setFilters({ search: '', provider: '', status: '' })}
-            className="btn-secondary"
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Clear Filters
-          </button>
+            <button 
+              onClick={() => setFilters({ search: '', provider: '', status: '' })}
+              className="btn-secondary whitespace-nowrap"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* AI Recommendations */}
+      <div className="glass-panel p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Brain className="h-6 w-6 text-primary-400" />
+          <div>
+            <h2 className="text-lg font-semibold">
+              <GradientText>AI Recommendations</GradientText>
+            </h2>
+            <p className="text-sm text-gray-400">Personalized suggestions based on your progress</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <Target className="h-5 w-5 text-primary-400" />
+              <h3 className="font-medium text-gray-200">Next Best Lab</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-3">Complete AWS Solutions Architect to advance your cloud skills</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-primary-400">98% match</span>
+              <button className="text-xs text-primary-400 hover:text-primary-300">View Details →</button>
+            </div>
+          </div>
+
+          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <Sparkles className="h-5 w-5 text-accent-400" />
+              <h3 className="font-medium text-gray-200">Skill Gap</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-3">Focus on Kubernetes to strengthen your container orchestration</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-accent-400">Key skill</span>
+              <button className="text-xs text-accent-400 hover:text-accent-300">Explore Labs →</button>
+            </div>
+          </div>
+
+          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
+            <div className="flex items-center gap-3 mb-2">
+              <TrendingUp className="h-5 w-5 text-secondary-400" />
+              <h3 className="font-medium text-gray-200">Learning Path</h3>
+            </div>
+            <p className="text-sm text-gray-400 mb-3">Continue Cloud Architecture path - 65% complete</p>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-secondary-400">In Progress</span>
+              <button className="text-xs text-secondary-400 hover:text-secondary-300">Resume →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lab Cards */}
       {filteredLabs.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
           <FolderX className="h-16 w-16 text-gray-400 mb-4" />
@@ -171,13 +224,13 @@ export const MyLabs: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Rest of the lab cards code remains the same */}
           {filteredLabs.map((lab, index) => (
             <div key={lab.lab_id} 
                 className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                           hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                           transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                           hover:translate-y-[-2px] group">
-              {/* Rest of the lab card content remains the same */}
               <div className="p-4 flex flex-col h-full">
                 <div className="flex justify-between items-start gap-4 mb-3">
                   <div className="flex-1">
