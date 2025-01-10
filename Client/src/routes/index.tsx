@@ -15,6 +15,7 @@ import { CreateLabEnvironment } from '../features/labs/pages/CreateLabEnvironmen
 import { CloudResources } from '../features/dashboard/pages/CloudResources';
 import { Settings } from '../features/dashboard/pages/Settings';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
+import { MyLabs } from '../features/dashboard/pages/MyLabs';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -41,6 +42,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="cloud" element={<CloudResources />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<Settings />} />
+        
+        {/* User Routes */}
+        <Route path="my-labs" element={<MyLabs />} />
       </Route>
 
       <Route path="/" element={<LoginForm />} />
