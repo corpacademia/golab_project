@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Clock, Tag, BookOpen, Play } from 'lucide-react';
+import { Clock, Tag, BookOpen, Play, FolderX } from 'lucide-react';
 import axios from 'axios';
 
 export const MyLabs: React.FC = () => {
@@ -38,6 +38,28 @@ export const MyLabs: React.FC = () => {
 
   if (isLoading) {
     return <div>Loading...</div>;
+  }
+
+  // Show empty state if there are no labs
+  if (labs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
+        <FolderX className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">
+          <GradientText>No Labs Available</GradientText>
+        </h2>
+        <p className="text-gray-400 text-center max-w-md mb-6">
+          You haven't been assigned any labs yet. Check out our lab catalogue to get started with your learning journey.
+        </p>
+        <a 
+          href="/dashboard/labs/catalogue"
+          className="btn-primary"
+        >
+          <BookOpen className="h-4 w-4 mr-2" />
+          Browse Lab Catalogue
+        </a>
+      </div>
+    );
   }
 
   return (
