@@ -26,9 +26,9 @@ export const MyLabs: React.FC = () => {
         
         setLabs(filteredCatalogues);
         setLabStatus(labss);
-        setIsLoading(false);
       } catch (error) {
         console.error('Error fetching labs:', error);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -37,10 +37,13 @@ export const MyLabs: React.FC = () => {
   }, []);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
   }
 
-  // Show empty state if there are no labs
   if (labs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
@@ -76,7 +79,6 @@ export const MyLabs: React.FC = () => {
                         transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                         hover:translate-y-[-2px] group">
             <div className="p-4 flex flex-col h-full">
-              {/* Header */}
               <div className="flex justify-between items-start gap-4 mb-3">
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold mb-1">
@@ -93,7 +95,6 @@ export const MyLabs: React.FC = () => {
                 </span>
               </div>
 
-              {/* Metadata */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center text-sm text-gray-400">
                   <Clock className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
@@ -109,7 +110,6 @@ export const MyLabs: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action Footer */}
               <div className="mt-auto pt-3 border-t border-primary-500/10">
                 <button className="w-full px-4 py-2 rounded-lg text-sm font-medium
                                 bg-gradient-to-r from-primary-500 to-secondary-500
