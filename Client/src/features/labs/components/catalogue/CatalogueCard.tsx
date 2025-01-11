@@ -12,18 +12,23 @@ interface CatalogueCardProps {
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showPreviewDetails, setShowPreviewDetails] = useState(false);
-  const user = JSON.parse(localStorage.getItem('auth')) || {};
-  const formData = JSON.parse(localStorage.getItem('formData') || '{}');
-
+  const user = JSON.parse(localStorage.getItem('auth') || '{}');
+  
+  // Get the latest instance configuration
   const getInstanceDetails = () => {
-    if (!formData.config) return null;
-    return {
-      cpu: formData.config.cpu,
-      ram: formData.config.ram,
-      storage: formData.config.storage,
-      os: formData.config.os,
-      provider: formData.provider || 'AWS'
-    };
+    try {
+      const formData = JSON.parse(localStorage.getItem('formData') || '{}');
+      if (!formData.instance) return null;
+      
+      return {
+        instance: formData.instance,
+        provider: formData.provider || 'AWS',
+        config: formData.config || {}
+      };
+    } catch (error) {
+      console.error('Error parsing instance details:', error);
+      return null;
+    }
   };
 
   const instanceDetails = getInstanceDetails();
@@ -108,34 +113,42 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                   {/* Preview Details Tooltip */}
                   {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64
-                                  bg-dark-200 border border-primary-500/20 rounded-lg p-3 shadow-lg
-                                  text-sm z-50">
+                                  bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
+                                  rounded-lg p-3 shadow-lg text-sm z-50">
                       <div className="text-gray-300 font-medium mb-2">Instance Details</div>
-                      <div className="space-y-1 text-gray-400">
+                      <div className="space-y-1.5 text-gray-400">
+                        <div className="flex justify-between">
+                          <span>Instance:</span>
+                          <span className="text-primary-400">{instanceDetails.instance}</span>
+                        </div>
                         <div className="flex justify-between">
                           <span>Provider:</span>
                           <span className="text-primary-400">{instanceDetails.provider}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>CPU:</span>
-                          <span className="text-primary-400">{instanceDetails.cpu} Cores</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>RAM:</span>
-                          <span className="text-primary-400">{instanceDetails.ram} GB</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Storage:</span>
-                          <span className="text-primary-400">{instanceDetails.storage} GB</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>OS:</span>
-                          <span className="text-primary-400">{instanceDetails.os}</span>
-                        </div>
+                        {instanceDetails.config && (
+                          <>
+                            <div className="flex justify-between">
+                              <span>CPU:</span>
+                              <span className="text-primary-400">{instanceDetails.config.cpu} Cores</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>RAM:</span>
+                              <span className="text-primary-400">{instanceDetails.config.ram} GB</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Storage:</span>
+                              <span className="text-primary-400">{instanceDetails.config.storage} GB</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>OS:</span>
+                              <span className="text-primary-400">{instanceDetails.config.os}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                       {/* Arrow */}
                       <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2
-                                    w-3 h-3 bg-dark-200 border-r border-b border-primary-500/20
+                                    w-3 h-3 bg-dark-200/95 border-r border-b border-primary-500/20
                                     rotate-45"></div>
                     </div>
                   )}
@@ -153,4 +166,5 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       />
     </>
   );
+
 };
