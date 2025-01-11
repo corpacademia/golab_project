@@ -5,7 +5,7 @@ import { VMSizeSelector } from './steps/VMSizeSelector';
 import { AIRecommendations } from './steps/AIRecommendations';
 import { DeploymentStatus } from './steps/DeploymentStatus';
 import { LabDetailsInput } from './steps/LabDetailsInput';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SingleVMWorkflowProps {
   onBack: () => void;
@@ -28,42 +28,60 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     setStep(prev => prev + 1);
   };
 
-  const handleBack = () => {
-    if (step === 1) {
-      onBack();
-    } else {
-      setStep(prev => prev - 1);
+  const getBreadcrumbs = () => {
+    const breadcrumbs = [
+      { label: 'Lab Types', step: 0 },
+      { label: 'Lab Details', step: 1 },
+      { label: 'Platform Selection', step: 2 },
+    ];
+
+    if (step >= 3 && config.platform === 'cloud') {
+      breadcrumbs.push({ label: 'Cloud Provider', step: 3 });
     }
+
+    if (step >= 4) {
+      breadcrumbs.push({ label: 'VM Configuration', step: 4 });
+    }
+
+    if (step >= 5) {
+      breadcrumbs.push({ label: 'AI Recommendations', step: 5 });
+    }
+
+    if (step >= 6) {
+      breadcrumbs.push({ label: 'Deployment', step: 6 });
+    }
+
+    return breadcrumbs.slice(0, step + 1);
   };
 
-  const getBackLabel = () => {
-    switch (step) {
-      case 1:
-        return 'Back to Lab Types';
-      case 2:
-        return 'Back to Lab Details';
-      case 3:
-        return 'Back to Platform Selection';
-      case 4:
-        return 'Back to Cloud Provider';
-      case 5:
-        return 'Back to VM Configuration';
-      case 6:
-        return 'Back to AI Recommendations';
-      default:
-        return 'Back';
+  const handleNavigate = (targetStep: number) => {
+    if (targetStep === 0) {
+      onBack();
+    } else if (targetStep < step) {
+      setStep(targetStep);
     }
   };
 
   return (
     <div className="space-y-6">
-      <button 
-        onClick={handleBack}
-        className="flex items-center text-gray-400 hover:text-primary-400 transition-colors"
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        {getBackLabel()}
-      </button>
+      <div className="flex items-center flex-wrap gap-2 text-gray-400">
+        {getBreadcrumbs().map((item, index) => (
+          <React.Fragment key={item.label}>
+            {index > 0 && <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+            <button
+              onClick={() => handleNavigate(item.step)}
+              className={`flex items-center ${
+                item.step < step 
+                  ? 'text-primary-400 hover:text-primary-300' 
+                  : 'text-gray-300'
+              } transition-colors`}
+            >
+              {item.step === 0 && <ChevronLeft className="h-4 w-4 mr-1" />}
+              {item.label}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
 
       {step === 1 && (
         <LabDetailsInput 
