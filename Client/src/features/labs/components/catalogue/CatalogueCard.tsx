@@ -61,21 +61,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-{/* <<<<<<< HEAD
-        {/* Footer */}
-        <div className="mt-auto pt-3 border-t border-primary-500/10">
-          <div className="flex items-center justify-between">
-            <span className="text-xl font-bold">
-              <GradientText>Configure</GradientText>
-            </span>
-            <button className="px-4 py-2 rounded-lg text-sm font-medium
-                           bg-gradient-to-r from-primary-500 to-secondary-500
-                           hover:from-primary-400 hover:to-secondary-400
-                           transform hover:scale-105 transition-all duration-300
-                           text-white shadow-lg shadow-primary-500/20">
-              {user?.result?.role ==='user' ? 'Buy Lab' : 'Preview'}
-            </button>
-{/* ======= */} 
+
           {/* Footer */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
             <div className="flex items-center justify-between">
