@@ -49,7 +49,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     }
   ];
 
-  const totalCost = mockServices.reduce((acc, service) => acc + service.monthlyCost, 0);
+  // const totalCost = mockServices.reduce((acc, service) => acc + service.monthlyCost, 0);
+  const totalCost = 49.99
 
   if (!isOpen) return null;
 

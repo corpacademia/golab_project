@@ -65,9 +65,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           {/* Footer */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold">
-                <GradientText>${lab.price}</GradientText>
-              </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
