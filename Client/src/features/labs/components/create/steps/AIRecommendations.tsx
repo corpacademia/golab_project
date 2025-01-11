@@ -76,7 +76,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         data:data,
         user:user,
       })
-      // const terraform = await axios.get('http://localhost:3000/api/v1/python/aws/ec2')
+      const terraform = await axios.get('http://localhost:3000/api/v1/python/aws/ec2')
       localStorage.removeItem('formData');
     }
     catch(error){
