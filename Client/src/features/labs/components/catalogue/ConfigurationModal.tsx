@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Settings, AlertCircle, ChevronDown, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
+import axios from 'axios';
 
 interface ConfigurationModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 }) => {
   const [showConfigColumn, setShowConfigColumn] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [instanceDetails,setInstanceDetails] = useState()
 
   const mockServices: ServiceRow[] = [
     {
@@ -31,26 +33,55 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       name: 'EC2 Instance',
       status: 'active',
       monthlyCost: 29.99,
-      configSummary: 't3.medium, 4GB RAM, 2 vCPU'
+      configSummary: `${lab.instance},${lab.ram} RAM ,${lab.cpu} VCPU`
     },
     {
       id: '2',
       name: 'EBS Volume',
       status: 'active',
       monthlyCost: 10.00,
-      configSummary: '100GB gp3'
+      configSummary: `${lab.storage}GB`
     },
-    {
-      id: '3',
-      name: 'Network Transfer',
-      status: 'active',
-      monthlyCost: 5.00,
-      configSummary: 'Up to 100GB/month'
-    }
+    // {
+    //   id: '3',
+    //   name: 'Network Transfer',
+    //   status: 'active',
+    //   monthlyCost: 5.00,
+    //   configSummary: 'Up to 100GB/month'
+    // }
   ];
+  useEffect(()=>{
+      const fetch = async()=>{
+        const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
+              instance:lab.instance,
+              cpu:lab.cpu,
+              ram:lab.ram,
+        })
+        setInstanceDetails(data.data.data)
+        if(!data.data.success){
+          console.log("error")
+        }
+        
+      }
+      fetch();
+     
+  },[])
 
   // const totalCost = mockServices.reduce((acc, service) => acc + service.monthlyCost, 0);
-  const totalCost = 49.99
+  const getPricingByOS=(data, os)=> {
+    switch (os.toLowerCase()) {
+      case "linux":
+        return data.ondemand_linux_base_pricing;
+      case "windows":
+        return data.ondemand_windows_base_pricing;
+      case "ubuntu":
+        return data.ondemand_ubuntu_pro_base_pricing;
+      default:
+        return "OS not supported";
+    }
+  }
+  // const instancePrice = getPricingByOS(instanceDetails,lab.os)
+  const totalCost = instancePrice
 
   if (!isOpen) return null;
 
