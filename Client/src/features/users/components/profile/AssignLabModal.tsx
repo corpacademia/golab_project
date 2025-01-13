@@ -49,7 +49,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const admin= JSON.parse(localStorage.getItem('auth'))
   useEffect(()=>{
        const fetch = async()=>{
-        const data = await axios.get('http://localhost:3000/api/v1/getCatalogues')
+        const data = await axios.get('http://localhost:3000/api/v1/getLabsConfigured')
         setAvailableLabs(data.data.data)
        }
        fetch();

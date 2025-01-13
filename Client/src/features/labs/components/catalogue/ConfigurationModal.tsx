@@ -8,38 +8,43 @@ interface ConfigurationModalProps {
   isOpen: boolean;
   onClose: () => void;
   lab: Lab;
+  instanceCost:String;
+  storageCost:Number;
 }
 
 interface ServiceRow {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  monthlyCost: number;
+  monthlyCost: Number;
   configSummary: string;
 }
 
 export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   isOpen,
   onClose,
-  lab
+  lab,
+  instanceCost,
+  storageCost,
 }) => {
   const [showConfigColumn, setShowConfigColumn] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [instanceDetails,setInstanceDetails] = useState()
+  // const [instanceDetails,setInstanceDetails] = useState();
+  // const [totalCost,setTotalCost] = useState();
 
   const mockServices: ServiceRow[] = [
     {
       id: '1',
       name: 'EC2 Instance',
       status: 'active',
-      monthlyCost: 29.99,
+      monthlyCost:instanceCost,
       configSummary: `${lab.instance},${lab.ram} RAM ,${lab.cpu} VCPU`
     },
     {
       id: '2',
       name: 'EBS Volume',
       status: 'active',
-      monthlyCost: 10.00,
+      monthlyCost:storageCost,
       configSummary: `${lab.storage}GB`
     },
     // {
@@ -50,40 +55,48 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     //   configSummary: 'Up to 100GB/month'
     // }
   ];
-  useEffect(()=>{
-      const fetch = async()=>{
-        const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
-              instance:lab.instance,
-              cpu:lab.cpu,
-              ram:lab.ram,
-        })
-        setInstanceDetails(data.data.data)
-        if(!data.data.success){
-          console.log("error")
-        }
+  // useEffect(()=>{
+  //     const fetch = async()=>{
+  //       const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
+  //             instance:lab.instance,
+  //             cpu:lab.cpu,
+  //             ram:lab.ram,
+  //       })
+  //       setInstanceDetails(data.data.data)
+  //       if(!data.data.success){
+  //         console.log("error")
+  //       }
         
-      }
-      fetch();
+  //     }
+  //     fetch();
      
-  },[])
+  // },[])
 
   // const totalCost = mockServices.reduce((acc, service) => acc + service.monthlyCost, 0);
-  const getPricingByOS=(data, os)=> {
-    switch (os.toLowerCase()) {
-      case "linux":
-        return data.ondemand_linux_base_pricing;
-      case "windows":
-        return data.ondemand_windows_base_pricing;
-      case "ubuntu":
-        return data.ondemand_ubuntu_pro_base_pricing;
-      default:
-        return "OS not supported";
-    }
-  }
+  // const hadlePrice = ()=>{
+    
+  // const getPricingByOS=(data, os)=> {
+  //   switch (os.toLowerCase()) {
+  //     case "linux":
+  //       return data.ondemand_linux_base_pricing;
+  //     case "windows":
+  //       return data.ondemand_windows_base_pricing;
+  //     case "ubuntu":
+  //       return data.ondemand_ubuntu_pro_base_pricing;
+  //     default:
+  //       return "OS not supported";
+  //   }
+  // }
   // const instancePrice = getPricingByOS(instanceDetails,lab.os)
-  const totalCost = instancePrice
-
+  // setTotalCost(instancePrice)
+  // }
+  // console.log(mockServices)
+  const totalMonthlyCost = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
   if (!isOpen) return null;
+
+ //configure function 
+ const handleConfigurations=()=>{
+ }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -122,7 +135,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <div className="glass-panel">
               <h3 className="text-sm font-medium text-gray-400 mb-2">Total Cost</h3>
               <p className="text-2xl font-semibold">
-                <GradientText>${totalCost}/mo</GradientText>
+                <GradientText>${totalMonthlyCost}/mo</GradientText>
               </p>
             </div>
           </div>
@@ -207,7 +220,10 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                            bg-gradient-to-r from-primary-500 to-secondary-500
                            hover:from-primary-400 hover:to-secondary-400
                            text-white shadow-lg shadow-primary-500/20
-                           transition-all duration-300">
+                           transition-all duration-300"
+                           
+                onClick={handleConfigurations}     
+                         >
               Configure AMI
             </button>
           </div>

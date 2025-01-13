@@ -39,7 +39,7 @@ export const useUserLabs = (userId: string) => {
         //     progress: 60
         //   }
         // ];
-        const catalogues = await axios.get('http://localhost:3000/api/v1/getCatalogues')
+        const catalogues = await axios.get('http://localhost:3000/api/v1/getLabsConfigured')
         const labs = await axios.post('http://localhost:3000/api/v1/getlabonid',{
           userId:userId
         })
@@ -58,6 +58,5 @@ export const useUserLabs = (userId: string) => {
 
     fetchLabs();
   }, [userId]);
-
   return { labs,labStatus , isLoading };
 };
