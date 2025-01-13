@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Clock, Tag, BookOpen, Star, Cpu, Settings } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { TechnologyBadge } from './TechnologyBadge';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
+import axios from 'axios';
 
 interface CatalogueCardProps {
   lab: Lab;
@@ -12,8 +13,21 @@ interface CatalogueCardProps {
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showPreviewDetails, setShowPreviewDetails] = useState(false);
+  const [InstanceDetails,setInstanceDetails] = useState();
+  const [instanceCost,setInstanceCost] = useState();
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
-  
+
+
+  //calculate the storage cost
+  // const [storageCost,setStorageCost]=useState();
+  // setStorageCost(0.08*(lab.storage))
+  const storageCost = 0.08*(lab.storage);
+
+  //extract the number from cost
+  const text = instanceCost;
+  const numericValue = parseFloat(text); // Extracts 0.177 as a number
+  // setInstanceCost(numericValue)
+
   // Get the latest instance configuration
   const getInstanceDetails = () => {
     try {
@@ -32,7 +46,43 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   };
 
   const instanceDetails = getInstanceDetails();
-
+   useEffect(()=>{
+    try {
+      const fetch = async()=>{
+        const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
+              instance:lab.instance,
+              cpu:lab.cpu,
+              ram:lab.ram,
+        })
+        if(data.data.success){
+          setInstanceDetails(data.data.data)
+        const getPricingByOS=(data, os)=> {
+          switch (os.toLowerCase()) {
+            case "linux":
+              return data.ondemand_linux_base_pricing;
+            case "windows":
+              return data.ondemand_windows_base_pricing;
+            case "ubuntu":
+              return data.ondemand_ubuntu_pro_base_pricing;
+            default:
+              return "OS not supported";
+          }
+        }
+        const instancePrice = getPricingByOS(data.data.data,lab.os)
+        setInstanceCost(instancePrice)
+        }
+        if(!data.data.success){
+          console.log("error");
+          return;
+        }
+      }
+      fetch();
+    } catch (error) {
+      return console.log("error occured")
+    }
+        
+       
+    },[])
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -163,6 +213,8 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         lab={lab}
+        instanceCost={numericValue}
+        storageCost={storageCost}
       />
     </>
   );
