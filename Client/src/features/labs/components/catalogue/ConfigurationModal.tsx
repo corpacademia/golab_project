@@ -99,11 +99,12 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const user = JSON.parse(localStorage.getItem('auth')).result || {}
   const update=async()=>{
     try {
-      // const user = 
+      const configs = {'instance':lab.instancename,'cpu':lab.cpu , 'ram':lab.ram} 
       const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs',
         {
          lab_id:lab.lab_id,
-         configured_by:user.user_id
+         admin_id:user.user_id,
+         config_details:configs,
         }
       )
     } catch (error) {
@@ -151,7 +152,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <div className="glass-panel">
               <h3 className="text-sm font-medium text-gray-400 mb-2">Total Cost</h3>
               <p className="text-2xl font-semibold">
-                <GradientText>${totalMonthlyCost}/mo</GradientText>
+                <GradientText>${totalMonthlyCost}/Per hour</GradientText>
               </p>
             </div>
           </div>
@@ -177,7 +178,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                 <tr className="text-left border-b border-primary-500/10">
                   <th className="pb-3 text-sm font-medium text-gray-400">Service</th>
                   <th className="pb-3 text-sm font-medium text-gray-400">Status</th>
-                  <th className="pb-3 text-sm font-medium text-gray-400">Monthly Cost</th>
+                  <th className="pb-3 text-sm font-medium text-gray-400">Per Hour Cost</th>
                   {showConfigColumn && (
                     <th className="pb-3 text-sm font-medium text-gray-400">Configuration</th>
                   )}
