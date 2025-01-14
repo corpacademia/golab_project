@@ -100,11 +100,11 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const user = JSON.parse(localStorage.getItem('auth')).result || {}
   const update=async()=>{
     try {
-      const configs = {'instance':lab.instancename,'cpu':lab.cpu , 'ram':lab.ram} 
+      const configs = {'instance':lab.instance,'cpu':lab.cpu , 'ram':lab.ram} 
       const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs',
         {
          lab_id:lab.lab_id,
-         admin_id:user.user_id,
+         admin_id:user.id,
          config_details:configs,
         }
       )
@@ -113,6 +113,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       return
     }
   }
+  update();
     
  }
 

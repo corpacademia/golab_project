@@ -8,6 +8,7 @@ export const useUserLabs = (userId: string) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const admin = JSON.parse(localStorage.getItem('auth')).result || {}
     const fetchLabs = async () => {
       try {
         // TODO: Replace with actual API call
@@ -39,7 +40,7 @@ export const useUserLabs = (userId: string) => {
         //     progress: 60
         //   }
         // ];
-        const catalogues = await axios.get('http://localhost:3000/api/v1/getLabsConfigured')
+        const catalogues = await axios.post('http://localhost:3000/api/v1/getLabsConfigured',{admin_id:admin.id})
         const labs = await axios.post('http://localhost:3000/api/v1/getlabonid',{
           userId:userId
         })
