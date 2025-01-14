@@ -96,6 +96,22 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 
  //configure function 
  const handleConfigurations=()=>{
+  const user = JSON.parse(localStorage.getItem('auth')).result || {}
+  const update=async()=>{
+    try {
+      // const user = 
+      const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs',
+        {
+         lab_id:lab.lab_id,
+         configured_by:user.user_id
+        }
+      )
+    } catch (error) {
+      console.log("Error")
+      return
+    }
+  }
+    
  }
 
   return (

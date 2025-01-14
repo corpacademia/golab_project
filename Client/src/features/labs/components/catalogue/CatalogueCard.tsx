@@ -17,7 +17,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceCost,setInstanceCost] = useState();
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
-
   //calculate the storage cost
   // const [storageCost,setStorageCost]=useState();
   // setStorageCost(0.08*(lab.storage))
@@ -169,29 +168,29 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                       <div className="space-y-1.5 text-gray-400">
                         <div className="flex justify-between">
                           <span>Instance:</span>
-                          <span className="text-primary-400">{instanceDetails.instance}</span>
+                          <span className="text-primary-400">{instanceDetails.instancename}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Provider:</span>
-                          <span className="text-primary-400">{instanceDetails.provider}</span>
+                          <span className="text-primary-400">aws</span>
                         </div>
-                        {instanceDetails.config && (
+                        {instanceDetails && (
                           <>
                             <div className="flex justify-between">
                               <span>CPU:</span>
-                              <span className="text-primary-400">{instanceDetails.config.cpu} Cores</span>
+                              <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
                             </div>
                             <div className="flex justify-between">
                               <span>RAM:</span>
-                              <span className="text-primary-400">{instanceDetails.config.ram} GB</span>
+                              <span className="text-primary-400">{instanceDetails.memory} GB</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Storage:</span>
-                              <span className="text-primary-400">{instanceDetails.config.storage} GB</span>
+                              <span className="text-primary-400">{instanceDetails.storage} </span>
                             </div>
                             <div className="flex justify-between">
                               <span>OS:</span>
-                              <span className="text-primary-400">{instanceDetails.config.os}</span>
+                              <span className="text-primary-400">windows</span>
                             </div>
                           </>
                         )}
