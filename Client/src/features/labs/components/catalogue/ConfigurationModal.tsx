@@ -91,7 +91,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   // setTotalCost(instancePrice)
   // }
   // console.log(mockServices)
-  const totalMonthlyCost = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
+  const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
+  const totalCost = costOfInstance*((lab.duration)/60)
   if (!isOpen) return null;
 
  //configure function 
@@ -152,7 +153,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <div className="glass-panel">
               <h3 className="text-sm font-medium text-gray-400 mb-2">Total Cost</h3>
               <p className="text-2xl font-semibold">
-                <GradientText>${totalMonthlyCost}/Per hour</GradientText>
+                <GradientText>${totalCost}/Per hour</GradientText>
               </p>
             </div>
           </div>

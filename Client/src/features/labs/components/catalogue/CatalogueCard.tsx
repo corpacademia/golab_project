@@ -1,7 +1,6 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, Tag, BookOpen, Star, Cpu, Settings } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import { TechnologyBadge } from './TechnologyBadge';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
 import axios from 'axios';
@@ -13,75 +12,57 @@ interface CatalogueCardProps {
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [showPreviewDetails, setShowPreviewDetails] = useState(false);
-  const [InstanceDetails,setInstanceDetails] = useState();
-  const [instanceCost,setInstanceCost] = useState();
+  const [instanceDetails, setInstanceDetails] = useState();
+  const [instanceCost, setInstanceCost] = useState();
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
-  //calculate the storage cost
-  // const [storageCost,setStorageCost]=useState();
-  // setStorageCost(0.08*(lab.storage))
-  const storageCost = 0.08*(lab.storage);
+  // Calculate storage cost
+  const storageCost = 0.08 * (lab.storage);
 
-  //extract the number from cost
-  const text = instanceCost;
-  const numericValue = parseFloat(text); // Extracts 0.177 as a number
-  // setInstanceCost(numericValue)
+  // Fetch instance details when component mounts
+  useEffect(() => {
+    const fetchInstanceDetails = async () => {
+      try {
+        const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails', {
+          instance: lab.instance,
+          cpu: lab.cpu,
+          ram: lab.ram,
+        });
+        
+        if (data.data.success) {
+          setInstanceDetails(data.data.data);
+          const price = getPriceByOS(data.data.data, lab.os);
+          setInstanceCost(price);
+        }
+      } catch (error) {
+        console.error("Error fetching instance details:", error);
+      }
+    };
 
-  // Get the latest instance configuration
-  const getInstanceDetails = () => {
-    try {
-      const formData = JSON.parse(localStorage.getItem('formData') || '{}');
-      if (!formData.instance) return null;
-      
-      return {
-        instance: formData.instance,
-        provider: formData.provider || 'AWS',
-        config: formData.config || {}
-      };
-    } catch (error) {
-      console.error('Error parsing instance details:', error);
-      return null;
+    fetchInstanceDetails();
+  }, [lab]);
+
+  // Function to get price based on OS
+  const getPriceByOS = (instance, os) => {
+    switch (os.toLowerCase()) {
+      case 'linux':
+        return instance.ondemand_linux_base_pricing;
+      case 'windows':
+        return instance.ondemand_windows_base_pricing;
+      case 'ubuntu':
+        return instance.ondemand_ubuntu_pro_base_pricing;
+      case 'suse':
+        return instance.ondemand_suse_base_pricing;
+      case 'rhel':
+        return instance.ondemand_rhel_base_pricing;
+      default:
+        return 0;
     }
   };
 
-  const instanceDetails = getInstanceDetails();
-   useEffect(()=>{
-    try {
-      const fetch = async()=>{
-        const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
-              instance:lab.instance,
-              cpu:lab.cpu,
-              ram:lab.ram,
-        })
-        if(data.data.success){
-          setInstanceDetails(data.data.data)
-        const getPricingByOS=(data, os)=> {
-          switch (os.toLowerCase()) {
-            case "linux":
-              return data.ondemand_linux_base_pricing;
-            case "windows":
-              return data.ondemand_windows_base_pricing;
-            case "ubuntu":
-              return data.ondemand_ubuntu_pro_base_pricing;
-            default:
-              return "OS not supported";
-          }
-        }
-        const instancePrice = getPricingByOS(data.data.data,lab.os)
-        setInstanceCost(instancePrice)
-        }
-        if(!data.data.success){
-          console.log("error");
-          return;
-        }
-      }
-      fetch();
-    } catch (error) {
-      return console.log("error occured")
-    }
-        
-       
-    },[])
+  // Extract numeric value from instance cost
+  const numericValue = parseFloat(instanceCost);
+
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -110,7 +91,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <span className="text-sm font-medium text-gray-300">Cloud</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              <TechnologyBadge key={lab.provider} name={lab.provider} />
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                {lab.provider}
+              </span>
             </div>
           </div>
 
@@ -129,7 +112,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               {lab.prerequisites?.length || 0} Prerequisites
             </div>
           </div>
-
 
           {/* Footer */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
@@ -172,28 +154,24 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                         </div>
                         <div className="flex justify-between">
                           <span>Provider:</span>
-                          <span className="text-primary-400">aws</span>
+                          <span className="text-primary-400">{lab.provider}</span>
                         </div>
-                        {instanceDetails && (
-                          <>
-                            <div className="flex justify-between">
-                              <span>CPU:</span>
-                              <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>RAM:</span>
-                              <span className="text-primary-400">{instanceDetails.memory} GB</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Storage:</span>
-                              <span className="text-primary-400">{instanceDetails.storage} </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>OS:</span>
-                              <span className="text-primary-400">windows</span>
-                            </div>
-                          </>
-                        )}
+                        <div className="flex justify-between">
+                          <span>CPU:</span>
+                          <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>RAM:</span>
+                          <span className="text-primary-400">{instanceDetails.memory} GB</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Storage:</span>
+                          <span className="text-primary-400">{instanceDetails.storage}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>OS:</span>
+                          <span className="text-primary-400">{lab.os}</span>
+                        </div>
                       </div>
                       {/* Arrow */}
                       <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2
@@ -217,5 +195,4 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       />
     </>
   );
-
 };
