@@ -79,7 +79,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         data:data,
         user:user,
       })
-      // const terraform = await axios.post('http://localhost:3000/api/v1/python',{cloudPlatform :config.cloudProvider })
+      const terraform = await axios.post('http://localhost:3000/api/v1/python',{cloudPlatform :config.cloudProvider })
       localStorage.removeItem('formData');
     }
     catch(error){
