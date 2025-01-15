@@ -15,6 +15,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceDetails, setInstanceDetails] = useState();
   const [instanceCost, setInstanceCost] = useState();
   const [isGoldenImageReady, setIsGoldenImageReady] = useState(false);
+  const [runResponse, setRunResponse] = useState(null);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
   // Calculate storage cost
@@ -65,9 +66,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     else if(lab.provider === 'azure'){
       switch(os.toLowerCase()){
         case 'windows':
-          return instance.windows
+          return instance.windows;
         case 'linux':
-          return instance.linux_vm_price
+          return instance.linux_vm_price;
         default:
           return 0;
       }
@@ -82,11 +83,17 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       });
 
       if (response.data.success) {
+        setRunResponse(response.data);
         setIsGoldenImageReady(true);
-        // You can add additional handling here based on the response
       }
     } catch (error) {
       console.error("Error running lab:", error);
+    }
+  };
+
+  const handleGoldenImage = () => {
+    if (runResponse?.data?.link) {
+      window.open(runResponse.data.link, '_blank');
     }
   };
 
@@ -96,14 +103,40 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
-        {/* ... existing card content ... */}
-        
-        <div className="mt-auto pt-3 border-t border-primary-500/10">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex gap-2">
+        <div className="p-4 flex flex-col h-full">
+          <div className="flex justify-between items-start gap-4 mb-3">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-1">
+                <GradientText>{lab.title}</GradientText>
+              </h3>
+              <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
+            </div>
+            <div className="flex items-center text-amber-400">
+              <Star className="h-4 w-4 mr-1 fill-current" />
+              <span className="text-sm">{lab.rating || 4.5}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm text-gray-400 mb-4">
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-1 text-primary-400 flex-shrink-0" />
+              <span className="truncate">{lab.duration} mins</span>
+            </div>
+            <div className="flex items-center">
+              <Tag className="h-4 w-4 mr-1 text-primary-400 flex-shrink-0" />
+              <span className="truncate">{lab.type}</span>
+            </div>
+            <div className="flex items-center">
+              <BookOpen className="h-4 w-4 mr-1 text-primary-400 flex-shrink-0" />
+              <span className="truncate">Lab #{lab.lab_id}</span>
+            </div>
+          </div>
+
+          <div className="mt-auto space-y-3">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setIsConfigOpen(true)}
-                className="px-4 py-2 rounded-lg text-sm font-medium
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
                          bg-dark-300/50 hover:bg-dark-300
                          border border-primary-500/20 hover:border-primary-500/40
                          text-primary-400 hover:text-primary-300
@@ -112,10 +145,24 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 <Settings className="h-4 w-4 inline-block mr-2" />
                 Convert Catalogue
               </button>
-              
+
+              <button 
+                onMouseEnter={() => setShowPreviewDetails(true)}
+                onMouseLeave={() => setShowPreviewDetails(false)}
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
+                         bg-gradient-to-r from-primary-500 to-secondary-500
+                         hover:from-primary-400 hover:to-secondary-400
+                         transform hover:scale-105 transition-all duration-300
+                         text-white shadow-lg shadow-primary-500/20"
+              >
+                {user?.result?.role === 'user' ? 'Launch Lab' : 'Preview'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleRun}
-                className="px-4 py-2 rounded-lg text-sm font-medium
+                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
                          bg-accent-500/20 hover:bg-accent-500/30
                          border border-accent-500/20 hover:border-accent-500/40
                          text-accent-300 hover:text-accent-200
@@ -127,7 +174,8 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
               {isGoldenImageReady && (
                 <button
-                  className="px-4 py-2 rounded-lg text-sm font-medium
+                  onClick={handleGoldenImage}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
                            bg-secondary-500/20 hover:bg-secondary-500/30
                            border border-secondary-500/20 hover:border-secondary-500/40
                            text-secondary-300 hover:text-secondary-200
@@ -136,28 +184,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                   <Image className="h-4 w-4 inline-block mr-2" />
                   VM-GoldenImage
                 </button>
-              )}
-            </div>
-
-            <div className="relative">
-              <button 
-                onMouseEnter={() => setShowPreviewDetails(true)}
-                onMouseLeave={() => setShowPreviewDetails(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium
-                         bg-gradient-to-r from-primary-500 to-secondary-500
-                         hover:from-primary-400 hover:to-secondary-400
-                         transform hover:scale-105 transition-all duration-300
-                         text-white shadow-lg shadow-primary-500/20"
-              >
-                {user?.result?.role === 'user' ? 'Launch Lab' : 'Preview'}
-              </button>
-              
-              {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64
-                              bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                              rounded-lg p-3 shadow-lg text-sm z-50">
-                  {/* ... existing preview details ... */}
-                </div>
               )}
             </div>
           </div>
