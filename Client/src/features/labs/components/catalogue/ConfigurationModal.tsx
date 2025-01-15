@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { X, Settings, AlertCircle, ChevronDown, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
@@ -8,15 +8,15 @@ interface ConfigurationModalProps {
   isOpen: boolean;
   onClose: () => void;
   lab: Lab;
-  instanceCost:String;
-  storageCost:Number;
+  instanceCost: string;
+  storageCost: number;
 }
 
 interface ServiceRow {
   id: string;
   name: string;
   status: 'active' | 'inactive';
-  monthlyCost: Number;
+  monthlyCost: number;
   configSummary: string;
 }
 
@@ -29,91 +29,71 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 }) => {
   const [showConfigColumn, setShowConfigColumn] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  // const [instanceDetails,setInstanceDetails] = useState();
-  // const [totalCost,setTotalCost] = useState();
+  const [configDetails, setConfigDetails] = useState({
+    numberOfUsers: 1,
+    numberOfDays: 1,
+    hoursPerDay: 1
+  });
 
   const mockServices: ServiceRow[] = [
     {
       id: '1',
       name: 'EC2 Instance',
       status: 'active',
-      monthlyCost:instanceCost,
-      configSummary: `${lab.instance},${lab.ram} RAM ,${lab.cpu} VCPU`
+      monthlyCost: instanceCost,
+      configSummary: `${lab.instance}, ${lab.ram} RAM, ${lab.cpu} VCPU`
     },
     {
       id: '2',
       name: 'EBS Volume',
       status: 'active',
-      monthlyCost:storageCost,
+      monthlyCost: storageCost,
       configSummary: `${lab.storage}GB`
     },
   ];
-  // useEffect(()=>{
-  //     const fetch = async()=>{
-  //       const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails',{
-  //             instance:lab.instance,
-  //             cpu:lab.cpu,
-  //             ram:lab.ram,
-  //       })
-  //       setInstanceDetails(data.data.data)
-  //       if(!data.data.success){
-  //         console.log("error")
-  //       }
-        
-  //     }
-  //     fetch();
-     
-  // },[])
 
-  // const totalCost = mockServices.reduce((acc, service) => acc + service.monthlyCost, 0);
-  // const hadlePrice = ()=>{
-    
-  // const getPricingByOS=(data, os)=> {
-  //   switch (os.toLowerCase()) {
-  //     case "linux":
-  //       return data.ondemand_linux_base_pricing;
-  //     case "windows":
-  //       return data.ondemand_windows_base_pricing;
-  //     case "ubuntu":
-  //       return data.ondemand_ubuntu_pro_base_pricing;
-  //     default:
-  //       return "OS not supported";
-  //   }
-  // }
-  // const instancePrice = getPricingByOS(instanceDetails,lab.os)
-  // setTotalCost(instancePrice)
-  // }
-  // console.log(mockServices)
   const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
-  const totalCost = costOfInstance*((lab.duration)/60)
-  if (!isOpen) return null;
+  const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays * configDetails.hoursPerDay;
 
- //configure function 
- const handleConfigurations=()=>{
-  const user = JSON.parse(localStorage.getItem('auth')).result || {}
-  const update=async()=>{
+  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setConfigDetails(prev => ({
+      ...prev,
+      [name]: parseInt(value) || 0
+    }));
+  };
+
+  const handleConfigurations = async () => {
+    const user = JSON.parse(localStorage.getItem('auth')).result || {};
     try {
-      const configs = {'instance':lab.instance,'cpu':lab.cpu , 'ram':lab.ram} 
-      const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs',
-        {
-         lab_id:lab.lab_id,
-         admin_id:user.id,
-         config_details:configs,
-        }
-      )
+      const configs = {
+        'instance': lab.instance,
+        'cpu': lab.cpu,
+        'ram': lab.ram,
+        'users': configDetails.numberOfUsers,
+        'days': configDetails.numberOfDays,
+        'hoursPerDay': configDetails.hoursPerDay
+      };
+      
+      const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
+        lab_id: lab.lab_id,
+        admin_id: user.id,
+        config_details: configs,
+      });
+      
+      if (updateConfig.data.success) {
+        onClose();
+      }
     } catch (error) {
-      console.log("Error")
-      return
+      console.error("Error updating configuration:", error);
     }
-  }
-  update();
-    
- }
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-dark-200 rounded-xl w-full max-w-4xl">
-        {/* Header */}
         <div className="p-6 border-b border-primary-500/10">
           <div className="flex justify-between items-center">
             <div>
@@ -131,7 +111,6 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </div>
         </div>
 
-        {/* Dashboard Section */}
         <div className="p-6 border-b border-primary-500/10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="glass-panel">
@@ -147,24 +126,57 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             <div className="glass-panel">
               <h3 className="text-sm font-medium text-gray-400 mb-2">Total Cost</h3>
               <p className="text-2xl font-semibold">
-                <GradientText>${totalCost}/Per hour</GradientText>
+                <GradientText>${totalCost.toFixed(2)}</GradientText>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Table Section */}
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-medium text-gray-300">Services Configuration</h3>
-            <button
-              onClick={() => setShowConfigColumn(!showConfigColumn)}
-              className="flex items-center px-3 py-1.5 text-sm bg-dark-300/50 
-                       text-gray-400 rounded-lg hover:bg-dark-300 transition-colors"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              {showConfigColumn ? 'Hide' : 'Show'} Config
-            </button>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Number of Users
+              </label>
+              <input
+                type="number"
+                name="numberOfUsers"
+                min="1"
+                value={configDetails.numberOfUsers}
+                onChange={handleConfigChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Number of Days
+              </label>
+              <input
+                type="number"
+                name="numberOfDays"
+                min="1"
+                value={configDetails.numberOfDays}
+                onChange={handleConfigChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Hours Per Day
+              </label>
+              <input
+                type="number"
+                name="hoursPerDay"
+                min="1"
+                max="24"
+                value={configDetails.hoursPerDay}
+                onChange={handleConfigChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -214,7 +226,6 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-primary-500/10 flex justify-between items-center">
           <div className="text-sm text-gray-400">
             <AlertCircle className="h-4 w-4 inline-block mr-2" />
@@ -228,15 +239,15 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             >
               Cancel
             </button>
-            <button className="px-6 py-2 rounded-lg text-sm font-medium
-                           bg-gradient-to-r from-primary-500 to-secondary-500
-                           hover:from-primary-400 hover:to-secondary-400
-                           text-white shadow-lg shadow-primary-500/20
-                           transition-all duration-300"
-                           
-                onClick={handleConfigurations}     
-                         >
-              Configure AMI
+            <button 
+              onClick={handleConfigurations}
+              className="px-6 py-2 rounded-lg text-sm font-medium
+                       bg-gradient-to-r from-primary-500 to-secondary-500
+                       hover:from-primary-400 hover:to-secondary-400
+                       text-white shadow-lg shadow-primary-500/20
+                       transition-all duration-300"
+            >
+              Convert Catalogue
             </button>
           </div>
         </div>
