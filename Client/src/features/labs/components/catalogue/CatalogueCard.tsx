@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, BookOpen, Star, Cpu, Settings } from 'lucide-react';
+import { Clock, Tag, BookOpen, Star, Cpu, Settings } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
@@ -14,12 +14,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [showPreviewDetails, setShowPreviewDetails] = useState(false);
   const [instanceDetails, setInstanceDetails] = useState();
   const [instanceCost, setInstanceCost] = useState();
+  const [isRunning, setIsRunning] = useState(false);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
-  // Calculate storage cost
-  const storageCost = 0.08 * (lab.storage);
-
-  // Fetch instance details when component mounts
   useEffect(() => {
     const fetchInstanceDetails = async () => {
       try {
@@ -43,9 +40,23 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     fetchInstanceDetails();
   }, [lab]);
 
-  // Function to get price based on OS
-  const getPriceByOS = (instance, os) => {
-    if(lab.provider === 'aws'){
+  const handleRun = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/run', {
+        lab_id: lab.lab_id,
+        admin_id: user.result.id
+      });
+      
+      if (response.data.success) {
+        setIsRunning(true);
+      }
+    } catch (error) {
+      console.error("Error running lab:", error);
+    }
+  };
+
+  const getPriceByOS = (instance: any, os: string) => {
+    if (lab.provider === 'aws') {
       switch (os.toLowerCase()) {
         case 'linux':
           return instance.ondemand_linux_base_pricing;
@@ -60,20 +71,20 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         default:
           return 0;
       }
-    }
-    else if(lab.provider === 'azure'){
-      switch(os.toLowerCase()){
+    } else if (lab.provider === 'azure') {
+      switch (os.toLowerCase()) {
         case 'windows':
-          return instance.windows
+          return instance.windows;
         case 'linux':
-          return instance.linux_vm_price
+          return instance.linux_vm_price;
         default:
           return 0;
       }
     }
+    return 0;
   };
 
-  // Extract numeric value from instance cost
+  const storageCost = 0.08 * (lab.storage);
   const numericValue = parseFloat(instanceCost);
 
   return (
@@ -83,7 +94,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
         <div className="p-4 flex flex-col h-full">
-          {/* Header */}
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-1">
@@ -97,7 +107,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-          {/* Technologies Section */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <Cpu className="h-4 w-4 text-primary-400" />
@@ -110,19 +119,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 mb-3">
-            <div className="flex items-center">
-              <Tag className="h-4 w-4 mr-2 text-primary-400" />
-              {lab.type}
-            </div>
-            <div className="flex items-center">
-              <BookOpen className="h-4 w-4 mr-2 text-primary-400" />
-              Lab #{lab.lab_id}
-            </div>
-          </div>
-
-          {/* Footer */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
@@ -150,39 +146,56 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
                   </button>
                   
-                  {/* Preview Details Tooltip */}
                   {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 
+                                  min-w-[320px] max-w-[400px] w-auto
                                   bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                                  rounded-lg p-3 shadow-lg text-sm z-50">
-                      <div className="text-gray-300 font-medium mb-2">Instance Details</div>
-                      <div className="space-y-1.5 text-gray-400">
-                        <div className="flex justify-between">
+                                  rounded-lg p-4 shadow-lg text-sm z-50">
+                      <div className="text-gray-300 font-medium mb-3">Instance Details</div>
+                      <div className="space-y-2 text-gray-400">
+                        <div className="flex justify-between items-center">
                           <span>Instance:</span>
-                          <span className="text-primary-400">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
+                          <span className="text-primary-400 ml-4">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span>Provider:</span>
-                          <span className="text-primary-400">{lab.provider}</span>
+                          <span className="text-primary-400 ml-4">{lab.provider}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span>CPU:</span>
-                          <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
+                          <span className="text-primary-400 ml-4">{instanceDetails.vcpu} Cores</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span>RAM:</span>
-                          <span className="text-primary-400">{instanceDetails.memory} GB</span>
+                          <span className="text-primary-400 ml-4">{instanceDetails.memory} GB</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span>Storage:</span>
-                          <span className="text-primary-400">{instanceDetails.storage}</span>
+                          <span className="text-primary-400 ml-4">{instanceDetails.storage}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span>OS:</span>
-                          <span className="text-primary-400">{lab.os}</span>
+                          <span className="text-primary-400 ml-4">{lab.os}</span>
                         </div>
                       </div>
-                      {/* Arrow */}
+                      <div className="mt-3 flex justify-end space-x-3">
+                        <button 
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                   bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                                   transition-colors"
+                        >
+                          VM-GoldenImage
+                        </button>
+                        <button 
+                          onClick={handleRun}
+                          disabled={isRunning}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg
+                                   bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                                   transition-colors"
+                        >
+                          {isRunning ? 'Running...' : 'Run'}
+                        </button>
+                      </div>
                       <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2
                                     w-3 h-3 bg-dark-200/95 border-r border-b border-primary-500/20
                                     rotate-45"></div>
