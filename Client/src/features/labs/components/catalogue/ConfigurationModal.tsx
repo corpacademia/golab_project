@@ -47,13 +47,6 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       monthlyCost:storageCost,
       configSummary: `${lab.storage}GB`
     },
-    // {
-    //   id: '3',
-    //   name: 'Network Transfer',
-    //   status: 'active',
-    //   monthlyCost: 5.00,
-    //   configSummary: 'Up to 100GB/month'
-    // }
   ];
   // useEffect(()=>{
   //     const fetch = async()=>{

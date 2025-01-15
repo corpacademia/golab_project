@@ -24,6 +24,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     const fetchInstanceDetails = async () => {
       try {
         const data = await axios.post('http://localhost:3000/api/v1/getInstanceDetails', {
+          provider:lab.provider,
           instance: lab.instance,
           cpu: lab.cpu,
           ram: lab.ram,
@@ -41,7 +42,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
     fetchInstanceDetails();
   }, [lab]);
-
   // Function to get price based on OS
   const getPriceByOS = (instance, os) => {
     switch (os.toLowerCase()) {
@@ -62,7 +62,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
   // Extract numeric value from instance cost
   const numericValue = parseFloat(instanceCost);
-
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -150,7 +149,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                       <div className="space-y-1.5 text-gray-400">
                         <div className="flex justify-between">
                           <span>Instance:</span>
-                          <span className="text-primary-400">{instanceDetails.instancename}</span>
+                          <span className="text-primary-400">{lab.provider=== 'aws' ? instanceDetails.instancename :instanceDetails.instance}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Provider:</span>
