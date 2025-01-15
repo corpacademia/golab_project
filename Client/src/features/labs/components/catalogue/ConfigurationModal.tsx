@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, AlertCircle, ChevronDown, Check } from 'lucide-react';
+import { X, Settings, AlertCircle, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import axios from 'axios';
@@ -31,8 +31,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [configDetails, setConfigDetails] = useState({
     numberOfUsers: 1,
-    numberOfDays: 1,
-    hoursPerDay: 1
+    numberOfDays: 1
   });
 
   const mockServices: ServiceRow[] = [
@@ -52,9 +51,6 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     },
   ];
 
-  const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
-  const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays * configDetails.hoursPerDay;
-
   const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setConfigDetails(prev => ({
@@ -62,6 +58,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       [name]: parseInt(value) || 0
     }));
   };
+
+  const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
+  const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays;
 
   const handleConfigurations = async () => {
     const user = JSON.parse(localStorage.getItem('auth')).result || {};
@@ -71,8 +70,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         'cpu': lab.cpu,
         'ram': lab.ram,
         'users': configDetails.numberOfUsers,
-        'days': configDetails.numberOfDays,
-        'hoursPerDay': configDetails.hoursPerDay
+        'days': configDetails.numberOfDays
       };
       
       const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
@@ -94,6 +92,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-dark-200 rounded-xl w-full max-w-4xl">
+        {/* Header */}
         <div className="p-6 border-b border-primary-500/10">
           <div className="flex justify-between items-center">
             <div>
@@ -111,29 +110,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6 border-b border-primary-500/10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="glass-panel">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Resources</h3>
-              <p className="text-2xl font-semibold text-primary-400">
-                {mockServices.length}
-              </p>
-            </div>
-            <div className="glass-panel">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Status</h3>
-              <p className="text-2xl font-semibold text-emerald-400">Ready</p>
-            </div>
-            <div className="glass-panel">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Total Cost</h3>
-              <p className="text-2xl font-semibold">
-                <GradientText>${totalCost.toFixed(2)}</GradientText>
-              </p>
-            </div>
-          </div>
-        </div>
-
+        {/* Configuration Grid */}
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Number of Users
@@ -162,23 +141,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Hours Per Day
-              </label>
-              <input
-                type="number"
-                name="hoursPerDay"
-                min="1"
-                max="24"
-                value={configDetails.hoursPerDay}
-                onChange={handleConfigChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
           </div>
 
+          {/* Services Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -226,10 +191,11 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </div>
         </div>
 
+        {/* Footer */}
         <div className="p-6 border-t border-primary-500/10 flex justify-between items-center">
           <div className="text-sm text-gray-400">
             <AlertCircle className="h-4 w-4 inline-block mr-2" />
-            Changes will be applied after confirmation
+            Total Cost: ${totalCost.toFixed(2)}
           </div>
           <div className="flex gap-4">
             <button
@@ -240,14 +206,14 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               Cancel
             </button>
             <button 
-              onClick={handleConfigurations}
               className="px-6 py-2 rounded-lg text-sm font-medium
                        bg-gradient-to-r from-primary-500 to-secondary-500
                        hover:from-primary-400 hover:to-secondary-400
                        text-white shadow-lg shadow-primary-500/20
                        transition-all duration-300"
+              onClick={handleConfigurations}
             >
-              Convert Catalogue
+              Configure AMI
             </button>
           </div>
         </div>
