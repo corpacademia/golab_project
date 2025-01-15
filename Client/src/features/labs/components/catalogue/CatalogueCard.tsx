@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Tag, BookOpen, Star, Cpu, Settings, Play, Image } from 'lucide-react';
+import { Tag, BookOpen, Star, Cpu, Settings } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
@@ -60,45 +60,21 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         default:
           return 0;
       }
-    } else if(lab.provider === 'azure'){
+    }
+    else if(lab.provider === 'azure'){
       switch(os.toLowerCase()){
         case 'windows':
-          return instance.windows;
+          return instance.windows
         case 'linux':
-          return instance.linux_vm_price;
+          return instance.linux_vm_price
         default:
           return 0;
       }
     }
   };
 
-  const handleRun = async () => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/run', {
-        lab_id: lab.lab_id,
-        admin_id: user.result.id
-      });
-      if (response.data.success) {
-        console.log('Run successful');
-      }
-    } catch (error) {
-      console.error('Error running lab:', error);
-    }
-  };
-
-  const handleGoldenImage = async () => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/goldenImage', {
-        lab_id: lab.lab_id,
-        admin_id: user.result.id
-      });
-      if (response.data.success) {
-        console.log('Golden image created successfully');
-      }
-    } catch (error) {
-      console.error('Error creating golden image:', error);
-    }
-  };
+  // Extract numeric value from instance cost
+  const numericValue = parseFloat(instanceCost);
 
   return (
     <>
@@ -106,8 +82,8 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
-        {/* Header section */}
         <div className="p-4 flex flex-col h-full">
+          {/* Header */}
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-1">
@@ -121,7 +97,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-          {/* Technologies section */}
+          {/* Technologies Section */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <Cpu className="h-4 w-4 text-primary-400" />
@@ -135,113 +111,85 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           </div>
 
           {/* Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-            <div className="flex items-center text-sm text-gray-400">
-              <Clock className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{lab.duration} mins</span>
+          <div className="grid grid-cols-2 gap-4 text-sm text-gray-400 mb-3">
+            <div className="flex items-center">
+              <Tag className="h-4 w-4 mr-2 text-primary-400" />
+              {lab.type}
             </div>
-            <div className="flex items-center text-sm text-gray-400">
-              <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{lab.type}</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-400">
-              <BookOpen className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">Lab #{lab.lab_id}</span>
+            <div className="flex items-center">
+              <BookOpen className="h-4 w-4 mr-2 text-primary-400" />
+              Lab #{lab.lab_id}
             </div>
           </div>
 
-          {/* Buttons section */}
-          <div className="mt-auto space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setIsConfigOpen(true)}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-dark-300/50 hover:bg-dark-300
-                         border border-primary-500/20 hover:border-primary-500/40
-                         text-primary-400 hover:text-primary-300
-                         transition-all duration-300"
-              >
-                <Settings className="h-4 w-4 inline-block mr-2" />
-                Convert Catalogue
-              </button>
-
-              <div className="relative group/preview">
-                <button 
-                  onMouseEnter={() => setShowPreviewDetails(true)}
-                  onMouseLeave={() => setShowPreviewDetails(false)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
-                           bg-gradient-to-r from-primary-500 to-secondary-500
-                           hover:from-primary-400 hover:to-secondary-400
-                           transform hover:scale-105 transition-all duration-300
-                           text-white shadow-lg shadow-primary-500/20"
+          {/* Footer */}
+          <div className="mt-auto pt-3 border-t border-primary-500/10">
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsConfigOpen(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium
+                           bg-dark-300/50 hover:bg-dark-300
+                           border border-primary-500/20 hover:border-primary-500/40
+                           text-primary-400 hover:text-primary-300
+                           transition-all duration-300"
                 >
-                  {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
+                  <Settings className="h-4 w-4 inline-block mr-2" />
+                  Configure
                 </button>
-                
-                {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 
-                                min-w-[16rem] max-w-xs w-max
-                                bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                                rounded-lg p-3 shadow-lg text-sm z-50">
-                    <div className="text-gray-300 font-medium mb-2">Instance Details</div>
-                    <div className="space-y-1.5 text-gray-400">
-                      <div className="flex justify-between gap-4">
-                        <span>Instance:</span>
-                        <span className="text-primary-400 text-right">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
+                <div className="relative">
+                  <button 
+                    onMouseEnter={() => setShowPreviewDetails(true)}
+                    onMouseLeave={() => setShowPreviewDetails(false)}
+                    className="px-4 py-2 rounded-lg text-sm font-medium
+                             bg-gradient-to-r from-primary-500 to-secondary-500
+                             hover:from-primary-400 hover:to-secondary-400
+                             transform hover:scale-105 transition-all duration-300
+                             text-white shadow-lg shadow-primary-500/20"
+                  >
+                    {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
+                  </button>
+                  
+                  {/* Preview Details Tooltip */}
+                  {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80
+                                  bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
+                                  rounded-lg p-3 shadow-lg text-sm z-50">
+                      <div className="text-gray-300 font-medium mb-2">Instance Details</div>
+                      <div className="space-y-1.5 text-gray-400">
+                        <div className="flex justify-between">
+                          <span>Instance:</span>
+                          <span className="text-primary-400">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Provider:</span>
+                          <span className="text-primary-400">{lab.provider}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>CPU:</span>
+                          <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>RAM:</span>
+                          <span className="text-primary-400">{instanceDetails.memory} GB</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Storage:</span>
+                          <span className="text-primary-400">{instanceDetails.storage}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>OS:</span>
+                          <span className="text-primary-400">{lab.os}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Provider:</span>
-                        <span className="text-primary-400 text-right">{lab.provider}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>CPU:</span>
-                        <span className="text-primary-400 text-right">{instanceDetails.vcpu} Cores</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>RAM:</span>
-                        <span className="text-primary-400 text-right">{instanceDetails.memory} GB</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>Storage:</span>
-                        <span className="text-primary-400 text-right">{instanceDetails.storage}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span>OS:</span>
-                        <span className="text-primary-400 text-right">{lab.os}</span>
-                      </div>
+                      {/* Arrow */}
+                      <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2
+                                    w-3 h-3 bg-dark-200/95 border-r border-b border-primary-500/20
+                                    rotate-45"></div>
                     </div>
-                    <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2
-                                  w-3 h-3 bg-dark-200/95 border-r border-b border-primary-500/20
-                                  rotate-45"></div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRun}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-accent-500/20 hover:bg-accent-500/30
-                         border border-accent-500/20 hover:border-accent-500/40
-                         text-accent-300 hover:text-accent-200
-                         transition-all duration-300"
-              >
-                <Play className="h-4 w-4 inline-block mr-2" />
-                Run
-              </button>
-
-              <button
-                onClick={handleGoldenImage}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
-                         bg-secondary-500/20 hover:bg-secondary-500/30
-                         border border-secondary-500/20 hover:border-secondary-500/40
-                         text-secondary-300 hover:text-secondary-200
-                         transition-all duration-300"
-              >
-                <Image className="h-4 w-4 inline-block mr-2" />
-                VM-GoldenImage
-              </button>
             </div>
           </div>
         </div>
@@ -251,7 +199,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         lab={lab}
-        instanceCost={instanceCost}
+        instanceCost={numericValue}
         storageCost={storageCost}
       />
     </>
