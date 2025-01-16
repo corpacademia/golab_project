@@ -1,2 +1,4 @@
-# Don't ignore Backend folder
-!Backend/
+# Terraform files
+.terraform/
+terraform
+terraform.exe
