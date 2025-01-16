@@ -1,7 +1,7 @@
 import psycopg2
 import subprocess
 import boto3
-import os
+import time
 import json
  
 # AWS client setup
@@ -13,16 +13,10 @@ def fetch_instance_data():
         'user': 'postgres',
         'host': 'localhost',
         'database': 'golab',
-        'password': 'Khan@123',
+        'password': 'Corp@123',
         'port': 5432,
     }
-    query = """
-    SELECT lab_id, instance, storage, os, title
-    FROM createlab
-    WHERE lab_id NOT IN (SELECT lab_id FROM instances)
-    ORDER BY created_at DESC
-    LIMIT 1;
-    """
+    query = "SELECT lab_id, instance, storage, os, title FROM createlab ORDER BY created_at DESC LIMIT 1;"
  
     conn = psycopg2.connect(**database_config)
     cursor = conn.cursor()
@@ -31,22 +25,18 @@ def fetch_instance_data():
     conn.close()
  
     if not result:
-        return None
+        raise ValueError("No data found in the database.")
     lab_id, instance_type, storage_size, os, instance_name = result
     return lab_id, instance_type, storage_size, os, instance_name
  
-# Step 2: Generate Terraform configuration file for a new instance
-def generate_terraform_file(lab_id, instance_type, storage_size, ami_id, instance_name):
-    directory = os.path.join(os.getcwd(), f"terraform_{lab_id}")  # Create a full path for the Terraform directory
-    if not os.path.exists(directory):  # Create directory for this lab if it doesn't exist
-        os.makedirs(directory)
- 
+# Step 2: Generate Terraform configuration file
+def generate_terraform_file(instance_type, storage_size, ami_id, instance_name):
     terraform_config = f"""
     provider "aws" {{
       region = "us-east-1"
     }}
  
-    resource "aws_instance" "instance_{lab_id}" {{
+    resource "aws_instance" "example" {{
       ami           = "{ami_id}"
       instance_type = "{instance_type}"
  
@@ -61,28 +51,24 @@ def generate_terraform_file(lab_id, instance_type, storage_size, ami_id, instanc
     }}
     """
  
-    config_path = os.path.join(directory, "main.tf")
-    with open(config_path, "w") as file:
+    with open("main.tf", "w") as file:
         file.write(terraform_config)
-    print(f"Terraform configuration for {instance_name} created in {directory}.")
-    return directory
+    print("Terraform configuration file generated.")
  
 # Step 3: Run Terraform commands
-def run_terraform(directory):
+def run_terraform():
     try:
-        subprocess.run(["terraform", "init"], cwd=directory, check=True)
-        subprocess.run(["terraform", "apply", "-auto-approve"], cwd=directory, check=True)
+        subprocess.run(["terraform", "init"], check=True)
+        subprocess.run(["terraform", "apply", "-auto-approve"], check=True)
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Terraform execution failed in {directory}: {e}")
+        raise RuntimeError(f"Terraform execution failed: {e}")
  
 # Step 4: Get instance ID from Terraform output
-def get_instance_id(directory):
-    result = subprocess.run(["terraform", "show", "-json"], cwd=directory, capture_output=True, text=True, check=True)
+def get_instance_id():
+    result = subprocess.run(["terraform", "show", "-json"], capture_output=True, text=True, check=True)
     terraform_output = json.loads(result.stdout)
-    for resource in terraform_output["values"]["root_module"]["resources"]:
-        if resource["type"] == "aws_instance":
-            return resource["values"]["id"]
-    raise ValueError("No instance ID found in Terraform output.")
+    instance_id = terraform_output["values"]["root_module"]["resources"][0]["values"]["id"]
+    return instance_id
  
 # Step 5: Store instance ID in the PostgreSQL database
 def store_instance_in_database(lab_id, instance_id):
@@ -90,7 +76,7 @@ def store_instance_in_database(lab_id, instance_id):
         'user': 'postgres',
         'host': 'localhost',
         'database': 'golab',
-        'password': 'Khan@123',
+        'password': 'Corp@123',
         'port': 5432,
     }
     query = """
@@ -110,7 +96,7 @@ def store_instance_in_database(lab_id, instance_id):
     conn.commit()
     conn.close()
  
-# Step 6: Get AMI for the specified OS
+# AMI Mapping
 def get_ami_for_os(os):
     ami_mapping = {
         "linux": "ami-12345678abcd12345",  # Replace with actual Linux AMI
@@ -125,28 +111,23 @@ def get_ami_for_os(os):
 if __name__ == "__main__":
     try:
         # Fetch instance details
-        data = fetch_instance_data()
-        if data:
-            lab_id, instance_type, storage_size, os, instance_name = data
+        lab_id, instance_type, storage_size, os, instance_name = fetch_instance_data()
  
-            # Get AMI for the specified OS
-            ami_id = get_ami_for_os(os)
+        # Get AMI for the specified OS
+        ami_id = get_ami_for_os(os)
  
-            # Generate Terraform configuration
-            directory = generate_terraform_file(lab_id, instance_type, storage_size, ami_id, instance_name)
+        # Generate Terraform configuration
+        generate_terraform_file(instance_type, storage_size, ami_id, instance_name)
  
-            # Run Terraform to create the instance
-            run_terraform(directory)
+        # Run Terraform to create the instance
+        run_terraform()
  
-            # Get the created instance ID
-            instance_id = get_instance_id(directory)
+        # Get the created instance ID
+        instance_id = get_instance_id()
  
-            # Store instance ID in the database
-            store_instance_in_database(lab_id, instance_id)
+        # Store instance ID in the database
+        store_instance_in_database(lab_id, instance_id)
  
-            print(f"Instance created successfully with ID: {instance_id}")
-        else:
-            print("No new data found in the database.")
+        print(f"Instance created successfully with ID: {instance_id}")
     except Exception as e:
         print(f"Error: {e}")
-

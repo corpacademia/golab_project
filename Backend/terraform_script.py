@@ -25,7 +25,7 @@ def fetch_instance_data():
         'user': 'postgres',
         'host': 'localhost',
         'database': 'golab',
-        'password': 'Khan@123',
+        'password': 'Corp@123',
         'port': 5432,
     }
     query = "SELECT instance, storage, provider, os FROM createlab ORDER BY created_at DESC LIMIT 1;"

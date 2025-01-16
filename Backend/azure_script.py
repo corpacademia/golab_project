@@ -25,7 +25,7 @@ def fetch_instance_data():
         'user': 'postgres',
         'host': 'localhost',
         'database': 'golab',
-        'password': 'Khan@123',
+        'password': 'Corp@123',
         'port': 5432,
     }
     query = "SELECT instance, storage FROM createlab ORDER BY created_at DESC LIMIT 1;"  # Modify query as needed
@@ -144,7 +144,7 @@ def store_image_in_database(image_id, image_name):
         'user': 'postgres',
         'host': 'localhost',
         'database': 'golab',
-        'password': 'Khan@123',
+        'password': 'Corp@123',
         'port': 5432,
     }
     query = """
