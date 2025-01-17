@@ -1,16 +1,4 @@
-import React, { useState } from 'react';
-import { X, Settings, AlertCircle } from 'lucide-react';
-import { GradientText } from '../../../../components/ui/GradientText';
-import { Lab } from '../../types';
-import axios from 'axios';
-
-interface ConfigurationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  lab: Lab;
-  instanceCost: number;
-  storageCost: number;
-}
+{/* Previous imports remain the same */}
 
 export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   isOpen,
@@ -99,6 +87,56 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               </label>
               <div className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300">
                 {lab.description}
+              </div>
+            </div>
+          </div>
+
+          {/* Instance Configuration */}
+          <div className="p-4 bg-dark-300/50 rounded-lg space-y-4">
+            <h3 className="text-sm font-medium text-gray-300">Instance Configuration</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm text-gray-400">Instance Type:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  {lab.instance}
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-400">CPU:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  {lab.cpu} vCPUs
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-400">RAM:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  {lab.ram} GB
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-400">Storage:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  {lab.storage} GB
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* EBS Volume */}
+          <div className="p-4 bg-dark-300/50 rounded-lg space-y-4">
+            <h3 className="text-sm font-medium text-gray-300">EBS Volume</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm text-gray-400">Volume Type:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  gp2
+                </div>
+              </div>
+              <div>
+                <span className="text-sm text-gray-400">Size:</span>
+                <div className="mt-1 px-3 py-2 bg-dark-400/50 rounded-lg text-primary-400">
+                  {lab.storage} GB
+                </div>
               </div>
             </div>
           </div>
