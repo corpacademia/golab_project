@@ -17,8 +17,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
-  const storageCost = 0.08 * (lab.storage);
-  const totalCost = parseFloat(instanceCost) + storageCost;
 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -43,15 +41,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     fetchInstanceDetails();
   }, [lab]);
 
-  const handlePreviewEnter = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setPreviewPosition({
-      x: rect.left + window.scrollX,
-      y: rect.top + window.scrollY
-    });
-    setShowPreviewDetails(true);
-  };
-
   const handleRun = async () => {
     try {
       const response = await axios.post('http://localhost:3000/api/v1/run', {
@@ -67,19 +56,13 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     }
   };
 
-  const handleGoldenImage = async () => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-        lab_id: lab.lab_id,
-        admin_id: user.result.id
-      });
-      
-      if (response.data.success) {
-        console.log('Golden image created successfully');
-      }
-    } catch (error) {
-      console.error("Error creating golden image:", error);
-    }
+  const handlePreviewEnter = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPreviewPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+    setShowPreviewDetails(true);
   };
 
   const getPriceByOS = (instance: any, os: string) => {
@@ -111,9 +94,12 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     return 0;
   };
 
+  const storageCost = 0.08 * (lab.storage);
+  const numericValue = parseFloat(instanceCost);
+
   return (
     <>
-      <div className="flex flex-col h-[320px] rounded-xl border border-primary-500/10 
+      <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
@@ -155,44 +141,31 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                         rounded-lg shadow-lg z-[9999] p-6 w-96"
               style={{
                 left: `${previewPosition.x}px`,
-                top: `${previewPosition.y - 320}px`
+                top: `${previewPosition.y - 400}px`,
+                transform: 'translateX(-50%)',
               }}
             >
-              <h3 className="text-lg font-medium text-gray-200 mb-4">Instance Details</h3>
-              <div className="space-y-3">
+              <div className="text-gray-300 font-medium mb-3">Instance Details</div>
+              <div className="space-y-2 text-gray-400">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Instance:</span>
-                  <span className="text-primary-400">
-                    {lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}
-                  </span>
+                  <span>Instance:</span>
+                  <span className="text-primary-400">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">CPU:</span>
+                  <span>CPU:</span>
                   <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">RAM:</span>
+                  <span>RAM:</span>
                   <span className="text-primary-400">{instanceDetails.memory} GB</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Storage:</span>
-                  <span className="text-primary-400">{instanceDetails.storage} GB</span>
+                  <span>Storage:</span>
+                  <span className="text-primary-400">{instanceDetails.storage}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">OS:</span>
+                  <span>OS:</span>
                   <span className="text-primary-400">{lab.os}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Instance Cost:</span>
-                  <span className="text-primary-400">${instanceCost}/hr</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Storage Cost:</span>
-                  <span className="text-primary-400">${storageCost}/hr</span>
-                </div>
-                <div className="flex justify-between font-medium pt-2 border-t border-primary-500/10">
-                  <span className="text-gray-300">Total Cost:</span>
-                  <span className="text-primary-400">${totalCost ? totalCost.toFixed(2) : '0.00'}/hr</span>
                 </div>
               </div>
             </div>
@@ -200,11 +173,11 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
           {/* Actions */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
-                  className="px-3 py-2 rounded-lg text-sm font-medium
+                  className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
                            bg-dark-300/50 hover:bg-dark-300
                            border border-primary-500/20 hover:border-primary-500/40
                            text-primary-400 hover:text-primary-300
@@ -214,36 +187,29 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                   Configure
                 </button>
                 {user?.result?.role !== 'user' && (
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleGoldenImage}
-                      className="px-3 py-2 rounded-lg text-sm font-medium
-                               bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
-                               transition-colors flex-1"
-                    >
-                      VM-GoldenImage
-                    </button>
+                  <>
                     <button 
                       onClick={handleRun}
                       disabled={isRunning}
-                      className="px-3 py-2 rounded-lg text-sm font-medium
+                      className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
                                bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                               transition-colors flex items-center flex-1"
+                               transition-colors flex items-center"
                     >
                       <Play className="h-4 w-4 mr-1" />
                       {isRunning ? 'Running...' : 'Run'}
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
               <button 
                 onMouseEnter={handlePreviewEnter}
                 onMouseLeave={() => setShowPreviewDetails(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium
+                className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
                          bg-gradient-to-r from-primary-500 to-secondary-500
                          hover:from-primary-400 hover:to-secondary-400
                          transform hover:scale-105 transition-all duration-300
-                         text-white shadow-lg shadow-primary-500/20"
+                         text-white shadow-lg shadow-primary-500/20
+                         flex items-center justify-center"
               >
                 {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
               </button>
@@ -256,7 +222,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         lab={lab}
-        instanceCost={instanceCost}
+        instanceCost={numericValue}
         storageCost={storageCost}
       />
     </>
