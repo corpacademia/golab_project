@@ -17,7 +17,8 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isRunning, setIsRunning] = useState(false);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
   const storageCost = 0.08 * (lab.storage);
-  const totalCost = instanceCost + storageCost;
+  // const totalCost = instanceCost + storageCost;
+  const totalCost = 45
 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -226,7 +227,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                           <span className="text-gray-400">OS:</span>
                           <span className="text-primary-400">{lab.os}</span>
                         </div>
-                        <div className="flex justify-between">
+                        {/* <div className="flex justify-between">
                           <span className="text-gray-400">Instance Cost:</span>
                           <span className="text-primary-400">${instanceCost}/hr</span>
                         </div>
@@ -237,7 +238,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                         <div className="flex justify-between font-medium">
                           <span className="text-gray-400">Total Cost:</span>
                           <span className="text-primary-400">${totalCost.toFixed(2)}/hr</span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   )}

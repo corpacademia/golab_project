@@ -61,7 +61,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
           ram:config.vmSize.ram,
           storage:config.vmSize.storage,
         })
-        console.log(result.data.result)
         setRecommendations(result.data.result)
       }
       fetch();
@@ -80,7 +79,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         user:user,
       })
       const terraform = await axios.post('http://localhost:3000/api/v1/python',{cloudPlatform :config.cloudProvider })
-      const tf = await axios.get('http://localhost:3000/api/v1/pythontf')
+      const tf = await axios.post('http://localhost:3000/api/v1/pythontf',{lab_id:response.data.output.lab_id})
       localStorage.removeItem('formData');
     }
     catch(error){
