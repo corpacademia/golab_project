@@ -58,9 +58,10 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
   const handlePreviewEnter = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
+    const scrollY = window.scrollY;
     setPreviewPosition({
       x: rect.left + rect.width / 2,
-      y: rect.top
+      y: rect.top + scrollY
     });
     setShowPreviewDetails(true);
   };
@@ -104,7 +105,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
         <div className="p-4 flex flex-col h-full">
-          {/* Header */}
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-1">
@@ -118,7 +118,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-          {/* Metrics */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="flex items-center text-sm text-gray-400">
               <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
@@ -138,10 +137,10 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
             <div 
               className="fixed bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                        rounded-lg shadow-lg z-[9999] p-6 w-96"
+                        rounded-lg shadow-lg z-[9999] p-4 w-80"
               style={{
                 left: `${previewPosition.x}px`,
-                top: `${previewPosition.y - 400}px`,
+                top: `${previewPosition.y - 220}px`,
                 transform: 'translateX(-50%)',
               }}
             >
@@ -171,17 +170,16 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           )}
 
-          {/* Actions */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
             <div className="flex items-center justify-between gap-2">
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
-                  className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
+                  className="h-9 px-3 rounded-lg text-sm font-medium
                            bg-dark-300/50 hover:bg-dark-300
                            border border-primary-500/20 hover:border-primary-500/40
                            text-primary-400 hover:text-primary-300
-                           transition-all duration-300"
+                           transition-all duration-300 flex items-center"
                 >
                   <Settings className="h-4 w-4 inline-block mr-1" />
                   Configure
@@ -189,9 +187,16 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 {user?.result?.role !== 'user' && (
                   <>
                     <button 
+                      className="h-9 px-3 rounded-lg text-sm font-medium
+                               bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                               transition-colors flex items-center"
+                    >
+                      VM-GoldenImage
+                    </button>
+                    <button 
                       onClick={handleRun}
                       disabled={isRunning}
-                      className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
+                      className="h-9 px-3 rounded-lg text-sm font-medium
                                bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
                                transition-colors flex items-center"
                     >
@@ -204,7 +209,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <button 
                 onMouseEnter={handlePreviewEnter}
                 onMouseLeave={() => setShowPreviewDetails(false)}
-                className="h-[38px] px-3 py-2 rounded-lg text-sm font-medium
+                className="h-9 px-3 rounded-lg text-sm font-medium
                          bg-gradient-to-r from-primary-500 to-secondary-500
                          hover:from-primary-400 hover:to-secondary-400
                          transform hover:scale-105 transition-all duration-300
