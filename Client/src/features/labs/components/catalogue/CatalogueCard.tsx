@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Tag, BookOpen, Star, Cpu, Settings, Play } from 'lucide-react';
+import { Clock, Tag, BookOpen, Star, Cpu, Settings, Play, AlertCircle, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
@@ -15,7 +15,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceDetails, setInstanceDetails] = useState();
   const [instanceCost, setInstanceCost] = useState();
   const [isRunning, setIsRunning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
   useEffect(() => {
@@ -53,6 +55,32 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       }
     } catch (error) {
       console.error("Error running lab:", error);
+    }
+  };
+
+  const handleVMGoldenImage = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+        lab_id: lab.lab_id,
+        admin_id: user.result.id,
+        instance_type: lab.instance,
+        provider: lab.provider
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Golden image created successfully' });
+      } else {
+        setNotification({ type: 'error', message: response.data.message || 'Failed to create golden image' });
+      }
+    } catch (error) {
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to create golden image'
+      });
+    } finally {
+      setIsProcessing(false);
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
@@ -103,7 +131,20 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                    hover:translate-y-[-2px] group">
+                    hover:translate-y-[-2px] group relative">
+        {notification && (
+          <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+            notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+          }`}>
+            {notification.type === 'success' ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <span className="text-sm">{notification.message}</span>
+          </div>
+        )}
+        
         <div className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
@@ -133,7 +174,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
             </div>
           </div>
 
-          {/* Preview Section */}
           {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
             <div 
               className="fixed bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
@@ -175,32 +215,35 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
-                  className="h-9 px-3 rounded-lg text-sm font-medium
+                  className="h-9 px-4 rounded-lg text-sm font-medium
                            bg-dark-300/50 hover:bg-dark-300
                            border border-primary-500/20 hover:border-primary-500/40
                            text-primary-400 hover:text-primary-300
                            transition-all duration-300 flex items-center"
                 >
-                  <Settings className="h-4 w-4 inline-block mr-1" />
+                  <Settings className="h-4 w-4 mr-2" />
                   Configure
                 </button>
                 {user?.result?.role !== 'user' && (
                   <>
                     <button 
-                      className="h-9 px-3 rounded-lg text-sm font-medium
+                      onClick={handleVMGoldenImage}
+                      disabled={isProcessing}
+                      className="h-9 px-4 rounded-lg text-sm font-medium
                                bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
-                               transition-colors flex items-center"
+                               transition-colors flex items-center whitespace-nowrap
+                               disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      VM-GoldenImage
+                      {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
                     </button>
                     <button 
                       onClick={handleRun}
                       disabled={isRunning}
-                      className="h-9 px-3 rounded-lg text-sm font-medium
+                      className="h-9 px-4 rounded-lg text-sm font-medium
                                bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
                                transition-colors flex items-center"
                     >
-                      <Play className="h-4 w-4 mr-1" />
+                      <Play className="h-4 w-4 mr-2" />
                       {isRunning ? 'Running...' : 'Run'}
                     </button>
                   </>
@@ -209,12 +252,12 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <button 
                 onMouseEnter={handlePreviewEnter}
                 onMouseLeave={() => setShowPreviewDetails(false)}
-                className="h-9 px-3 rounded-lg text-sm font-medium
+                className="h-9 px-4 rounded-lg text-sm font-medium
                          bg-gradient-to-r from-primary-500 to-secondary-500
                          hover:from-primary-400 hover:to-secondary-400
                          transform hover:scale-105 transition-all duration-300
                          text-white shadow-lg shadow-primary-500/20
-                         flex items-center justify-center"
+                         flex items-center justify-center whitespace-nowrap"
               >
                 {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
               </button>
