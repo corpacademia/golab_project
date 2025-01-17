@@ -1,4 +1,1 @@
-# Terraform files
-.terraform/
-terraform
-terraform.exe
+Backend/

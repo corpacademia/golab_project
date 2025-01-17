@@ -2,8 +2,8 @@
     provider "aws" {
       region = "us-east-1"
     }
-    resource "aws_instance" "e23561c7-3b0a-4067-a8b3-7fc96f73d5dc" {
-      ami           = "ami-12345678abcd12345"
+    resource "aws_instance" "be5a223a-234c-47ff-85a7-98b3dbb66d31" {
+      ami           = "ami-05b4ded3ceb71e470"
       instance_type = "t3.small"
  
       root_block_device {
@@ -12,7 +12,7 @@
       }
  
       tags = {
-        Name = "linux-e23561c7-3b0a-4067-a8b3-7fc96f73d5dc"  # Unique name to avoid conflicts
+        Name = "1-be5a223a-234c-47ff-85a7-98b3dbb66d31"  # Unique name to avoid conflicts
       }
     }
     
