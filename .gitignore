@@ -1,3 +1,5 @@
 
 Backend/
 
+.terraform/
+*.exe
