@@ -15,7 +15,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceDetails, setInstanceDetails] = useState();
   const [instanceCost, setInstanceCost] = useState();
   const [isRunning, setIsRunning] = useState(false);
-  const [totalCost, setTotalCost] = useState(0);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
 
   useEffect(() => {
@@ -32,11 +31,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           setInstanceDetails(data.data.data);
           const price = getPriceByOS(data.data.data, lab.os);
           setInstanceCost(price);
-          
-          // Calculate total cost including storage
-          const storageCost = 0.08 * (lab.storage);
-          const totalCost = parseFloat(price) + storageCost;
-          setTotalCost(totalCost);
         }
       } catch (error) {
         console.error("Error fetching instance details:", error);
@@ -69,7 +63,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       });
       
       if (response.data.success) {
-        // Handle success - maybe show a notification
         console.log('Golden image created successfully');
       }
     } catch (error) {
@@ -106,38 +99,40 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     return 0;
   };
 
+  const storageCost = 0.08 * (lab.storage);
+  const numericValue = parseFloat(instanceCost);
+  const totalCost = numericValue + storageCost;
+
   return (
-    <div className="flex flex-col h-full overflow-hidden rounded-xl border border-primary-500/10 
+    <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                    hover:translate-y-[-2px] group">
+                    hover:translate-y-[-2px] group relative">
       <div className="p-4 flex flex-col h-full">
         {/* Header */}
-        <div className="flex flex-col gap-4 mb-3">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-1">
-                <GradientText>{lab.title}</GradientText>
-              </h3>
-              <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
-            </div>
-            <div className="flex items-center text-amber-400">
-              <Star className="h-4 w-4 mr-1 fill-current" />
-              <span className="text-sm">{lab.rating || 4.5}</span>
-            </div>
+        <div className="flex justify-between items-start gap-4 mb-3">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold mb-1">
+              <GradientText>{lab.title}</GradientText>
+            </h3>
+            <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
           </div>
-          
-          {/* Technologies */}
-          <div className="flex flex-wrap gap-2">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-              {lab.provider}
+          <div className="flex items-center text-amber-400">
+            <Star className="h-4 w-4 mr-1 fill-current" />
+            <span className="text-sm">{lab.rating || 4.5}</span>
+          </div>
+        </div>
+
+        {/* Technologies */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+            {lab.provider}
+          </span>
+          {lab.technologies?.map((tech) => (
+            <span key={tech} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+              {tech}
             </span>
-            {lab.technologies?.map((tech) => (
-              <span key={tech} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                {tech}
-              </span>
-            ))}
-          </div>
+          ))}
         </div>
 
         {/* Metrics */}
@@ -158,9 +153,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
         {/* Preview Section */}
         {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-          <div className="absolute right-0 top-full mt-2 z-50 w-80 
+          <div className="fixed transform translate-x-full right-0 top-1/2 -translate-y-1/2 z-50 w-80 
                         bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                        rounded-lg p-4 shadow-lg">
+                        rounded-lg p-4 shadow-lg ml-4">
             <div className="text-gray-300 font-medium mb-3">Instance Details</div>
             <div className="space-y-2 text-gray-400">
               <div className="flex justify-between">
@@ -193,36 +188,36 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
         {/* Actions */}
         <div className="mt-auto pt-3 border-t border-primary-500/10">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setIsConfigOpen(true)}
-                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium
+                className="px-3 py-2 rounded-lg text-sm font-medium
                          bg-dark-300/50 hover:bg-dark-300
                          border border-primary-500/20 hover:border-primary-500/40
                          text-primary-400 hover:text-primary-300
-                         transition-all duration-300"
+                         transition-all duration-300 flex items-center justify-center"
               >
-                <Settings className="h-4 w-4 inline-block mr-1" />
+                <Settings className="h-4 w-4 mr-1" />
                 Configure
               </button>
               {user?.result?.role !== 'user' && (
                 <button 
                   onClick={handleGoldenImage}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium
+                  className="px-3 py-2 rounded-lg text-sm font-medium
                            bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
-                           transition-colors"
+                           transition-colors flex items-center justify-center"
                 >
                   VM-GoldenImage
                 </button>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {user?.result?.role !== 'user' && (
                 <button 
                   onClick={handleRun}
                   disabled={isRunning}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm font-medium
+                  className="px-3 py-2 rounded-lg text-sm font-medium
                            bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
                            transition-colors flex items-center justify-center"
                 >
@@ -233,7 +228,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               <button 
                 onMouseEnter={() => setShowPreviewDetails(true)}
                 onMouseLeave={() => setShowPreviewDetails(false)}
-                className="flex-1 px-4 py-2 rounded-lg text-sm font-medium
+                className="px-4 py-2 rounded-lg text-sm font-medium
                          bg-gradient-to-r from-primary-500 to-secondary-500
                          hover:from-primary-400 hover:to-secondary-400
                          transform hover:scale-105 transition-all duration-300
@@ -250,9 +245,8 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         lab={lab}
-        instanceCost={parseFloat(instanceCost)}
-        storageCost={0.08 * (lab.storage)}
-        totalCost={totalCost}
+        instanceCost={numericValue}
+        storageCost={storageCost}
       />
     </div>
   );
