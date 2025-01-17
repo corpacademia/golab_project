@@ -1,0 +1,13 @@
+{
+  "name": "golabing-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "Client"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w Client",
+    "build": "npm run build -w Client",
+    "preview": "npm run preview -w Client"
+  }
+}
