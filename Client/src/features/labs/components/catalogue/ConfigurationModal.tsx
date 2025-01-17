@@ -8,7 +8,7 @@ interface ConfigurationModalProps {
   isOpen: boolean;
   onClose: () => void;
   lab: Lab;
-  instanceCost: string;
+  instanceCost: number;
   storageCost: number;
 }
 
@@ -31,7 +31,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [configDetails, setConfigDetails] = useState({
     numberOfUsers: 1,
-    numberOfDays: 1
+    numberOfDays: 1,
+    title: lab.title,
+    description: lab.description
   });
 
   const mockServices: ServiceRow[] = [
@@ -51,11 +53,11 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     },
   ];
 
-  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setConfigDetails(prev => ({
       ...prev,
-      [name]: parseInt(value) || 0
+      [name]: name === 'numberOfUsers' || name === 'numberOfDays' ? parseInt(value) || 0 : value
     }));
   };
 
@@ -70,7 +72,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         'cpu': lab.cpu,
         'ram': lab.ram,
         'users': configDetails.numberOfUsers,
-        'days': configDetails.numberOfDays
+        'days': configDetails.numberOfDays,
+        'title': configDetails.title,
+        'description': configDetails.description
       };
       
       const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
@@ -90,28 +94,56 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-200 rounded-xl w-full max-w-4xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-xl w-full max-w-4xl p-6">
         {/* Header */}
-        <div className="p-6 border-b border-primary-500/10">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold">
-                <GradientText>Configure Lab Environment</GradientText>
-              </h2>
-              <p className="mt-1 text-sm text-gray-400">{lab.title}</p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-400" />
-            </button>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-semibold">
+              <GradientText>Configure Lab Environment</GradientText>
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">{lab.title}</p>
           </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
         </div>
 
         {/* Configuration Grid */}
         <div className="p-6 space-y-6">
+          {/* Lab Details */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Lab Title
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={configDetails.title}
+                onChange={handleConfigChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={configDetails.description}
+                onChange={handleConfigChange}
+                rows={3}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
