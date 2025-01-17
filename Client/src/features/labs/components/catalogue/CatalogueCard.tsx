@@ -67,6 +67,21 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     }
   };
 
+  const handleGoldenImage = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+        lab_id: lab.lab_id,
+        admin_id: user.result.id
+      });
+      
+      if (response.data.success) {
+        console.log('Golden image created successfully');
+      }
+    } catch (error) {
+      console.error("Error creating golden image:", error);
+    }
+  };
+
   const getPriceByOS = (instance: any, os: string) => {
     if (lab.provider === 'aws') {
       switch (os.toLowerCase()) {
@@ -186,7 +201,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           {/* Actions */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
             <div className="grid grid-cols-2 gap-2">
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
                   className="px-3 py-2 rounded-lg text-sm font-medium
@@ -199,16 +214,26 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                   Configure
                 </button>
                 {user?.result?.role !== 'user' && (
-                  <button 
-                    onClick={handleRun}
-                    disabled={isRunning}
-                    className="px-3 py-2 rounded-lg text-sm font-medium
-                             bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                             transition-colors flex items-center"
-                  >
-                    <Play className="h-4 w-4 mr-1" />
-                    {isRunning ? 'Running...' : 'Run'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleGoldenImage}
+                      className="px-3 py-2 rounded-lg text-sm font-medium
+                               bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                               transition-colors flex-1"
+                    >
+                      VM-GoldenImage
+                    </button>
+                    <button 
+                      onClick={handleRun}
+                      disabled={isRunning}
+                      className="px-3 py-2 rounded-lg text-sm font-medium
+                               bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                               transition-colors flex items-center flex-1"
+                    >
+                      <Play className="h-4 w-4 mr-1" />
+                      {isRunning ? 'Running...' : 'Run'}
+                    </button>
+                  </div>
                 )}
               </div>
               <button 
