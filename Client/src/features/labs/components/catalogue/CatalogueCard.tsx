@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Tag, BookOpen, Star, Cpu, Settings, Play, X } from 'lucide-react';
+import { Clock, Tag, BookOpen, Star, Cpu, Settings, Play } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import { ConfigurationModal } from './ConfigurationModal';
@@ -65,7 +65,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       });
       
       if (response.data.success) {
-        // Handle success
         console.log('Golden image created successfully');
       }
     } catch (error) {
@@ -107,7 +106,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                    hover:translate-y-[-2px] group">
+                    hover:translate-y-[-2px] group relative">
         <div className="p-4 flex flex-col h-full">
           {/* Header */}
           <div className="flex justify-between items-start gap-4 mb-3">
@@ -125,10 +124,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
           {/* Technologies */}
           <div className="flex flex-wrap gap-2 mb-4">
-            <span 
-              className="px-2 py-1 text-xs font-medium rounded-full
-                       bg-primary-500/20 text-primary-300"
-            >
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
               {lab.provider}
             </span>
           </div>
@@ -151,7 +147,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
           {/* Actions */}
           <div className="mt-auto pt-3 border-t border-primary-500/10">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-rows-2 gap-2">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setIsConfigOpen(true)}
@@ -188,78 +184,69 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                     {isRunning ? 'Running...' : 'Run'}
                   </button>
                 )}
-                <button 
+                <div 
+                  className="relative"
                   onMouseEnter={() => setShowPreviewDetails(true)}
                   onMouseLeave={() => setShowPreviewDetails(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium
-                           bg-gradient-to-r from-primary-500 to-secondary-500
-                           hover:from-primary-400 hover:to-secondary-400
-                           transform hover:scale-105 transition-all duration-300
-                           text-white shadow-lg shadow-primary-500/20"
                 >
-                  {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
-                </button>
+                  <button 
+                    className="w-full px-4 py-2 rounded-lg text-sm font-medium
+                             bg-gradient-to-r from-primary-500 to-secondary-500
+                             hover:from-primary-400 hover:to-secondary-400
+                             transform hover:scale-105 transition-all duration-300
+                             text-white shadow-lg shadow-primary-500/20"
+                  >
+                    {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
+                  </button>
+                  
+                  {/* Preview Tooltip */}
+                  {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 
+                                  bg-dark-200 border border-primary-500/20 rounded-lg shadow-lg z-50 p-4">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Instance:</span>
+                          <span className="text-primary-400">
+                            {lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">CPU:</span>
+                          <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">RAM:</span>
+                          <span className="text-primary-400">{instanceDetails.memory} GB</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Storage:</span>
+                          <span className="text-primary-400">{instanceDetails.storage}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">OS:</span>
+                          <span className="text-primary-400">{lab.os}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Instance Cost:</span>
+                          <span className="text-primary-400">${instanceCost}/hr</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Storage Cost:</span>
+                          <span className="text-primary-400">${storageCost}/hr</span>
+                        </div>
+                        <div className="flex justify-between font-medium">
+                          <span className="text-gray-400">Total Cost:</span>
+                          <span className="text-primary-400">${totalCost.toFixed(2)}/hr</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Preview Modal */}
-      {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-               onClick={() => setShowPreviewDetails(false)}></div>
-          <div className="relative bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                        rounded-lg p-6 shadow-lg w-96 max-w-full mx-4">
-            <button 
-              onClick={() => setShowPreviewDetails(false)}
-              className="absolute top-4 right-4 p-1 hover:bg-dark-300/50 rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-400" />
-            </button>
-            <div className="text-xl font-semibold text-gray-200 mb-4">
-              <GradientText>Instance Details</GradientText>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2 text-gray-400">
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>Instance:</span>
-                  <span className="text-primary-400">{lab.provider === 'aws' ? instanceDetails.instancename : instanceDetails.instance}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>CPU:</span>
-                  <span className="text-primary-400">{instanceDetails.vcpu} Cores</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>RAM:</span>
-                  <span className="text-primary-400">{instanceDetails.memory} GB</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>Storage:</span>
-                  <span className="text-primary-400">{instanceDetails.storage}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>OS:</span>
-                  <span className="text-primary-400">{lab.os}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>Instance Cost:</span>
-                  <span className="text-primary-400">${instanceCost}/hr</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-primary-500/10">
-                  <span>Storage Cost:</span>
-                  <span className="text-primary-400">${storageCost}/hr</span>
-                </div>
-                <div className="flex justify-between items-center py-2 font-semibold">
-                  <span>Total Cost:</span>
-                  <span className="text-primary-400">${totalCost.toFixed(2)}/hr</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <ConfigurationModal
         isOpen={isConfigOpen}
