@@ -1,4 +1,4 @@
-{/* Previous imports remain the same */}
+import { useState } from "react";
 
 export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   isOpen,

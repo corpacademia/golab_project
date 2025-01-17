@@ -15,6 +15,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceDetails, setInstanceDetails] = useState();
   const [instanceCost, setInstanceCost] = useState();
   const [isRunning, setIsRunning] = useState(false);
+  const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
   const storageCost = 0.08 * (lab.storage);
   const totalCost = parseFloat(instanceCost) + storageCost;
@@ -41,6 +42,15 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
     fetchInstanceDetails();
   }, [lab]);
+
+  const handlePreviewEnter = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPreviewPosition({
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY
+    });
+    setShowPreviewDetails(true);
+  };
 
   const handleRun = async () => {
     try {
@@ -88,7 +98,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
   return (
     <>
-      <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
+      <div className="flex flex-col h-[320px] rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group">
@@ -125,15 +135,16 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
 
           {/* Preview Section */}
           {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
-            <div className="fixed transform -translate-x-1/2 
-                          bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
-                          rounded-lg shadow-lg z-[100] p-4"
-                 style={{
-                   left: '50%',
-                   top: 'calc(50% - 150px)',
-                   width: '320px'
-                 }}>
-              <div className="space-y-2 text-sm">
+            <div 
+              className="fixed bg-dark-200/95 backdrop-blur-sm border border-primary-500/20 
+                        rounded-lg shadow-lg z-[9999] p-6 w-96"
+              style={{
+                left: `${previewPosition.x}px`,
+                top: `${previewPosition.y - 320}px`
+              }}
+            >
+              <h3 className="text-lg font-medium text-gray-200 mb-4">Instance Details</h3>
+              <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Instance:</span>
                   <span className="text-primary-400">
@@ -150,7 +161,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Storage:</span>
-                  <span className="text-primary-400">{instanceDetails.storage}</span>
+                  <span className="text-primary-400">{instanceDetails.storage} GB</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">OS:</span>
@@ -164,9 +175,9 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                   <span className="text-gray-400">Storage Cost:</span>
                   <span className="text-primary-400">${storageCost}/hr</span>
                 </div>
-                <div className="flex justify-between font-medium">
-                  <span className="text-gray-400">Total Cost:</span>
-                  <span className="text-primary-400">${totalCost.toFixed(2)}/hr</span>
+                <div className="flex justify-between font-medium pt-2 border-t border-primary-500/10">
+                  <span className="text-gray-300">Total Cost:</span>
+                  <span className="text-primary-400">${totalCost ? totalCost.toFixed(2) : '0.00'}/hr</span>
                 </div>
               </div>
             </div>
@@ -201,7 +212,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 )}
               </div>
               <button 
-                onMouseEnter={() => setShowPreviewDetails(true)}
+                onMouseEnter={handlePreviewEnter}
                 onMouseLeave={() => setShowPreviewDetails(false)}
                 className="px-4 py-2 rounded-lg text-sm font-medium
                          bg-gradient-to-r from-primary-500 to-secondary-500
