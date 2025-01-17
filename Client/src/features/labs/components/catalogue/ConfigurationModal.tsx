@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, AlertCircle, Check } from 'lucide-react';
+import { X, Settings, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
 import axios from 'axios';
@@ -12,14 +12,6 @@ interface ConfigurationModalProps {
   storageCost: number;
 }
 
-interface ServiceRow {
-  id: string;
-  name: string;
-  status: 'active' | 'inactive';
-  monthlyCost: number;
-  configSummary: string;
-}
-
 export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   isOpen,
   onClose,
@@ -27,41 +19,20 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   instanceCost,
   storageCost,
 }) => {
-  const [showConfigColumn, setShowConfigColumn] = useState(true);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [configDetails, setConfigDetails] = useState({
     numberOfUsers: 1,
-    numberOfDays: 1,
-    title: lab.title,
-    description: lab.description
+    numberOfDays: 1
   });
 
-  const mockServices: ServiceRow[] = [
-    {
-      id: '1',
-      name: 'EC2 Instance',
-      status: 'active',
-      monthlyCost: instanceCost,
-      configSummary: `${lab.instance}, ${lab.ram} RAM, ${lab.cpu} VCPU`
-    },
-    {
-      id: '2',
-      name: 'EBS Volume',
-      status: 'active',
-      monthlyCost: storageCost,
-      configSummary: `${lab.storage}GB`
-    },
-  ];
-
-  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setConfigDetails(prev => ({
       ...prev,
-      [name]: name === 'numberOfUsers' || name === 'numberOfDays' ? parseInt(value) || 0 : value
+      [name]: parseInt(value) || 0
     }));
   };
 
-  const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
+  const costOfInstance = instanceCost + storageCost;
   const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays;
 
   const handleConfigurations = async () => {
@@ -73,8 +44,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         'ram': lab.ram,
         'users': configDetails.numberOfUsers,
         'days': configDetails.numberOfDays,
-        'title': configDetails.title,
-        'description': configDetails.description
+        'title': lab.title,
+        'description': lab.description
       };
       
       const updateConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
@@ -96,7 +67,6 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-dark-200 rounded-xl w-full max-w-4xl p-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold">
@@ -112,35 +82,24 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
           </button>
         </div>
 
-        {/* Configuration Grid */}
-        <div className="p-6 space-y-6">
-          {/* Lab Details */}
+        <div className="space-y-6">
+          {/* Lab Details - Static */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Lab Title
               </label>
-              <input
-                type="text"
-                name="title"
-                value={configDetails.title}
-                onChange={handleConfigChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
+              <div className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300">
+                {lab.title}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Description
               </label>
-              <textarea
-                name="description"
-                value={configDetails.description}
-                onChange={handleConfigChange}
-                rows={3}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
+              <div className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300">
+                {lab.description}
+              </div>
             </div>
           </div>
 
@@ -175,75 +134,32 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
             </div>
           </div>
 
-          {/* Services Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-primary-500/10">
-                  <th className="pb-3 text-sm font-medium text-gray-400">Service</th>
-                  <th className="pb-3 text-sm font-medium text-gray-400">Status</th>
-                  <th className="pb-3 text-sm font-medium text-gray-400">Per Hour Cost</th>
-                  {showConfigColumn && (
-                    <th className="pb-3 text-sm font-medium text-gray-400">Configuration</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {mockServices.map((service) => (
-                  <tr 
-                    key={service.id}
-                    className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
-                  >
-                    <td className="py-4">
-                      <div className="flex items-center">
-                        <span className="text-gray-300">{service.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        service.status === 'active' 
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-gray-500/20 text-gray-300'
-                      }`}>
-                        {service.status}
-                      </span>
-                    </td>
-                    <td className="py-4">
-                      <span className="text-primary-400">${service.monthlyCost}</span>
-                    </td>
-                    {showConfigColumn && (
-                      <td className="py-4 text-sm text-gray-400">
-                        {service.configSummary}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Cost Summary */}
+          <div className="p-4 bg-dark-300/50 rounded-lg space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Instance Cost (per hour):</span>
+              <span className="text-primary-400">${instanceCost}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Storage Cost (per hour):</span>
+              <span className="text-primary-400">${storageCost}</span>
+            </div>
+            <div className="flex justify-between text-sm font-medium pt-2 border-t border-primary-500/10">
+              <span className="text-gray-300">Total Cost:</span>
+              <span className="text-primary-400">${totalCost.toFixed(2)}</span>
+            </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-primary-500/10 flex justify-between items-center">
-          <div className="text-sm text-gray-400">
-            <AlertCircle className="h-4 w-4 inline-block mr-2" />
-            Total Cost: ${totalCost.toFixed(2)}
-          </div>
-          <div className="flex gap-4">
+          <div className="flex justify-end space-x-4">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-400 
-                       hover:text-gray-300 transition-colors"
+              className="btn-secondary"
             >
               Cancel
             </button>
             <button 
-              className="px-6 py-2 rounded-lg text-sm font-medium
-                       bg-gradient-to-r from-primary-500 to-secondary-500
-                       hover:from-primary-400 hover:to-secondary-400
-                       text-white shadow-lg shadow-primary-500/20
-                       transition-all duration-300"
               onClick={handleConfigurations}
+              className="btn-primary"
             >
               Configure AMI
             </button>
