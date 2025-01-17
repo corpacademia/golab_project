@@ -16,7 +16,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [instanceCost, setInstanceCost] = useState();
   const [isRunning, setIsRunning] = useState(false);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
-
+ 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
       try {
@@ -152,6 +152,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         </div>
 
         {/* Preview Section */}
+      
         {showPreviewDetails && instanceDetails && user?.result?.role !== 'user' && (
           <div className="absolute right-0 top-0 transform translate-x-full bg-dark-200/95 
                         backdrop-blur-sm border border-primary-500/20 rounded-lg p-4 
