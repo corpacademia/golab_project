@@ -51,6 +51,10 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
   //   ]
   // };
   const [recommendations , setRecommendations] = useState([]);
+  const [isSuccess, setIsSuccess] = useState(null); // Tracks first API success
+  const [isLoading, setIsLoading] = useState(false); // Tracks second API execution
+  const [isHandleDataComplete, setIsHandleDataComplete] = useState(false); // Tracks when handleData is done
+  const [responsedata,setResponseData] = useState()
   // const [selectedOS, setSelectedOS] = useState(''); 
   // setSelectedOS(config.vmSize.os)
   useEffect(()=>{
@@ -65,30 +69,127 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
       }
       fetch();
   },[])
-  const handleData=async (instance)=>{
-    console.log(instance)
-    const storedData = JSON.parse(localStorage.getItem('formData'))|| {}
-    const updatedData = {...storedData,instance}
-    localStorage.setItem('formData',JSON.stringify(updatedData))
-    const data = JSON.parse(localStorage.getItem('formData')) || {}
-    const user = JSON.parse(localStorage.getItem('auth')).result || {}
 
-    try{
-      const response = await axios.post('http://localhost:3000/api/v1/labconfig',{
-        data:data,
-        user:user,
-      })
-      const terraform = await axios.post('http://localhost:3000/api/v1/python',{cloudPlatform :config.cloudProvider })
-      const tf = await axios.post('http://localhost:3000/api/v1/pythontf',{lab_id:response.data.output.lab_id})
-      const instance = await axios.post('http://localhost:3000/api/v1/instancetodata',{lab_id:response.data.output.lab_id})
-      localStorage.removeItem('formData');
-    }
-    catch(error){
-      console.log(error)
-    }
+
+  // Function to handle initial data processing
+  const handleData = async (instance) => {
+    const storedData = JSON.parse(localStorage.getItem("formData")) || {};
+    const updatedData = { ...storedData, instance };
+    localStorage.setItem("formData", JSON.stringify(updatedData));
+    const data = JSON.parse(localStorage.getItem("formData")) || {};
+    const user = JSON.parse(localStorage.getItem("auth")).result || {};
+
+    try {
+      const response = await axios.post("http://localhost:3000/api/v1/labconfig", {
+        data: data,
+        user: user,
+      });
+      if (response.data.success) {
+        setResponseData(response);
+
+       }
+        const terraform = await axios.post("http://localhost:3000/api/v1/python", {
+        cloudPlatform: config.cloudProvider 
+      });
+      
+      console.log("Terraform response:", terraform.data);
+
+      // const intervalId = setInterval(fetchData, 5000);
+      const tf = await axios.post("http://localhost:3000/api/v1/pythontf", {
+        lab_id:response.data.output.lab_id
+      });
+
+      try {
+        // Perform some operations
+        setIsHandleDataComplete(true); // Attempt to update the state
+        console.log("Set isHandleDataComplete to true");
+      } catch (error) {
+        console.error("Error in handleData:", error);
+      }
+      
+
    
+      localStorage.removeItem("formData");
 
-  }
+     
+    } catch (error) {
+      console.error("Error in handleData:", error);
+    }
+  };
+//  console.log('response',responsedata)
+//   // Function to call the first API
+//   const callFirstApi = async () => {
+//     try {
+//       const tf = await axios.post("http://localhost:3000/api/v1/pythontf", {
+//         lab_id: responsedata.data.output.lab_id, // Use response from handleData
+//       });
+//       const { success } = tf.data; // Assuming the response contains a success field
+//       setIsSuccess(success); // Set the success status
+//     } catch (error) {
+//       console.error("Error in first API call:", error);
+//     }
+//   };
+
+//   // Function to call the second API
+//   const callSecondApi = async () => {
+//     try {
+//       setIsLoading(true);
+//       const instance = await axios.post("http://localhost:3000/api/v1/instancetodata", {
+//         lab_id: responsedata.data.output.lab_id, // Use response from handleData
+//       });
+//       console.log("Second API response:", instance.data);
+//     } catch (error) {
+//       console.error("Error in second API call:", error);
+//     } finally {
+//       setIsLoading(false);
+//     }
+//   };
+
+//   // Effect to execute API calls after handleData is complete
+//   useEffect(() => {
+//     if (isHandleDataComplete) {
+//       console.log('not calling')
+//       callFirstApi();
+//     }
+//   }, [isHandleDataComplete]);
+
+//   // Effect to poll for the first API's response
+//   useEffect(() => {
+//     let interval;
+  
+//     if (isSuccess === null) {
+//       console.log(isSuccess)
+//       interval = setInterval(() => {
+//         console.log("Waiting for the first API response...");
+//         // Polling continues until `isSuccess` is updated
+//         if (isSuccess !== null) {
+//           console.log('clear')
+//           clearInterval(interval); // Clear the interval once we have a response
+//         }
+//       }, 1000); // Check every second
+//     }
+  
+//     return () => clearInterval(interval); // Cleanup interval on component unmount or dependency change
+//   }, [isSuccess]);
+  
+  
+
+//   // Effect to call the second API if the first API response is success
+//   useEffect(() => {
+//     if (isSuccess === true) {
+//       callSecondApi();
+//     } else if (isSuccess === false) {
+//       console.log("First API returned false, not executing second API.");
+//     }
+//   }, [isSuccess]);
+
+ 
+
+
+
+
+  
+
 
   // Function to get price based on OS
   const getPriceByOS = (instance) => {
@@ -171,7 +272,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
 
                 <button
                   onClick={() => {onConfirm(instance.region)
-                    console.log(config.c)
                     if(config.cloudProvider ==='aws'){
                         handleData(instance.instancename)}
                     else if(config.cloudProvider ==='azure'){

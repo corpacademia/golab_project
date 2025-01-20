@@ -19,6 +19,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [previewPosition, setPreviewPosition] = useState({ x: 0, y: 0 });
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const user = JSON.parse(localStorage.getItem('auth') || '{}');
+  // const [awsInstanceDetails,setAwsInstanceDetails] = useState();
 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -38,12 +39,16 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       } catch (error) {
         console.error("Error fetching instance details:", error);
       }
+
+     
+      
     };
 
     fetchInstanceDetails();
   }, [lab]);
 
   const handleRun = async () => {
+    setIsRunning(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/run', {
         lab_id: lab.lab_id,
@@ -51,21 +56,36 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       });
       
       if (response.data.success) {
-        setIsRunning(true);
+        setNotification({ type: 'success', message: 'Lab started successfully' });
+      } else {
+        throw new Error(response.data.message || 'Failed to start lab');
       }
     } catch (error) {
-      console.error("Error running lab:", error);
+      setIsRunning(false);
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to start lab'
+      });
+    } finally {
+      setTimeout(() => setNotification(null), 3000);
     }
   };
+ 
+  // const filteredAwsInstance = (awsInstanceDetails && awsInstanceDetails.length > 0)
+  // ? awsInstanceDetails.filter((instance) => instance.lab_id === lab.lab_id)
+  // : [];
+
 
   const handleVMGoldenImage = async () => {
+    
     setIsProcessing(true);
     try {
+      const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{lab_id:lab.lab_id})
+      console.log(result)    
+      
       const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-        lab_id: lab.lab_id,
-        admin_id: user.result.id,
-        instance_type: lab.instance,
-        provider: lab.provider
+        instance_id: result.data.result.instance_id,
+        lab_id:lab.lab_id
       });
 
       if (response.data.success) {
@@ -73,16 +93,18 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
       } else {
         setNotification({ type: 'error', message: response.data.message || 'Failed to create golden image' });
       }
-    } catch (error) {
+    } 
+    catch (error) {
       setNotification({ 
         type: 'error', 
         message: error.response?.data?.message || 'Failed to create golden image'
       });
-    } finally {
+    } 
+    finally {
       setIsProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
-  };
+  }
 
   const handlePreviewEnter = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -183,6 +205,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 top: `${previewPosition.y - 220}px`,
                 transform: 'translateX(-50%)',
               }}
+              
             >
               <div className="text-gray-300 font-medium mb-3">Instance Details</div>
               <div className="space-y-2 text-gray-400">
@@ -211,56 +234,62 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           )}
 
           <div className="mt-auto pt-3 border-t border-primary-500/10">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsConfigOpen(true)}
-                  className="h-9 px-4 rounded-lg text-sm font-medium
-                           bg-dark-300/50 hover:bg-dark-300
-                           border border-primary-500/20 hover:border-primary-500/40
-                           text-primary-400 hover:text-primary-300
-                           transition-all duration-300 flex items-center"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configure
-                </button>
+            <div className="flex flex-col space-y-2">
+              {/* First Row: Run and Preview buttons */}
+              <div className="flex justify-between gap-2">
                 {user?.result?.role !== 'user' && (
-                  <>
-                    <button 
-                      onClick={handleVMGoldenImage}
-                      disabled={isProcessing}
-                      className="h-9 px-4 rounded-lg text-sm font-medium
-                               bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
-                               transition-colors flex items-center whitespace-nowrap
-                               disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
-                    </button>
-                    <button 
-                      onClick={handleRun}
-                      disabled={isRunning}
-                      className="h-9 px-4 rounded-lg text-sm font-medium
-                               bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                               transition-colors flex items-center"
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      {isRunning ? 'Running...' : 'Run'}
-                    </button>
-                  </>
+                  <button 
+                    onClick={handleRun}
+                    disabled={isRunning}
+                    className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                             bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                             transition-colors flex items-center justify-center
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    {isRunning ? 'Running...' : 'Run'}
+                  </button>
                 )}
+                <button 
+                  onMouseEnter={handlePreviewEnter}
+                  onMouseLeave={() => setShowPreviewDetails(false)}
+                  className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                           bg-gradient-to-r from-primary-500 to-secondary-500
+                           hover:from-primary-400 hover:to-secondary-400
+                           transform hover:scale-105 transition-all duration-300
+                           text-white shadow-lg shadow-primary-500/20
+                           flex items-center justify-center whitespace-nowrap"
+                >
+                  {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
+                </button>
               </div>
-              <button 
-                onMouseEnter={handlePreviewEnter}
-                onMouseLeave={() => setShowPreviewDetails(false)}
-                className="h-9 px-4 rounded-lg text-sm font-medium
-                         bg-gradient-to-r from-primary-500 to-secondary-500
-                         hover:from-primary-400 hover:to-secondary-400
-                         transform hover:scale-105 transition-all duration-300
-                         text-white shadow-lg shadow-primary-500/20
-                         flex items-center justify-center whitespace-nowrap"
-              >
-                {user?.result?.role === 'user' ? 'Buy Lab' : 'Preview'}
-              </button>
+
+              {/* Second Row: Configure and VM-GoldenImage buttons */}
+              {user?.result?.role !== 'user' && (
+                <div className="flex justify-between gap-2">
+                  <button
+                    onClick={() => setIsConfigOpen(true)}
+                    className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                             bg-dark-300/50 hover:bg-dark-300
+                             border border-primary-500/20 hover:border-primary-500/40
+                             text-primary-400 hover:text-primary-300
+                             transition-all duration-300 flex items-center justify-center"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configure
+                  </button>
+                  <button 
+                    onClick={handleVMGoldenImage}
+                    disabled={isProcessing}
+                    className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                             bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                             transition-colors flex items-center justify-center whitespace-nowrap
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

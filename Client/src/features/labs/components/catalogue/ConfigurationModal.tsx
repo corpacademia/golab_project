@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Settings, AlertCircle, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
@@ -30,6 +30,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
 }) => {
   const [showConfigColumn, setShowConfigColumn] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [cost,setCost] = useState();
   const [configDetails, setConfigDetails] = useState({
     numberOfUsers: 1,
     numberOfDays: 1
@@ -61,7 +62,12 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   };
 
   const costOfInstance = mockServices.reduce((total, service) => total + service.monthlyCost, 0);
-  const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays;
+
+  useEffect(()=>{
+    const totalCost = costOfInstance * configDetails.numberOfUsers * configDetails.numberOfDays;
+    setCost(totalCost)
+  },[configDetails])
+  
 
   const handleConfigurations = async () => {
     const user = JSON.parse(localStorage.getItem('auth')).result || {};
@@ -83,6 +89,28 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       if (updateConfig.data.success) {
         onClose();
       }
+      try {
+        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation',{lab_id:lab.lab_id})
+        
+        if(ami.data.success){
+          try {
+            const golden_instance = await axios.post('http://localhost:3000/api/v1/goldenToInstance',{
+              instance_type : lab.instance,
+              ami_id:ami.data.result.ami_id,
+              no_instance:configDetails.numberOfUsers,
+              termination_period:configDetails.numberOfDays
+  
+            })
+          } catch (error) {
+            console.log("Error in converting golden image to instance")
+          }
+          
+
+        }
+      } catch (error) {
+        console.log("error in getting ami information")
+      }
+
     } catch (error) {
       console.error("Error updating configuration:", error);
     }
@@ -196,7 +224,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         <div className="p-6 border-t border-primary-500/10 flex justify-between items-center">
           <div className="text-sm text-gray-400">
             <AlertCircle className="h-4 w-4 inline-block mr-2" />
-            Total Cost: ${totalCost.toFixed(2)}
+            Total Cost: ${cost.toFixed(2)}
           </div>
           <div className="flex gap-4">
             <button
