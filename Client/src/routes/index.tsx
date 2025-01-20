@@ -11,6 +11,7 @@ import { UsersPage } from '../features/users/pages/UsersPage';
 import { UserProfilePage } from '../features/users/pages/UserProfilePage';
 import { LabsPage } from '../features/labs/pages/LabsPage';
 import { CataloguePage } from '../features/labs/pages/CataloguePage';
+import { CloudVMsPage } from '../features/labs/pages/CloudVMsPage';
 import { CreateLabEnvironment } from '../features/labs/pages/CreateLabEnvironment';
 import { CloudResources } from '../features/dashboard/pages/CloudResources';
 import { Settings } from '../features/dashboard/pages/Settings';
@@ -38,6 +39,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="users/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
         <Route path="labs/catalogue" element={<CataloguePage />} />
+        <Route path="labs/cloud-vms" element={<CloudVMsPage />} />
         <Route path="labs/create" element={<CreateLabEnvironment />} />
         <Route path="cloud" element={<CloudResources />} />
         <Route path="reports" element={<ReportsPage />} />
