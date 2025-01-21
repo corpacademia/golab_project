@@ -1,12 +1,13 @@
 {
-  "name": "golabing-monorepo",
+  "name": "golabing-project",
   "private": true,
   "version": "1.0.0",
-  "description": "AI-Powered Hands-On Lab Platform",
+  "type": "module",
   "scripts": {
     "dev": "cd Client && npm run dev",
     "build": "cd Client && npm run build",
-    "lint": "cd Client && npm run lint"
+    "lint": "cd Client && npm run lint",
+    "preview": "cd Client && npm run preview"
   },
   "workspaces": [
     "Client"
