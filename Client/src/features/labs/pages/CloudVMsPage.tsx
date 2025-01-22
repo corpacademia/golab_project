@@ -16,7 +16,7 @@ export const CloudVMsPage: React.FC = () => {
   useEffect(() => {
     const fetchVMs = async () => {
       try {
-        setError(null);
+        // setError(null);
         const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured',{
           admin_id : admin.id
         });
@@ -34,7 +34,7 @@ export const CloudVMsPage: React.FC = () => {
 
     fetchVMs();
   }, []);
-
+ console.log(vms)
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
       vm.name.toLowerCase().includes(filters.search.toLowerCase()) ||
