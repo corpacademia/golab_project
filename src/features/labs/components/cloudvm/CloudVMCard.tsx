@@ -14,6 +14,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import { SoftwareInstallModal } from './SoftwareInstallModal';
 import axios from 'axios';
 
 interface CloudVMProps {
@@ -32,33 +33,81 @@ interface CloudVMProps {
 }
 
 export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGoldenImageEnabled, setIsGoldenImageEnabled] = useState(false);
+  const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  const handleAction = async (action: 'start' | 'stop' | 'delete') => {
-    setIsProcessing(true);
+  const handleRun = async (software: string[]) => {
+    setIsRunning(true);
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/vm/${action}`, {
-        vmId: vm.id
+      const response = await axios.post('http://localhost:3000/api/v1/runVM', {
+        vm_id: vm.id,
+        software
       });
-
+      
       if (response.data.success) {
-        setNotification({ 
-          type: 'success', 
-          message: `Successfully ${action}ed VM` 
-        });
+        setNotification({ type: 'success', message: 'Software installation started successfully' });
+        setIsGoldenImageEnabled(true);
       } else {
-        throw new Error(response.data.message || `Failed to ${action} VM`);
+        throw new Error(response.data.message || 'Failed to start installation');
       }
     } catch (error) {
       setNotification({ 
         type: 'error', 
-        message: `Failed to ${action} VM. Please try again.`
+        message: error.response?.data?.message || 'Failed to start installation'
+      });
+    } finally {
+      setIsRunning(false);
+      setIsModalOpen(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
+  const handleVMGoldenImage = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+        vm_id: vm.id
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Golden image created successfully' });
+        setIsConvertEnabled(true);
+      } else {
+        throw new Error(response.data.message || 'Failed to create golden image');
+      }
+    } catch (error) {
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to create golden image'
       });
     } finally {
       setIsProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
+  };
+
+  const handleConvertToCatalogue = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/convertToCatalogue', {
+        vm_id: vm.id
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Successfully converted to catalogue' });
+      } else {
+        throw new Error(response.data.message || 'Failed to convert to catalogue');
+      }
+    } catch (error) {
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to convert to catalogue'
+      });
+    }
+    setTimeout(() => setNotification(null), 3000);
   };
 
   return (
@@ -120,43 +169,75 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
             <div className="flex justify-between gap-2">
               {vm.status === 'stopped' ? (
                 <button 
-                  onClick={() => handleAction('start')}
-                  disabled={isProcessing}
+                  onClick={() => setIsModalOpen(true)}
                   className="h-9 px-4 rounded-lg text-sm font-medium flex-1
                            bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
                            transition-colors flex items-center justify-center"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Start VM
+                  Run
                 </button>
               ) : (
                 <button 
-                  onClick={() => handleAction('stop')}
-                  disabled={isProcessing}
+                  onClick={() => handleRun(['stop'])}
+                  disabled={isRunning}
                   className="h-9 px-4 rounded-lg text-sm font-medium flex-1
                            bg-red-500/20 text-red-300 hover:bg-red-500/30
                            transition-colors flex items-center justify-center"
                 >
                   <Power className="h-4 w-4 mr-2" />
-                  Stop VM
+                  Stop
                 </button>
               )}
               <button 
-                onClick={() => handleAction('delete')}
-                disabled={isProcessing}
+                onClick={handleVMGoldenImage}
+                disabled={!isGoldenImageEnabled || isProcessing}
                 className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                         bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                         transition-colors flex items-center justify-center
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
+              </button>
+            </div>
+
+            <div className="flex justify-between gap-2">
+              <button
+                onClick={handleConvertToCatalogue}
+                disabled={!isConvertEnabled}
+                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                         bg-gradient-to-r from-primary-500 to-secondary-500
+                         hover:from-primary-400 hover:to-secondary-400
+                         transform hover:scale-105 transition-all duration-300
+                         text-white shadow-lg shadow-primary-500/20
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         flex items-center justify-center"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Convert to Catalogue
+              </button>
+              <button 
+                onClick={() => handleRun(['delete'])}
+                disabled={isRunning}
+                className="h-9 px-4 rounded-lg text-sm font-medium
                          bg-dark-300/50 hover:bg-dark-300
                          border border-red-500/20 hover:border-red-500/40
                          text-red-400 hover:text-red-300
                          transition-all duration-300 flex items-center justify-center"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete VM
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      <SoftwareInstallModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleRun}
+        isLoading={isRunning}
+      />
     </div>
   );
 };

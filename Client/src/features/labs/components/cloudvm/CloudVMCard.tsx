@@ -9,17 +9,30 @@ import {
   Check,
   AlertCircle,
   X,
-  Cpu
+  Cpu,
+  Power,
+  Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import axios from 'axios';
 import { SoftwareInstallModal } from './SoftwareInstallModal';
+import axios from 'axios';
 
-interface CloudVMCardProps {
-  vm: any;
+interface CloudVMProps {
+  vm: {
+    id: string;
+    name: string;
+    description: string;
+    provider: string;
+    instance: string;
+    status: 'running' | 'stopped' | 'pending';
+    cpu: number;
+    ram: number;
+    storage: number;
+    os: string;
+  };
 }
 
-export const CloudVMCard: React.FC<CloudVMCardProps> = ({ vm }) => {
+export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -123,35 +136,59 @@ export const CloudVMCard: React.FC<CloudVMCardProps> = ({ vm }) => {
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
           </div>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
+            vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
+            'bg-amber-500/20 text-amber-300'
+          }`}>
+            {vm.status}
+          </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="flex items-center text-sm text-gray-400">
-            <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.instance_type}</span>
-          </div>
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center text-sm text-gray-400">
             <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.provider}</span>
+            <span className="truncate">{vm.cpu} vCPU</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-400">
+            <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+            <span className="truncate">{vm.ram}GB RAM</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <BookOpen className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">VM #{vm.id}</span>
+            <span className="truncate">{vm.storage}GB Storage</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-400">
+            <Settings className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+            <span className="truncate">{vm.os}</span>
           </div>
         </div>
 
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between gap-2">
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                         bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                         transition-colors flex items-center justify-center"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Run
-              </button>
+              {vm.status === 'stopped' ? (
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                           bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                           transition-colors flex items-center justify-center"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Run
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handleRun(['stop'])}
+                  disabled={isRunning}
+                  className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                           bg-red-500/20 text-red-300 hover:bg-red-500/30
+                           transition-colors flex items-center justify-center"
+                >
+                  <Power className="h-4 w-4 mr-2" />
+                  Stop
+                </button>
+              )}
               <button 
                 onClick={handleVMGoldenImage}
                 disabled={!isGoldenImageEnabled || isProcessing}
@@ -164,20 +201,33 @@ export const CloudVMCard: React.FC<CloudVMCardProps> = ({ vm }) => {
               </button>
             </div>
 
-            <button
-              onClick={handleConvertToCatalogue}
-              disabled={!isConvertEnabled}
-              className="h-9 px-4 rounded-lg text-sm font-medium w-full
-                       bg-gradient-to-r from-primary-500 to-secondary-500
-                       hover:from-primary-400 hover:to-secondary-400
-                       transform hover:scale-105 transition-all duration-300
-                       text-white shadow-lg shadow-primary-500/20
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       flex items-center justify-center"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Convert to Catalogue
-            </button>
+            <div className="flex justify-between gap-2">
+              <button
+                onClick={handleConvertToCatalogue}
+                disabled={!isConvertEnabled}
+                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                         bg-gradient-to-r from-primary-500 to-secondary-500
+                         hover:from-primary-400 hover:to-secondary-400
+                         transform hover:scale-105 transition-all duration-300
+                         text-white shadow-lg shadow-primary-500/20
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         flex items-center justify-center"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Convert to Catalogue
+              </button>
+              <button 
+                onClick={() => handleRun(['delete'])}
+                disabled={isRunning}
+                className="h-9 px-4 rounded-lg text-sm font-medium
+                         bg-dark-300/50 hover:bg-dark-300
+                         border border-red-500/20 hover:border-red-500/40
+                         text-red-400 hover:text-red-300
+                         transition-all duration-300 flex items-center justify-center"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
