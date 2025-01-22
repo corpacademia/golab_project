@@ -1,12 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { CloudVMCard } from '../components/cloudvm/CloudVMCard';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { useAuthStore } from '../../../store/authStore';
+
+interface CloudVM {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  instance: string;
+  status: 'running' | 'stopped' | 'pending';
+  cpu: number;
+  ram: number;
+  storage: number;
+  os: string;
+}
 
 export const CloudVMsPage: React.FC = () => {
-  const [vms, setVMs] = useState([]);
+  const { user } = useAuthStore();
+  const [vms, setVMs] = useState<CloudVM[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: '',
     provider: '',
@@ -16,12 +32,16 @@ export const CloudVMsPage: React.FC = () => {
   useEffect(() => {
     const fetchVMs = async () => {
       try {
+        setError(null);
         const response = await axios.get('http://localhost:3000/api/v1/getCloudVMs');
         if (response.data.success) {
           setVMs(response.data.data);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch VMs');
         }
-      } catch (error) {
-        console.error('Error fetching VMs:', error);
+      } catch (err) {
+        setError('Failed to load cloud VMs. Please try again later.');
+        console.error('Error fetching VMs:', err);
       } finally {
         setIsLoading(false);
       }
@@ -39,6 +59,11 @@ export const CloudVMsPage: React.FC = () => {
     return matchesSearch && matchesProvider && matchesStatus;
   });
 
+  const handleCreateVM = () => {
+    // TODO: Implement VM creation flow
+    console.log('Create new VM');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -50,10 +75,15 @@ export const CloudVMsPage: React.FC = () => {
             Manage and configure your cloud-based virtual machines
           </p>
         </div>
-        <button className="btn-primary">
-          <Plus className="h-4 w-4 mr-2" />
-          New VM Instance
-        </button>
+        {user?.role !== 'user' && (
+          <button 
+            onClick={handleCreateVM}
+            className="btn-primary"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New VM Instance
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -98,13 +128,23 @@ export const CloudVMsPage: React.FC = () => {
 
             <button className="btn-secondary">
               <Filter className="h-4 w-4 mr-2" />
-              More Filters
+              Advanced Filters
             </button>
           </div>
         </div>
       </div>
 
-      {/* VM Grid */}
+      {/* Error State */}
+      {error && (
+        <div className="glass-panel p-4 border-red-500/20">
+          <div className="flex items-center space-x-2 text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Loading State */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
@@ -114,11 +154,35 @@ export const CloudVMsPage: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredVMs.map((vm) => (
-            <CloudVMCard key={vm.id} vm={vm} />
-          ))}
-        </div>
+        <>
+          {/* Empty State */}
+          {filteredVMs.length === 0 && (
+            <div className="glass-panel p-8 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="p-4 rounded-full bg-dark-300/50">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-300">
+                  No Virtual Machines Found
+                </h3>
+                <p className="text-gray-400 max-w-md">
+                  {filters.search || filters.provider || filters.status
+                    ? "No VMs match your current filters. Try adjusting your search criteria."
+                    : "You haven't created any virtual machines yet. Click 'New VM Instance' to get started."}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* VM Grid */}
+          {filteredVMs.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredVMs.map((vm) => (
+                <CloudVMCard key={vm.id} vm={vm} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

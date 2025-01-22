@@ -10,11 +10,12 @@ import {
   AlertCircle,
   X,
   Cpu,
-  Power,
-  Trash2
+  Hash,
+  FileCode
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { SoftwareInstallModal } from './SoftwareInstallModal';
+import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import axios from 'axios';
 
 interface CloudVMProps {
@@ -24,6 +25,8 @@ interface CloudVMProps {
     description: string;
     provider: string;
     instance: string;
+    instance_id?: string;
+    ami_id?: string;
     status: 'running' | 'stopped' | 'pending';
     cpu: number;
     ram: number;
@@ -34,10 +37,11 @@ interface CloudVMProps {
 
 export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCatalogueModalOpen, setIsCatalogueModalOpen] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isGoldenImageEnabled, setIsGoldenImageEnabled] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
+  const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const handleRun = async (software: string[]) => {
@@ -50,7 +54,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Software installation started successfully' });
-        setIsGoldenImageEnabled(true);
       } else {
         throw new Error(response.data.message || 'Failed to start installation');
       }
@@ -75,6 +78,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
 
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Golden image created successfully' });
+        setAmiId(response.data.ami_id);
         setIsConvertEnabled(true);
       } else {
         throw new Error(response.data.message || 'Failed to create golden image');
@@ -88,26 +92,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setIsProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
-  };
-
-  const handleConvertToCatalogue = async () => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/convertToCatalogue', {
-        vm_id: vm.id
-      });
-
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Successfully converted to catalogue' });
-      } else {
-        throw new Error(response.data.message || 'Failed to convert to catalogue');
-      }
-    } catch (error) {
-      setNotification({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to convert to catalogue'
-      });
-    }
-    setTimeout(() => setNotification(null), 3000);
   };
 
   return (
@@ -155,43 +139,34 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
             <span className="truncate">{vm.ram}GB RAM</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
-            <BookOpen className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.storage}GB Storage</span>
+            <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+            <span className="truncate">ID: {vm.instance_id || 'N/A'}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Settings className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.os}</span>
-          </div>
+          {amiId && (
+            <div className="flex items-center text-sm text-gray-400">
+              <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+              <span className="truncate">AMI: {amiId}</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between gap-2">
-              {vm.status === 'stopped' ? (
-                <button 
-                  onClick={() => setIsModalOpen(true)}
-                  className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                           bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                           transition-colors flex items-center justify-center"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Run
-                </button>
-              ) : (
-                <button 
-                  onClick={() => handleRun(['stop'])}
-                  disabled={isRunning}
-                  className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                           bg-red-500/20 text-red-300 hover:bg-red-500/30
-                           transition-colors flex items-center justify-center"
-                >
-                  <Power className="h-4 w-4 mr-2" />
-                  Stop
-                </button>
-              )}
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                disabled={isRunning}
+                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                         bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                         transition-colors flex items-center justify-center
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Run
+              </button>
               <button 
                 onClick={handleVMGoldenImage}
-                disabled={!isGoldenImageEnabled || isProcessing}
+                disabled={isProcessing}
                 className="h-9 px-4 rounded-lg text-sm font-medium flex-1
                          bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
                          transition-colors flex items-center justify-center
@@ -201,33 +176,20 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
               </button>
             </div>
 
-            <div className="flex justify-between gap-2">
-              <button
-                onClick={handleConvertToCatalogue}
-                disabled={!isConvertEnabled}
-                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                         bg-gradient-to-r from-primary-500 to-secondary-500
-                         hover:from-primary-400 hover:to-secondary-400
-                         transform hover:scale-105 transition-all duration-300
-                         text-white shadow-lg shadow-primary-500/20
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         flex items-center justify-center"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Convert to Catalogue
-              </button>
-              <button 
-                onClick={() => handleRun(['delete'])}
-                disabled={isRunning}
-                className="h-9 px-4 rounded-lg text-sm font-medium
-                         bg-dark-300/50 hover:bg-dark-300
-                         border border-red-500/20 hover:border-red-500/40
-                         text-red-400 hover:text-red-300
-                         transition-all duration-300 flex items-center justify-center"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsCatalogueModalOpen(true)}
+              disabled={!isConvertEnabled}
+              className="h-9 px-4 rounded-lg text-sm font-medium w-full
+                       bg-gradient-to-r from-primary-500 to-secondary-500
+                       hover:from-primary-400 hover:to-secondary-400
+                       transform hover:scale-105 transition-all duration-300
+                       text-white shadow-lg shadow-primary-500/20
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       flex items-center justify-center"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Convert to Catalogue
+            </button>
           </div>
         </div>
       </div>
@@ -237,6 +199,13 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleRun}
         isLoading={isRunning}
+      />
+
+      <ConvertToCatalogueModal
+        isOpen={isCatalogueModalOpen}
+        onClose={() => setIsCatalogueModalOpen(false)}
+        vmId={vm.id}
+        amiId={amiId}
       />
     </div>
   );
