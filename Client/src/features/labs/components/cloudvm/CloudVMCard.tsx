@@ -44,6 +44,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
+  const [instanceDetails,setInstance] = useState()
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const handleRun = async (software: string[]) => {
@@ -74,10 +75,25 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-        vm_id: vm.id
+      const instance_id = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{lab_id:vm.lab_id})
+      if (instance_id.data.success) {
+        setInstance(instance_id.data.result)
+        setNotification({ type: 'success', message: ' successfully accessed instance id' });
+      } else {
+        throw new Error(response.data.message || 'Failed to access instance id');
+      }
+    } catch (error) {
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to access instance id'
       });
-
+    }
+    console.log(vm)
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+        instance_id:instanceDetails.instance_id,
+        lab_id: vm.lab_id
+      });
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Golden image created successfully' });
         setAmiId(response.data.ami_id);
@@ -238,7 +254,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       <ConvertToCatalogueModal
         isOpen={isCatalogueModalOpen}
         onClose={() => setIsCatalogueModalOpen(false)}
-        vmId={vm.id}
+        vmId={vm.lab_id}
         amiId={amiId}
       />
     </div>
