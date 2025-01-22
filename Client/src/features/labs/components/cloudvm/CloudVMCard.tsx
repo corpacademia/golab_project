@@ -11,7 +11,9 @@ import {
   X,
   Cpu,
   Hash,
-  FileCode
+  FileCode,
+  HardDrive,
+  Server
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { SoftwareInstallModal } from './SoftwareInstallModal';
@@ -137,6 +139,14 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           <div className="flex items-center text-sm text-gray-400">
             <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
             <span className="truncate">{vm.ram}GB RAM</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-400">
+            <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+            <span className="truncate">Instance: {vm.instance}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-400">
+            <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+            <span className="truncate">Storage: {vm.storage}GB</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
