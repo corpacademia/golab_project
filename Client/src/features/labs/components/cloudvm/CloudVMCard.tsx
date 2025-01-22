@@ -24,7 +24,7 @@ interface CloudVMProps {
     description: string;
     provider: string;
     instance: string;
-    status: 'running' | 'stopped' | 'pending';
+    status: 'available' | 'stopped' | 'pending';
     cpu: number;
     ram: number;
     storage: number;
@@ -137,7 +137,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
             <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
           </div>
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
+            vm.status === 'available' ? 'bg-emerald-500/20 text-emerald-300' :
             vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
             'bg-amber-500/20 text-amber-300'
           }`}>
@@ -167,7 +167,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between gap-2">
-              {vm.status === 'stopped' ? (
+              {vm.status === 'available' ? (
                 <button 
                   onClick={() => setIsModalOpen(true)}
                   className="h-9 px-4 rounded-lg text-sm font-medium flex-1

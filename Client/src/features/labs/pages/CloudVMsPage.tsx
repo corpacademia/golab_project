@@ -28,12 +28,14 @@ export const CloudVMsPage: React.FC = () => {
     provider: '',
     status: ''
   });
-
+  const admin= JSON.parse(localStorage.getItem('auth')).result || {}
   useEffect(() => {
     const fetchVMs = async () => {
       try {
         setError(null);
-        const response = await axios.get('http://localhost:3000/api/v1/getCloudVMs');
+        const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured',{
+          admin_id : admin.id
+        });
         if (response.data.success) {
           setVMs(response.data.data);
         } else {
