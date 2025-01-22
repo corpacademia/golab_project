@@ -133,161 +133,165 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Convert to Catalogue</GradientText>
-          </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
+    <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6 mx-4">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">
+          <GradientText>Convert to Catalogue</GradientText>
+        </h2>
+        <button 
+          onClick={onClose}
+          className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+        >
+          <X className="h-5 w-5 text-gray-400" />
+        </button>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Catalogue Name
+          </label>
+          <input
+            type="text"
+            name="catalogueName"
+            value={formData.catalogueName}
+            onChange={handleInputChange}
+            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                     text-gray-300 focus:border-primary-500/40 focus:outline-none
+                     focus:ring-2 focus:ring-primary-500/20 transition-colors"
+          />
         </div>
 
-        <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Organization
+          </label>
+          <select
+            name="organizationId"
+            value={formData.organizationId}
+            onChange={handleInputChange}
+            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                     text-gray-300 focus:border-primary-500/40 focus:outline-none
+                     focus:ring-2 focus:ring-primary-500/20 transition-colors"
+          >
+            <option value="">Select an organization</option>
+            {organizations.map(org => (
+              <option key={org.id} value={org.id}>{org.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Catalogue Name
+              Number of Instances
             </label>
             <input
-              type="text"
-              name="catalogueName"
-              value={formData.catalogueName}
+              type="number"
+              name="numberOfInstances"
+              min="1"
+              value={formData.numberOfInstances}
               onChange={handleInputChange}
               className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Organization
+              Number of Days
             </label>
-            <select
-              name="organizationId"
-              value={formData.organizationId}
+            <input
+              type="number"
+              name="numberOfDays"
+              min="1"
+              value={formData.numberOfDays}
               onChange={handleInputChange}
               className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-            >
-              <option value="">Select an organization</option>
-              {organizations.map(org => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+            />
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Number of Instances
-              </label>
-              <input
-                type="number"
-                name="numberOfInstances"
-                min="1"
-                value={formData.numberOfInstances}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Number of Days
-              </label>
-              <input
-                type="number"
-                name="numberOfDays"
-                min="1"
-                value={formData.numberOfDays}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Expires In
+          </label>
+          <div className="relative">
+            <input
+              type="date"
+              name="expiresIn"
+              value={formData.expiresIn}
+              onChange={handleInputChange}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+            />
+            <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500" />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Expires In
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                name="expiresIn"
-                value={formData.expiresIn}
-                onChange={handleInputChange}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Software
-            </label>
-            <div className="space-y-2">
-              {software.map((s, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={s}
-                    onChange={(e) => handleSoftwareChange(index, e.target.value)}
-                    placeholder="Enter software name"
-                    className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  />
-                  {software.length > 1 && (
-                    <button
-                      onClick={() => handleRemoveSoftware(index)}
-                      className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-                    >
-                      <Minus className="h-4 w-4 text-red-400" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                onClick={handleAddSoftware}
-                className="flex items-center text-sm text-primary-400 hover:text-primary-300"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Software
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-200">{error}</span>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Software
+          </label>
+          <div className="space-y-2">
+            {software.map((s, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={s}
+                  onChange={(e) => handleSoftwareChange(index, e.target.value)}
+                  placeholder="Enter software name"
+                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none
+                           focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                />
+                {software.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveSoftware(index)}
+                    className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+                  >
+                    <Minus className="h-4 w-4 text-red-400" />
+                  </button>
+                )}
               </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-4">
+            ))}
             <button
-              onClick={onClose}
-              className="btn-secondary"
+              onClick={handleAddSoftware}
+              className="flex items-center text-sm text-primary-400 hover:text-primary-300"
             >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="btn-primary"
-            >
-              {isLoading ? 'Creating...' : 'Create Catalogue'}
+              <Plus className="h-4 w-4 mr-1" />
+              Add Software
             </button>
           </div>
+        </div>
+
+        {error && (
+          <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <span className="text-red-200">{error}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="btn-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="btn-primary"
+          >
+            {isLoading ? 'Creating...' : 'Create Catalogue'}
+          </button>
         </div>
       </div>
     </div>
