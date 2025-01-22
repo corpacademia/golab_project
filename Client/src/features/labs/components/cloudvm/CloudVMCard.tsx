@@ -153,7 +153,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <div className="flex flex-col space-y-2">
             <div className="flex justify-between gap-2">
-<<<<<<< HEAD
+{/* <<<<<<< HEAD
               {vm.status === 'available' ? (
                 <button 
                   onClick={() => setIsModalOpen(true)}
@@ -176,7 +176,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
                   Stop
                 </button>
               )}
-=======
+======= */}
               <button 
                 onClick={() => setIsModalOpen(true)}
                 disabled={isRunning}
@@ -188,7 +188,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
                 <Play className="h-4 w-4 mr-2" />
                 Run
               </button>
->>>>>>> 23250d309ae92a91506061c076413738f22e59c9
               <button 
                 onClick={handleVMGoldenImage}
                 disabled={isProcessing}
