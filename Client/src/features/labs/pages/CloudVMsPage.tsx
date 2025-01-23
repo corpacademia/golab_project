@@ -54,6 +54,7 @@ export const CloudVMsPage: React.FC = () => {
   
     fetchVMs();
   }, []);
+ 
   
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 

@@ -48,7 +48,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       try {
         const response = await axios.get('http://localhost:3000/api/v1/organizations');
         if (response.data.success) {
-          setOrganizations(response.data.organizations);
+          setOrganizations(response.data.data);
         }
       } catch (error) {
         console.error('Failed to fetch organizations:', error);

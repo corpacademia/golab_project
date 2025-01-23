@@ -20,7 +20,7 @@ import axios from 'axios';
 
 interface CloudVMProps {
   vm: {
-    id: string;
+    lab_id: string;
     name: string;
     description: string;
     provider: string;
@@ -41,6 +41,20 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  useEffect(()=>{
+    const checkVmCreated = async()=>{
+      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated',
+        {
+          lab_id : vm.lab_id
+        }
+      )
+      if(data.data.success){
+        setIsConvertEnabled(true);
+      }
+    }
+    checkVmCreated();
+  },[])
 
   const handleRun = async () => {
     setIsProcessing(true);
