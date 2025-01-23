@@ -83,4 +83,4 @@ export const DashboardSidebar: React.FC = () => {
       </nav>
     </div>
   );
-}
+};
