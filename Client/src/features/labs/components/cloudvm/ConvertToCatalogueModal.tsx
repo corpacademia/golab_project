@@ -134,7 +134,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4 text-center">
+      <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
         
         <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-dark-200 p-6 text-left shadow-xl transition-all">
