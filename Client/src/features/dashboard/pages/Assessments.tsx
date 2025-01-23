@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { AssessmentCard } from '../../labs/components/assessment/AssessmentCard';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, FolderX } from 'lucide-react';
 import axios from 'axios';
 
+interface Assessment {
+  assessment_id: string;
+  title: string;
+  description: string;
+  provider: string;
+  instance: string;
+  instance_id?: string;
+  status: 'active' | 'inactive' | 'pending';
+  cpu: number;
+  ram: number;
+  storage: number;
+  os: string;
+  software: string[];
+}
+
 export const Assessments: React.FC = () => {
-  const [assessments, setAssessments] = useState([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
@@ -112,6 +127,18 @@ export const Assessments: React.FC = () => {
               <div className="h-[320px] bg-dark-300/50 rounded-lg"></div>
             </div>
           ))}
+        </div>
+      ) : filteredAssessments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
+          <FolderX className="h-16 w-16 text-gray-400 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">
+            <GradientText>No Assessments Found</GradientText>
+          </h2>
+          <p className="text-gray-400 text-center max-w-md mb-6">
+            {assessments.length === 0 
+              ? "No assessments have been created yet."
+              : "No assessments match your current filters. Try adjusting your search criteria."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
