@@ -28,27 +28,35 @@ export const CloudVMsPage: React.FC = () => {
     provider: '',
     status: ''
   });
-
+ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
   useEffect(() => {
     const fetchVMs = async () => {
-      try {
-        setError(null);
-        const response = await axios.get('http://localhost:3000/api/v1/getCloudVMs');
-        if (response.data.success) {
-          setVMs(response.data.data);
-        } else {
-          throw new Error(response.data.message || 'Failed to fetch VMs');
+      let retry = true;
+      while (retry) {
+        try {
+          const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
+            admin_id: admin.id
+          });
+  
+          if (response.data.success && response.data.data.length > 0) {
+            setVMs(response.data.data);
+            retry = false; // Stop retrying once data is successfully fetched
+          } else {
+            console.warn('No VMs found, retrying...');
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Retry after 5 seconds
+          }
+        } catch (err) {
+          console.error('Error fetching VMs, retrying...', err);
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Retry after 5 seconds
+        } finally {
+          setIsLoading(false);
         }
-      } catch (err) {
-        setError('Failed to load cloud VMs. Please try again later.');
-        console.error('Error fetching VMs:', err);
-      } finally {
-        setIsLoading(false);
       }
     };
-
+  
     fetchVMs();
   }, []);
+  
 
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
