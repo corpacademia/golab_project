@@ -49,6 +49,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           lab_id : vm.lab_id
         }
       )
+      console.log(data)
       if(data.data.success){
         setIsConvertEnabled(true);
       }
@@ -226,7 +227,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       <ConvertToCatalogueModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        vmId={vm.id}
+        vmId={vm.lab_id}
         amiId={amiId}
       />
     </div>

@@ -41,7 +41,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
                       <span className="text-lg font-medium text-primary-400">
-                        {user.name.charAt(0)}
+                        {user.name}
                       </span>
                     </div>
                     <div>
