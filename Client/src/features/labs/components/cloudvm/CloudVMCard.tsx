@@ -49,7 +49,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           lab_id : vm.lab_id
         }
       )
-      console.log(data)
       if(data.data.success){
         setIsConvertEnabled(true);
       }
@@ -79,11 +78,9 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setTimeout(() => setNotification(null), 3000);
     }
   };
-
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
     try {
-// <<<<<<< HEAD
       const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
         lab_id: vm.lab_id
       });
@@ -92,15 +89,14 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         instance_id: result.data.result.instance_id,
         lab_id: vm.lab_id
       });
-// =======
-//       const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-//         vm_id: vm.id
-// >>>>>>> 1de030c003d55e60f62730a33c73b7a84e10e2ca
-//       });
-
+     
       if (response.data.success) {
+        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation',{
+          lab_id:vm.lab_id
+        })
         setNotification({ type: 'success', message: 'Golden image created successfully' });
-        setAmiId(response.data.ami_id);
+        setAmiId(ami.data.ami_id);
+        console.log(amiId)
         setIsConvertEnabled(true);
       } else {
         throw new Error(response.data.message || 'Failed to create golden image');
@@ -138,7 +134,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         <div className="flex justify-between items-start gap-4 mb-3">
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-1">
-              <GradientText>{vm.name}</GradientText>
+              <GradientText>{vm.title}</GradientText>
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
           </div>

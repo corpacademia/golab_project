@@ -18,6 +18,13 @@ interface Assessment {
   os: string;
   software: string[];
 }
+interface LabDetails{
+  cpu:string,
+  ram:string,
+  storage:string,
+  instance:string,
+  description:string,
+}
 
 export const Assessments: React.FC = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -27,11 +34,18 @@ export const Assessments: React.FC = () => {
     provider: '',
     status: ''
   });
+const [labDetails , setLabDetails] = useState<LabDetails | null>(null);
+
+
+  const admin = JSON.parse(localStorage.getItem('auth')).result || {}
+
 
   useEffect(() => {
     const fetchAssessments = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/getAssessments');
+        const response = await axios.post('http://localhost:3000/api/v1/getAssessments',{
+          admin_id:admin.id
+        });
         if (response.data.success) {
           setAssessments(response.data.data);
         }
@@ -47,11 +61,12 @@ export const Assessments: React.FC = () => {
 
   const filteredAssessments = assessments.filter(assessment => {
     const matchesSearch = !filters.search || 
-      assessment.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      assessment.description.toLowerCase().includes(filters.search.toLowerCase());
-    const matchesProvider = !filters.provider || assessment.provider === filters.provider;
-    const matchesStatus = !filters.status || assessment.status === filters.status;
-    return matchesSearch && matchesProvider && matchesStatus;
+      assessment.config_details.catalogueName.toLowerCase().includes(filters.search.toLowerCase()) 
+      // ||
+      // assessment.description.toLowerCase().includes(filters.search.toLowerCase());
+    // const matchesProvider = !filters.provider || assessment.provider === filters.provider;
+    // const matchesStatus = !filters.status || assessment.status === filters.status;
+    return matchesSearch ;
   });
 
   return (
@@ -143,7 +158,7 @@ export const Assessments: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredAssessments.map((assessment) => (
-            <AssessmentCard key={assessment.assessment_id} assessment={assessment} />
+            <AssessmentCard key={assessment.assessment_id} assessment={assessment} labDetails={labDetails}/>
           ))}
         </div>
       )}
