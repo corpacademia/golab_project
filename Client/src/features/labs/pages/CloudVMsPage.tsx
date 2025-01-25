@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { CloudVMCard } from '../components/cloudvm/CloudVMCard';
+import { CloudVMAssessmentCard } from '../components/cloudvm/assessment/CloudVMAssessmentCard';
 import { Plus, Search, Filter, AlertCircle, FolderX } from 'lucide-react';
 import axios from 'axios';
 
@@ -174,7 +175,7 @@ export const CloudVMsPage: React.FC = () => {
           {filteredVMs.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredVMs.map((vm) => (
-                <CloudVMCard key={vm.id} vm={vm} />
+                <CloudVMAssessmentCard key={vm.id} assessment={vm} />
               ))}
             </div>
           )}
