@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { CloudVMCard } from '../components/cloudvm/CloudVMCard';
 import { CloudVMAssessmentCard } from '../components/cloudvm/assessment/CloudVMAssessmentCard';
 import { Plus, Search, Filter, AlertCircle, FolderX } from 'lucide-react';
 import axios from 'axios';
@@ -27,40 +26,36 @@ export const CloudVMsPage: React.FC = () => {
     provider: '',
     status: ''
   });
-  const admin= JSON.parse(localStorage.getItem('auth')).result || {}
+
+  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+
   useEffect(() => {
     const fetchVMs = async () => {
-      let retry = true;
-      while (retry) {
-        try {
-          const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
-            admin_id: admin.id
-          });
-  
-          if (response.data.success && response.data.data.length > 0) {
-            setVMs(response.data.data);
-            retry = false; // Stop retrying once data is successfully fetched
-          } else {
-            console.warn('No VMs found, retrying...');
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Retry after 5 seconds
-          }
-        } catch (err) {
-          console.error('Error fetching VMs, retrying...', err);
-          await new Promise(resolve => setTimeout(resolve, 5000)); // Retry after 5 seconds
-        } finally {
-          setIsLoading(false);
+      try {
+        const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
+          admin_id: admin.id
+        });
+
+        if (response.data.success) {
+          setVMs(response.data.data);
+        } else {
+          setError('Failed to fetch VMs');
         }
+      } catch (err) {
+        console.error('Error fetching VMs:', err);
+        setError('Failed to fetch VMs');
+      } finally {
+        setIsLoading(false);
       }
     };
-  
+
     fetchVMs();
-  }, []);
- 
-  
+  }, [admin.id]);
+
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
-      vm.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      vm.description.toLowerCase().includes(filters.search.toLowerCase());
+      vm.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      vm.description?.toLowerCase().includes(filters.search.toLowerCase());
     const matchesProvider = !filters.provider || vm.provider === filters.provider;
     const matchesStatus = !filters.status || vm.status === filters.status;
     return matchesSearch && matchesProvider && matchesStatus;
@@ -160,7 +155,7 @@ export const CloudVMsPage: React.FC = () => {
                   <FolderX className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-300">
-                  No catalogues available
+                  No VMs available
                 </h3>
                 <p className="text-gray-400 max-w-md">
                   {filters.search || filters.provider || filters.status
