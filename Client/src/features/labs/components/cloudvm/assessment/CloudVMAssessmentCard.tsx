@@ -14,8 +14,6 @@ import {
   HardDrive,
   Server,
   UserPlus,
-  Edit,
-  Trash2,
   Loader
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
@@ -60,23 +58,32 @@ interface org {
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (storage: number) => Promise<void>;
+  onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
   currentStorage: number;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, currentStorage }) => {
-  const [storage, setStorage] = useState(currentStorage);
+  const [increaseStorage, setIncreaseStorage] = useState(0);
+  const [decreaseStorage, setDecreaseStorage] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
+    if (decreaseStorage > currentStorage) {
+      setError('Decrease amount cannot be greater than current storage');
+      return;
+    }
+
     setIsSubmitting(true);
+    setError(null);
     try {
-      await onSubmit(storage);
+      await onSubmit({ increase: increaseStorage, decrease: decreaseStorage });
       onClose();
     } catch (error) {
       console.error('Error updating storage:', error);
+      setError('Failed to update storage');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,7 +94,7 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
       <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
-            <GradientText>Edit VM Storage</GradientText>
+            <GradientText>Modify Storage</GradientText>
           </h2>
           <button 
             onClick={onClose}
@@ -97,22 +104,50 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Storage (GB)
-            </label>
-            <input
-              type="number"
-              value={storage}
-              onChange={(e) => setStorage(Number(e.target.value))}
-              min={1}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-            />
+        <div className="space-y-6">
+          <div className="p-4 bg-dark-300/50 rounded-lg">
+            <p className="text-sm text-gray-400 mb-2">Current Storage</p>
+            <p className="text-2xl font-semibold text-gray-200">{currentStorage} GB</p>
           </div>
 
-          <div className="flex justify-end space-x-4 mt-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Increase Storage (GB)
+              </label>
+              <input
+                type="number"
+                value={increaseStorage}
+                onChange={(e) => setIncreaseStorage(Math.max(0, Number(e.target.value)))}
+                min="0"
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Decrease Storage (GB)
+              </label>
+              <input
+                type="number"
+                value={decreaseStorage}
+                onChange={(e) => setDecreaseStorage(Math.max(0, Number(e.target.value)))}
+                min="0"
+                max={currentStorage}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-4">
             <button
               onClick={onClose}
               className="btn-secondary"
@@ -122,7 +157,7 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || (increaseStorage === 0 && decreaseStorage === 0)}
               className="btn-primary"
             >
               {isSubmitting ? (
@@ -141,76 +176,6 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
   );
 };
 
-interface DeleteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-}
-
-const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await onConfirm();
-      onClose();
-    } catch (error) {
-      console.error('Error deleting VM:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Confirm Deletion</GradientText>
-          </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
-
-        <p className="text-gray-300 mb-6">
-          Are you sure you want to delete this assessment? This action cannot be undone.
-        </p>
-
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="btn-secondary"
-            disabled={isDeleting}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="btn-primary bg-red-500 hover:bg-red-600"
-          >
-            {isDeleting ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin h-4 w-4 mr-2" />
-                Deleting...
-              </span>
-            ) : (
-              'Delete Assessment'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -219,8 +184,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [orgDetails, setOrgDetails] = useState<org | null>(null);
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [load, setLoad] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
@@ -366,14 +329,16 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
   };
 
-  const handleEdit = async (newStorage: number) => {
+  const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
     try {
       const response = await axios.put(`http://localhost:3000/api/v1/updateAssessment/${assessment.lab_id}`, {
-        storage: newStorage
+        storageIncrease: storageChange.increase,
+        storageDecrease: storageChange.decrease
       });
 
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Storage updated successfully' });
+        window.location.reload();
       } else {
         throw new Error(response.data.message || 'Failed to update storage');
       }
@@ -381,25 +346,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to update storage'
-      });
-      throw error;
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/deleteAssessment/${assessment.lab_id}`);
-
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Assessment deleted successfully' });
-        window.location.reload();
-      } else {
-        throw new Error(response.data.message || 'Failed to delete assessment');
-      }
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to delete assessment'
       });
       throw error;
     }
@@ -435,27 +381,13 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description || assessment.description}</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-            >
-              <Edit className="h-4 w-4 text-primary-400" />
-            </button>
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-            >
-              <Trash2 className="h-4 w-4 text-red-400" />
-            </button>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-              assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-              'bg-amber-500/20 text-amber-300'
-            }`}>
-              {assessment.status}
-            </span>
-          </div>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+            assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+            'bg-amber-500/20 text-amber-300'
+          }`}>
+            {assessment.status}
+          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -541,19 +473,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         </div>
       )}
-
-      <EditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEdit}
-        currentStorage={assessment.storage}
-      />
-
-      <DeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-      />
     </div>
   );
 };
