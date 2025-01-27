@@ -30,10 +30,10 @@ export const MyLabs: React.FC = () => {
       try {
         const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
         const catalogues = await axios.get('http://localhost:3000/api/v1/getCatalogues');
-        const labs = await axios.post('http://localhost:3000/api/v1/getlabonid', {
+        const labs = await axios.post('http://localhost:3000/api/v1/getAssignedLabs', {
           userId: user.id
         });
-        
+        console.log(labs)
         const cats = catalogues.data.data;
         const labss = labs.data.data;
         

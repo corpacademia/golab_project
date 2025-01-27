@@ -36,7 +36,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
   useEffect(() => {
     const fetchVMs = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
+        const response = await axios.post('http://localhost:3000/api/v1/getAssessments', {
           admin_id: admin.id
         });
 
@@ -70,7 +70,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-display font-bold">
-            <GradientText>Lab Management</GradientText>
+            <GradientText>Cloud Virtual Machines</GradientText>
           </h1>
           <p className="mt-2 text-gray-400">
             Manage and configure assessment environments
