@@ -14,7 +14,9 @@ import {
   HardDrive,
   Server,
   UserPlus,
-  Loader
+  Loader,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import axios from 'axios';
@@ -39,27 +41,18 @@ interface CloudVMAssessmentProps {
   };
 }
 
-interface LabDetails {
-  cpu: string;
-  ram: string;
-  storage: string;
-  instance: string;
-  description: string;
-}
-
-interface org {
-  id: string;
-  organization_name: string;
-  org_id: string;
-  org_admin: string;
-  org_type: string;
-}
-
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
   currentStorage: number;
+}
+
+interface DeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  isDeleting: boolean;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, currentStorage }) => {
@@ -176,10 +169,67 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
   );
 };
 
+const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, isDeleting }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>Confirm Deletion</GradientText>
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-sm text-red-400">
+              Are you sure you want to delete this assessment? This action cannot be undone.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-4">
+            <button
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="btn-primary bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Deleting...
+                </span>
+              ) : (
+                'Delete Assessment'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [orgDetails, setOrgDetails] = useState<org | null>(null);
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
@@ -242,7 +292,9 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       downloadLink.click();
   
       const formData = new FormData();
-      formData.append('file', pdfBlob, 'User_Credentials.pdf');
+      formData.append('file', pdfBlob, 'User_Credentials.pdf'); Continuing directly from where we left off in the CloudVMAssessmentCard.tsx file:
+
+```typescript
       formData.append('email', email);
       formData.append('subject', 'User Credentials');
       formData.append('body', 'Please find attached the user credentials.');
@@ -283,7 +335,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
 
     setIsLoading(true);
-
     try {
       const users = generateUserCredentials(assessment.config_details?.numberOfInstances || 1);
 
@@ -351,6 +402,28 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`http://localhost:3000/api/v1/deleteAssessment/${assessment.lab_id}`);
+      
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Assessment deleted successfully' });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete assessment');
+      }
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete assessment'
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   if (load) {
     return <div className="animate-pulse h-[320px] bg-dark-300/50 rounded-lg"></div>;
   }
@@ -381,13 +454,27 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description || assessment.description}</p>
           </div>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-            assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-            'bg-amber-500/20 text-amber-300'
-          }`}>
-            {assessment.status}
-          </span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+            >
+              <Pencil className="h-4 w-4 text-primary-400" />
+            </button>
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+            >
+              <Trash2 className="h-4 w-4 text-red-400" />
+            </button>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+              assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+              'bg-amber-500/20 text-amber-300'
+            }`}>
+              {assessment.status}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -409,24 +496,34 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         </div>
 
-        <div className="mt-auto pt-3 border-t border-primary-500/10">
-          <div className="flex flex-col space-y-2">
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="h-9 px-4 rounded-lg text-sm font-medium w-full
-                       bg-gradient-to-r from-primary-500 to-secondary-500
-                       hover:from-primary-400 hover:to-secondary-400
-                       transform hover:scale-105 transition-all duration-300
-                       text-white shadow-lg shadow-primary-500/20
-                       flex items-center justify-center"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create Users
-            </button>
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-400 mb-2">Software Installed:</h4>
+          <div className="flex flex-wrap gap-2">
+            {assessment.software.map((software, index) => (
+              <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                {software}
+              </span>
+            ))}
           </div>
+        </div>
+
+        <div className="mt-auto pt-3 border-t border-primary-500/10">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full h-9 px-4 rounded-lg text-sm font-medium
+                     bg-gradient-to-r from-primary-500 to-secondary-500
+                     hover:from-primary-400 hover:to-secondary-400
+                     transform hover:scale-105 transition-all duration-300
+                     text-white shadow-lg shadow-primary-500/20
+                     flex items-center justify-center"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create Users
+          </button>
         </div>
       </div>
 
+      {/* Create User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
@@ -473,6 +570,31 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         </div>
       )}
+
+      <EditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleEdit}
+        currentStorage={assessment.storage}
+      />
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
+```
+
+This completes the implementation of both components with all the requested functionality:
+1. Edit and Delete icons
+2. Storage modification with increase/decrease options
+3. Confirmation dialogs
+4. Loading states
+5. Success/error notifications
+6. API integrations
+
+The components maintain consistent styling and behavior while providing a comprehensive set of features for managing cloud VMs and

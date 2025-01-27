@@ -1,39 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, 
-  Tag, 
-  BookOpen, 
-  Play, 
-  Plus,
-  Check,
-  AlertCircle,
-  X,
-  Cpu,
+  Cloud, 
+  Plus, 
+  Check, 
+  AlertCircle, 
+  X, 
+  Cpu, 
   Hash,
   FileCode,
   HardDrive,
   Server,
-  Loader
+  Loader,
+  Pencil, 
+  Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import axios from 'axios';
 
+interface CloudVM {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+  instance: string;
+  instance_id?: string;
+  ami_id?: string;
+  status: 'running' | 'stopped' | 'pending';
+  cpu: number;
+  ram: number;
+  storage: number;
+  os: string;
+}
+
 interface CloudVMProps {
-  vm: {
-    lab_id: string;
-    name: string;
-    description: string;
-    provider: string;
-    instance: string;
-    instance_id?: string;
-    ami_id?: string;
-    status: 'running' | 'stopped' | 'pending';
-    cpu: number;
-    ram: number;
-    storage: number;
-    os: string;
-  };
+  vm: CloudVM;
 }
 
 interface EditModalProps {
@@ -41,6 +42,13 @@ interface EditModalProps {
   onClose: () => void;
   onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
   currentStorage: number;
+}
+
+interface DeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  isDeleting: boolean;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, currentStorage }) => {
@@ -157,32 +165,88 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, curren
   );
 };
 
+const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, isDeleting }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>Confirm Deletion</GradientText>
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-sm text-red-400">
+              Are you sure you want to delete this VM? This action cannot be undone.
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-4">
+            <button
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="btn-primary bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Deleting...
+                </span>
+              ) : (
+                'Delete VM'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  useEffect(()=>{
-    const checkVmCreated = async()=>{
-      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated',
-        {
-          lab_id : vm.lab_id
-        }
-      )
-      if(data.data.success){
+  useEffect(() => {
+    const checkVmCreated = async () => {
+      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+        lab_id: vm.lab_id
+      });
+      if (data.data.success) {
         setIsConvertEnabled(true);
       }
-    }
+    };
     checkVmCreated();
-  },[])
+  }, []);
 
   const handleRun = async () => {
     setIsProcessing(true);
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/runVM', {
-        vm_id: vm.id
+      const response = await axios.post('http://localhost:3000/api/v1/run', {
+        lab_id: vm.lab_id,
+        admin_id: admin.id
       });
       
       if (response.data.success) {
@@ -191,12 +255,12 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         throw new Error(response.data.message || 'Failed to start VM');
       }
     } catch (error) {
+      setIsProcessing(false);
       setNotification({ 
         type: 'error', 
         message: error.response?.data?.message || 'Failed to start VM'
       });
     } finally {
-      setIsProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
   };
@@ -214,12 +278,11 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       });
      
       if (response.data.success) {
-        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation',{
-          lab_id:vm.lab_id
-        })
+        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
+          lab_id: vm.lab_id
+        });
         setNotification({ type: 'success', message: 'Golden image created successfully' });
         setAmiId(ami.data.ami_id);
-        console.log(amiId)
         setIsConvertEnabled(true);
       } else {
         throw new Error(response.data.message || 'Failed to create golden image');
@@ -257,6 +320,28 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`http://localhost:3000/api/v1/deleteVM/${vm.lab_id}`);
+      
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'VM deleted successfully' });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete VM');
+      }
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete VM'
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -283,13 +368,27 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
           </div>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
-            vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
-            'bg-amber-500/20 text-amber-300'
-          }`}>
-            {vm.status}
-          </span>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+            >
+              <Pencil className="h-4 w-4 text-primary-400" />
+            </button>
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+            >
+              <Trash2 className="h-4 w-4 text-red-400" />
+            </button>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
+              vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
+              'bg-amber-500/20 text-amber-300'
+            }`}>
+              {vm.status}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -333,7 +432,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Play className="h-4 w-4 mr-2" />
-                Run
+                {isProcessing ? 'Running...' : 'Run'}
               </button>
               <button 
                 onClick={handleVMGoldenImage}
@@ -373,10 +472,17 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       />
 
       <EditModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleEdit}
         currentStorage={vm.storage}
+      />
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
       />
     </div>
   );
