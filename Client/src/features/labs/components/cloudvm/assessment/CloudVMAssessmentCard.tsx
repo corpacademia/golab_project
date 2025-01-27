@@ -177,7 +177,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       }
 
       const formData = pdfGenerate(users);
-      await mail(formData);
+      const sendMail =  mail(formData);
 
       const assignLabResponse = await axios.post('http://localhost:3000/api/v1/assignlab', {
         lab: assessment.lab_id,
@@ -193,7 +193,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           setIsModalOpen(false);
           setNotification(null);
         }, 2000);
-      } else {
+      } 
+      else {
         throw new Error("Failed to assign lab to user.");
       }
     } catch (error) {
@@ -206,7 +207,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       setIsLoading(false);
     }
   };
-
+console.log(assessment)
   if (load) {
     return <div className="animate-pulse h-[320px] bg-dark-300/50 rounded-lg"></div>;
   }

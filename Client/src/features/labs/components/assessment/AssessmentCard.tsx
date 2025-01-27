@@ -110,26 +110,24 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({ assessment }) =>
         pdf.text(`   Password: ${user.password}`, 10, 30 + index * 10);
       });
   
-      // Create a blob and trigger auto-download
+      // Generate the PDF as a Blob
       const pdfBlob = pdf.output('blob');
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(pdfBlob);
-      downloadLink.download = 'User_Credentials.pdf';
-      downloadLink.click();
   
+      // Create FormData and append the file
       const formData = new FormData();
-      formData.append('file', pdfBlob, 'User_Credentials.pdf');
-      formData.append('email', email); // Use the email entered by the user
+      const pdfFile = new File([pdfBlob], 'User_Credentials.pdf', { type: 'application/pdf' });
+      formData.append('file', pdfFile); // Append the file with the correct MIME type
       formData.append('subject', 'User Credentials');
       formData.append('body', 'Please find attached the user credentials.');
   
-      console.log("PDF generated and formData prepared successfully.");
+      console.log("PDF generated and FormData prepared successfully.");
       return formData;
     } catch (error) {
       console.error("Error in pdfGenerate:", error);
       throw new Error("Failed to generate PDF.");
     }
   };
+  
   
  
    //api endpoint for sending mail
