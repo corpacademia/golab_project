@@ -292,9 +292,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       downloadLink.click();
   
       const formData = new FormData();
-      formData.append('file', pdfBlob, 'User_Credentials.pdf'); Continuing directly from where we left off in the CloudVMAssessmentCard.tsx file:
+      formData.append('file', pdfBlob, 'User_Credentials.pdf'); 
 
-```typescript
       formData.append('email', email);
       formData.append('subject', 'User Credentials');
       formData.append('body', 'Please find attached the user credentials.');
@@ -587,14 +586,3 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     </div>
   );
 };
-```
-
-This completes the implementation of both components with all the requested functionality:
-1. Edit and Delete icons
-2. Storage modification with increase/decrease options
-3. Confirmation dialogs
-4. Loading states
-5. Success/error notifications
-6. API integrations
-
-The components maintain consistent styling and behavior while providing a comprehensive set of features for managing cloud VMs and

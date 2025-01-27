@@ -12,7 +12,9 @@ import {
   Server,
   Loader,
   Pencil, 
-  Trash2
+  Trash2,
+  Tag,
+  Play
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
