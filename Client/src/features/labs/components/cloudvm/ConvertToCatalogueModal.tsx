@@ -127,61 +127,22 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
   };
 
   const handleSubmit = async () => {
-    try {
-      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails',{
-        org_id:formData.organizationId
-      })
-      if(org_details.data.success){
-        setOrg_details(org_details.data.data)
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to fetch organization details');
-    }
 
-    try {
-      
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to update batch assignment');
-    }
     if (!validateForm()) return;
 
     setIsLoading(true);
     setError(null);
 
-    /**
- * Function to generate user IDs and passwords for n users.
- */
-
-    // const generateUserCredentials = (n) => {
-    //   const users = [];
-    
-    //   for (let i = 0; i < n; i++) {
-    //     const userId = `${Math.random().toString(36).slice(2, 10)}@golabin.ai`; // User ID in the specified format
-    //     const password = Math.random().toString(36).slice(2, 12); // Random password
-    //     users.push({ userId, password });
-    //   }
-    
-    //   return users
-    // };
-    // const userData = generateUserCredentials(formData.numberOfInstances)
-
-    // try {
-    //   const insertDataToDatabase = await axios.post('http://localhost:3000/api/v1/insertUsers',{
-    //     users: userData,
-    //     organization:formData.organizationId,
-    //     admin_id:admin.id,
-    //     organization_type:'enterprise',
-    //   })
-    // } catch (error) {
-    //   setError(error.response?.data?.message || 'Failed to Insert users');
-    // }
 
    
     try {
+      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails',{
+           org_id:formData.organizationId})
+
        const batch = await axios.post('http://localhost:3000/api/v1/batchAssignment',{
           lab_id:vmId,
-          admin_id:Org_details.org_admin,
-          org_id:Org_details.id,
+          admin_id:org_details.data.data.org_admin,
+          org_id:org_details.data.data.id,
           config_details:formData,
           configured_by:admin.id,
           software:software,
@@ -200,28 +161,6 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update lab configurations');
     }
-
-
-
-    // try {
-    //   const validSoftware = software.filter(s => s.trim() !== '');
-    //   console.log(validSoftware)
-    //   const response = await axios.post('http://localhost:3000/api/v1/convertToCatalogue', {
-    //     vmId,
-    //     amiId,
-    //     ...formData,
-    //     software: validSoftware
-    //   });
-
-    //   if (response.data.success) {
-    //     onClose();
-    //   } else {
-    //     throw new Error(response.data.message || 'Failed to convert to catalogue');
-    //   }
-    // } catch (error) {
-    //   setError(error.response?.data?.message || 'Failed to convert to catalogue');
-    // }
-    
     finally {
       setIsLoading(false);
     }

@@ -248,18 +248,17 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isInstance,setIsInstance] = useState(false);
   const [amiData,setAmiData] = useState< Ami | undefined>(undefined);
 
-  // useEffect(() => {
-  //   const checkVmCreated = async () => {
-  //     const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-  //       lab_id: vm.lab_id
-  //     });
-  //     if (data.data.success) {
-  //       setAmiId(data.data.data.ami_id)
-  //       setIsConvertEnabled(true);
-  //     }
-  //   };
-  //   checkVmCreated();
-  // }, []);
+  useEffect(() => {
+    const checkVmCreated = async () => {
+      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+        lab_id: vm.lab_id
+      });
+      if (data.data.success) {
+        setIsConvertEnabled(true);
+      }
+    };
+    checkVmCreated();
+  }, []);
  
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -268,13 +267,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           lab_id: vm.lab_id,
         });
 
-        const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-          lab_id: vm.lab_id
-        });
   
-        if (instance.data.success && data.data.success) {
-          setAmiId(data.data.data.ami_id)
-          setIsConvertEnabled(true);
+        if (instance.data.success ) {
           setInstance(instance.data.result);
           setIsInstance(true);
 
@@ -315,16 +309,32 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
     try {
+         // Fetch instance details
       const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
         lab_id: vm.lab_id
       });
-      
+
+      // Check if VM is already created
+      const checkResponse = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+        lab_id: vm.lab_id
+      });
+      if (checkResponse.data.success) {
+        setNotification({ type: 'error', message: 'VM is already created to this lab' });
+        setTimeout(() => setNotification(null), 3000);
+        setIsProcessing(false);
+        return; // Stop further execution
+      }
+  
+     
+  
+      // Create golden image
       const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
         instance_id: result.data.result.instance_id,
         lab_id: vm.lab_id
       });
-     
+  
       if (response.data.success) {
+        // Fetch AMI details
         const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
           lab_id: vm.lab_id
         });
@@ -335,8 +345,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         throw new Error(response.data.message || 'Failed to create golden image');
       }
     } catch (error) {
-      setNotification({ 
-        type: 'error', 
+      setNotification({
+        type: 'error',
         message: error.response?.data?.message || 'Failed to create golden image'
       });
     } finally {
@@ -344,7 +354,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setTimeout(() => setNotification(null), 3000);
     }
   };
-
+  
   const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
     try {
       const response = await axios.put(`http://localhost:3000/api/v1/updateVM/${vm.lab_id}`, {
@@ -371,7 +381,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     setIsDeleting(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/deletevm',{
-        id:vm.lab_id
+        id:vm.lab_id,
+        ami_id:amiId,
 
       });
       
