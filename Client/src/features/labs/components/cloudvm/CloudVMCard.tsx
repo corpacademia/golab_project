@@ -19,6 +19,7 @@ import {
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import axios from 'axios';
+import { setInterval } from 'timers/promises';
 
 interface CloudVM {
   id: string;
@@ -38,6 +39,13 @@ interface CloudVM {
 interface CloudVMProps {
   vm: CloudVM;
 }
+interface Instance{
+  id:string;
+  lab_id:string;
+  instance_id:string;
+  instance_name:string;
+  public_ip:string;
+}
 
 interface EditModalProps {
   isOpen: boolean;
@@ -51,6 +59,12 @@ interface DeleteModalProps {
   onClose: () => void;
   onConfirm: () => Promise<void>;
   isDeleting: boolean;
+}
+
+interface Ami {
+  lab_id:string;
+  ami_id:string;
+  created_at:string;
 }
 
 const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, currentStorage }) => {
@@ -229,19 +243,50 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
+  const [instanceDetails, setInstance] = useState<Instance | undefined>(undefined);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isInstance,setIsInstance] = useState(false);
+  const [amiData,setAmiData] = useState< Ami | undefined>(undefined);
 
+  // useEffect(() => {
+  //   const checkVmCreated = async () => {
+  //     const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+  //       lab_id: vm.lab_id
+  //     });
+  //     if (data.data.success) {
+  //       setAmiId(data.data.data.ami_id)
+  //       setIsConvertEnabled(true);
+  //     }
+  //   };
+  //   checkVmCreated();
+  // }, []);
+ 
   useEffect(() => {
-    const checkVmCreated = async () => {
-      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-        lab_id: vm.lab_id
-      });
-      if (data.data.success) {
-        setIsConvertEnabled(true);
+    const fetchInstanceDetails = async () => {
+      try {
+        const instance = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+          lab_id: vm.lab_id,
+        });
+
+        const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+          lab_id: vm.lab_id
+        });
+  
+        if (instance.data.success && data.data.success) {
+          setAmiId(data.data.data.ami_id)
+          setIsConvertEnabled(true);
+          setInstance(instance.data.result);
+          setIsInstance(true);
+
+        }
+      } catch (error) {
+        console.error('Failed to fetch instance details:', error);
       }
     };
-    checkVmCreated();
+  
+    fetchInstanceDetails();
   }, []);
+  
 
   const handleRun = async () => {
     setIsProcessing(true);
@@ -325,7 +370,10 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/deleteVM/${vm.lab_id}`);
+      const response = await axios.post('http://localhost:3000/api/v1/deletevm',{
+        id:vm.lab_id
+
+      });
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'VM deleted successfully' });
@@ -343,149 +391,158 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setIsDeleteModalOpen(false);
     }
   };
-
+if (!isInstance) {
   return (
-    <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
-                    hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
-                    transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                    hover:translate-y-[-2px] group relative">
-      {notification && (
-        <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
-          notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
-        }`}>
-          {notification.type === 'success' ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
-          <span className="text-sm">{notification.message}</span>
-        </div>
-      )}
-      
-      <div className="p-4 flex flex-col h-full">
-        <div className="flex justify-between items-start gap-4 mb-3">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-1">
-              <GradientText>{vm.title}</GradientText>
-            </h3>
-            <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-            >
-              <Pencil className="h-4 w-4 text-primary-400" />
-            </button>
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-            >
-              <Trash2 className="h-4 w-4 text-red-400" />
-            </button>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
-              vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
-              'bg-amber-500/20 text-amber-300'
-            }`}>
-              {vm.status}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center text-sm text-gray-400">
-            <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.cpu} vCPU</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">{vm.ram}GB RAM</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Instance: {vm.instance}</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Storage: {vm.storage}GB</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">ID: {vm.instance_id || 'N/A'}</span>
-          </div>
-          {amiId && (
-            <div className="flex items-center text-sm text-gray-400">
-              <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">AMI: {amiId}</span>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-auto pt-3 border-t border-primary-500/10">
-          <div className="flex flex-col space-y-2">
-            <div className="flex justify-between gap-2">
-              <button 
-                onClick={handleRun}
-                disabled={isProcessing}
-                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                         bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                         transition-colors flex items-center justify-center
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                {isProcessing ? 'Running...' : 'Run'}
-              </button>
-              <button 
-                onClick={handleVMGoldenImage}
-                disabled={isProcessing}
-                className="h-9 px-4 rounded-lg text-sm font-medium flex-1
-                         bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
-                         transition-colors flex items-center justify-center
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
-              </button>
-            </div>
-
-            <button
-              onClick={() => setIsModalOpen(true)}
-              disabled={!isConvertEnabled}
-              className="h-9 px-4 rounded-lg text-sm font-medium w-full
-                       bg-gradient-to-r from-primary-500 to-secondary-500
-                       hover:from-primary-400 hover:to-secondary-400
-                       transform hover:scale-105 transition-all duration-300
-                       text-white shadow-lg shadow-primary-500/20
-                       disabled:opacity-50 disabled:cursor-not-allowed
-                       flex items-center justify-center"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Convert to Catalogue
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <ConvertToCatalogueModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        vmId={vm.lab_id}
-        amiId={amiId}
-      />
-
-      <EditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEdit}
-        currentStorage={vm.storage}
-      />
-
-      <DeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        isDeleting={isDeleting}
-      />
+    <div className="flex justify-center items-center h-full">
+      <Loader className="animate-spin h-8 w-8 text-primary-400" />
+      <span className="ml-2 text-gray-300">Loading instance details...</span>
     </div>
   );
-};
+}
+      return (
+        <>
+          <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
+                        hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
+                        transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
+                        hover:translate-y-[-2px] group relative">
+            {notification && (
+              <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+                notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+              }`}>
+                {notification.type === 'success' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <span className="text-sm">{notification.message}</span>
+              </div>
+            )}
+            
+            <div className="p-4 flex flex-col h-full">
+              <div className="flex justify-between items-start gap-4 mb-3">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-1">
+                    <GradientText>{vm.title}</GradientText>
+                  </h3>
+                  <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                  >
+                    <Pencil className="h-4 w-4 text-primary-400" />
+                  </button>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-400" />
+                  </button>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
+                    vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
+                    'bg-amber-500/20 text-amber-300'
+                  }`}>
+                    {vm.status}
+                  </span>
+                </div>
+              </div>
+    
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="flex items-center text-sm text-gray-400">
+                  <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                  <span className="truncate">{vm.cpu} vCPU</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-400">
+                  <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                  <span className="truncate">{vm.ram}GB RAM</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-400">
+                  <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                  <span className="truncate">Instance: {vm.instance}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-400">
+                  <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                  <span className="truncate">Storage: {vm.storage}GB</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-400">
+                  <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                  <span className="truncate">ID: {instanceDetails.instance_id || 'N/A'}</span>
+                </div>
+                {amiId && (
+                  <div className="flex items-center text-sm text-gray-400">
+                    <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                    <span className="truncate">AMI: {amiId}</span>
+                  </div>
+                )}
+              </div>
+    
+              <div className="mt-auto pt-3 border-t border-primary-500/10">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between gap-2">
+                    <button 
+                      onClick={handleRun}
+                      disabled={isProcessing}
+                      className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                               bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                               transition-colors flex items-center justify-center
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      {isProcessing ? 'Running...' : 'Run'}
+                    </button>
+                    <button 
+                      onClick={handleVMGoldenImage}
+                      disabled={isProcessing}
+                      className="h-9 px-4 rounded-lg text-sm font-medium flex-1
+                               bg-primary-500/20 text-primary-300 hover:bg-primary-500/30
+                               transition-colors flex items-center justify-center
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing ? 'Processing...' : 'VM-GoldenImage'}
+                    </button>
+                  </div>
+    
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={!isConvertEnabled}
+                    className="h-9 px-4 rounded-lg text-sm font-medium w-full
+                             bg-gradient-to-r from-primary-500 to-secondary-500
+                             hover:from-primary-400 hover:to-secondary-400
+                             transform hover:scale-105 transition-all duration-300
+                             text-white shadow-lg shadow-primary-500/20
+                             disabled:opacity-50 disabled:cursor-not-allowed
+                             flex items-center justify-center"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Convert to Catalogue
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+    
+          <ConvertToCatalogueModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            vmId={vm.lab_id}
+            amiId={amiId}
+          />
+    
+          <EditModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSubmit={handleEdit}
+            currentStorage={vm.storage}
+          />
+    
+          <DeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            onConfirm={handleDelete}
+            isDeleting={isDeleting}
+          />
+        </>
+      );
+    };

@@ -127,7 +127,6 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
   };
 
   const handleSubmit = async () => {
-   console.log(formData.organizationId)
     try {
       const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails',{
         org_id:formData.organizationId

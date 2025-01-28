@@ -61,7 +61,7 @@ export const LabDetailsInput: React.FC<LabDetailsInputProps> = ({ onNext }) => {
             />
           </div>
 
-          <div>
+          {/* <div>
             <label className="flex items-center text-gray-300 mb-2">
               <Clock className="h-4 w-4 mr-2" />
               Duration (minutes)
@@ -77,7 +77,7 @@ export const LabDetailsInput: React.FC<LabDetailsInputProps> = ({ onNext }) => {
                        focus:ring-2 focus:ring-primary-500/20 transition-colors"
               required
             />
-          </div>
+          </div> */}
         </div>
 
         <button type="submit" className="btn-primary w-full">

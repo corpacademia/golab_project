@@ -117,6 +117,8 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({ assessment }) =>
       const formData = new FormData();
       const pdfFile = new File([pdfBlob], 'User_Credentials.pdf', { type: 'application/pdf' });
       formData.append('file', pdfFile); // Append the file with the correct MIME type
+      console.log(email)
+      formData.append('email',email)
       formData.append('subject', 'User Credentials');
       formData.append('body', 'Please find attached the user credentials.');
   
@@ -127,8 +129,6 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({ assessment }) =>
       throw new Error("Failed to generate PDF.");
     }
   };
-  
-  
  
    //api endpoint for sending mail
    const mail = async (formData)=>{
@@ -186,7 +186,6 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({ assessment }) =>
         
             const formData = pdfGenerate(users);
             console.log("FormData generated successfully:", formData);
-        
             const sendmail = await mail(formData);
             if(sendmail.data.success){
               setNotification({ type: 'success', message: 'User credentials mailed successfully' });
