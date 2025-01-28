@@ -23,6 +23,8 @@ interface org {
   org_type: string;
 }
 
+type CatalogueType = 'private' | 'public';
+
 interface FormData {
   catalogueName: string;
   organizationId: string;
@@ -30,6 +32,7 @@ interface FormData {
   numberOfDays: number;
   expiresIn: string;
   software: string[];
+  catalogueType: CatalogueType;
 }
 
 const initialFormData: FormData = {
@@ -38,7 +41,8 @@ const initialFormData: FormData = {
   numberOfInstances: 1,
   numberOfDays: 1,
   expiresIn: '',
-  software: ['']
+  software: [''],
+  catalogueType: 'private'
 };
 
 export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = ({
@@ -74,7 +78,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     }
   }, [isOpen]);
 
-  // Reset form when modal is closed
   useEffect(() => {
     if (!isOpen) {
       setFormData(initialFormData);
@@ -135,7 +138,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     setSuccess(null);
 
     try {
-      // Get organization details
       const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
         org_id: formData.organizationId
       });
@@ -143,7 +145,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       if (org_details.data.success) {
         setOrg_details(org_details.data.data);
 
-        // Create batch assignment
         const batch = await axios.post('http://localhost:3000/api/v1/batchAssignment', {
           lab_id: vmId,
           admin_id: org_details.data.data.org_admin,
@@ -154,7 +155,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
         });
 
         if (batch.data.success) {
-          // Update lab config
           const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
             lab_id: vmId,
             admin_id: admin.id,
@@ -225,22 +225,40 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Organization
-              </label>
-              <select
-                name="organizationId"
-                value={formData.organizationId}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              >
-                <option value="">Select an organization</option>
-                {organizations.map(org => (
-                  <option key={org.id} value={org.id}>{org.organization_name}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Organization
+                </label>
+                <select
+                  name="organizationId"
+                  value={formData.organizationId}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                >
+                  <option value="">Select an organization</option>
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>{org.organization_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Catalogue Type
+                </label>
+                <select
+                  name="catalogueType"
+                  value={formData.catalogueType}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                >
+                  <option value="private">Private</option>
+                  <option value="public">Public</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
