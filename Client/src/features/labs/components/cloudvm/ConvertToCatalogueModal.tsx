@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, AlertCircle, Calendar } from 'lucide-react';
+import { X, Plus, Minus, AlertCircle, Calendar, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
-import bcrypt from 'bcryptjs';
 
 interface ConvertToCatalogueModalProps {
   isOpen: boolean;
@@ -15,13 +14,15 @@ interface Organization {
   id: string;
   name: string;
 }
-interface org{
-  id:string;
-  organization_name:string;
-  org_id:string;
-  org_admin:string;
-  org_type:string;
+
+interface org {
+  id: string;
+  organization_name: string;
+  org_id: string;
+  org_admin: string;
+  org_type: string;
 }
+
 interface FormData {
   catalogueName: string;
   organizationId: string;
@@ -31,40 +32,30 @@ interface FormData {
   software: string[];
 }
 
+const initialFormData: FormData = {
+  catalogueName: '',
+  organizationId: '',
+  numberOfInstances: 1,
+  numberOfDays: 1,
+  expiresIn: '',
+  software: ['']
+};
+
 export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = ({
   isOpen,
   onClose,
   vmId,
   amiId
 }) => {
-  
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [software, setSoftware] = useState<string[]>(['']);
-  const [Org_details , setOrg_details] = useState<org | null>(null)
-  const [formData, setFormData] = useState<FormData>({
-    catalogueName: '',
-    organizationId: '',
-    numberOfInstances: 1,
-    numberOfDays: 1,
-    expiresIn: '',
-    software: []
-  });
+  const [Org_details, setOrg_details] = useState<org | null>(null);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
 
-const admin = JSON.parse(localStorage.getItem('auth')).result || {}
-
- const hashPassword =  (password) => {
-  try {
-    const saltRounds = 10; // Number of salt rounds for bcrypt
-    const hashedPassword =  bcrypt.hash(password, saltRounds);
-    return hashedPassword;
-  } catch (error) {
-    console.error('Error hashing password:', error);
-    throw new Error('Failed to hash password');
-  }
-};
-
+  const admin = JSON.parse(localStorage.getItem('auth') || '{}').result || {};
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -80,6 +71,16 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
 
     if (isOpen) {
       fetchOrganizations();
+    }
+  }, [isOpen]);
+
+  // Reset form when modal is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData(initialFormData);
+      setSoftware(['']);
+      setError(null);
+      setSuccess(null);
     }
   }, [isOpen]);
 
@@ -127,53 +128,74 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
   };
 
   const handleSubmit = async () => {
-
     if (!validateForm()) return;
 
     setIsLoading(true);
     setError(null);
+    setSuccess(null);
 
-
-   
     try {
-      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails',{
-           org_id:formData.organizationId})
+      // Get organization details
+      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+        org_id: formData.organizationId
+      });
 
-       const batch = await axios.post('http://localhost:3000/api/v1/batchAssignment',{
-          lab_id:vmId,
-          admin_id:org_details.data.data.org_admin,
-          org_id:org_details.data.data.id,
-          config_details:formData,
-          configured_by:admin.id,
-          software:software,
-       })
-    } catch (error) {
-       setError(error.response?.data?.message || 'Failed to update batch assignment');
-    }
-     
-    try {
-      const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs',{
-            lab_id:vmId,
-            admin_id:admin.id,
-            config_details:formData
-      })
+      if (org_details.data.success) {
+        setOrg_details(org_details.data.data);
 
-    } catch (error) {
-      setError(error.response?.data?.message || 'Failed to update lab configurations');
-    }
-    finally {
+        // Create batch assignment
+        const batch = await axios.post('http://localhost:3000/api/v1/batchAssignment', {
+          lab_id: vmId,
+          admin_id: org_details.data.data.org_admin,
+          org_id: org_details.data.data.id,
+          config_details: formData,
+          configured_by: admin.id,
+          software: software.filter(s => s.trim() !== ''),
+        });
+
+        if (batch.data.success) {
+          // Update lab config
+          const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
+            lab_id: vmId,
+            admin_id: admin.id,
+            config_details: formData
+          });
+
+          if (updateLabConfig.data.success) {
+            setSuccess('Successfully converted to catalogue');
+            setTimeout(() => {
+              onClose();
+            }, 2000);
+          } else {
+            throw new Error('Failed to update lab configuration');
+          }
+        } else {
+          throw new Error(batch.data.message || 'Failed to create batch assignment');
+        }
+      } else {
+        throw new Error('Failed to fetch organization details');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to convert to catalogue');
+    } finally {
       setIsLoading(false);
     }
   };
 
-
+  const handleClose = () => {
+    setFormData(initialFormData);
+    setSoftware(['']);
+    setError(null);
+    setSuccess(null);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
         
         <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-dark-200 p-6 text-left shadow-xl transition-all">
           <div className="flex justify-between items-center mb-6">
@@ -181,7 +203,7 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
               <GradientText>Convert to Catalogue</GradientText>
             </h2>
             <button 
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
             >
               <X className="h-5 w-5 text-gray-400" />
@@ -266,7 +288,7 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
                   className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500" />
+                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
               </div>
             </div>
 
@@ -314,10 +336,20 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
               </div>
             )}
 
+            {success && (
+              <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Check className="h-5 w-5 text-emerald-400" />
+                  <span className="text-emerald-200">{success}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end space-x-4">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="btn-secondary"
+                disabled={isLoading}
               >
                 Cancel
               </button>
@@ -326,7 +358,14 @@ const admin = JSON.parse(localStorage.getItem('auth')).result || {}
                 disabled={isLoading}
                 className="btn-primary"
               >
-                {isLoading ? 'Creating...' : 'Create Catalogue'}
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Converting...
+                  </span>
+                ) : (
+                  'Create Catalogue'
+                )}
               </button>
             </div>
           </div>
