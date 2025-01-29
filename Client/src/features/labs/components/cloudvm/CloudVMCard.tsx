@@ -246,15 +246,17 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [instanceDetails, setInstance] = useState<Instance | undefined>(undefined);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isInstance,setIsInstance] = useState(false);
+  const [isAmi,setIsAmi] = useState(false)
   const [amiData,setAmiData] = useState< Ami | undefined>(undefined);
-
   useEffect(() => {
     const checkVmCreated = async () => {
       const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
         lab_id: vm.lab_id
       });
       if (data.data.success) {
+        setAmiData(data.data.data)
         setIsConvertEnabled(true);
+        setIsAmi(true);
       }
     };
     checkVmCreated();
@@ -376,13 +378,12 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       throw error;
     }
   };
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/deletevm',{
         id:vm.lab_id,
-        ami_id:amiId,
+        ami_id:amiData.ami_id,
 
       });
       
@@ -402,14 +403,17 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setIsDeleteModalOpen(false);
     }
   };
-if (!isInstance) {
-  return (
-    <div className="flex justify-center items-center h-full">
-      <Loader className="animate-spin h-8 w-8 text-primary-400" />
-      <span className="ml-2 text-gray-300">Loading instance details...</span>
-    </div>
-  );
-}
+  if (!isInstance || !isAmi) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader className="animate-spin h-8 w-8 text-primary-400" />
+        <span className="ml-2 text-gray-300">
+          Loading {isInstance ? 'AMI' : isAmi ? 'instance' : 'both'} details...
+        </span>
+      </div>
+    );
+  }
+  
       return (
         <>
           <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -481,10 +485,10 @@ if (!isInstance) {
                   <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
                   <span className="truncate">ID: {instanceDetails.instance_id || 'N/A'}</span>
                 </div>
-                {amiId && (
+                {amiData && (
                   <div className="flex items-center text-sm text-gray-400">
                     <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">AMI: {amiId}</span>
+                    <span className="truncate">AMI: {amiData?.ami_id}</span>
                   </div>
                 )}
               </div>
