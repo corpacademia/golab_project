@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
+import { EditModal } from './EditModal';
+import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
 
 interface CloudVM {
