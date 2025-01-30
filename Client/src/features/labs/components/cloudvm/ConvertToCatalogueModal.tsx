@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, AlertCircle, Calendar, Loader ,Check } from 'lucide-react';
+import { X, Plus, Minus, AlertCircle, Calendar, Loader, Check, Clock } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
@@ -28,18 +28,95 @@ type CatalogueType = 'private' | 'public';
 interface FormData {
   catalogueName: string;
   organizationId: string;
-  numberOfInstances: number;
   numberOfDays: number;
+  hoursPerDay: number;
   expiresIn: string;
   software: string[];
   catalogueType: CatalogueType;
 }
 
+interface CleanupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (hours: number) => void;
+}
+
+const CleanupModal: React.FC<CleanupModalProps> = ({ isOpen, onClose, onConfirm }) => {
+  const [hours, setHours] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = () => {
+    if (hours < 1) {
+      setError('Please enter at least 1 hour');
+      return;
+    }
+    onConfirm(hours);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>Cleanup Configuration</GradientText>
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Cleanup Duration (hours)
+            </label>
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-primary-400" />
+              <input
+                type="number"
+                min="1"
+                value={hours}
+                onChange={(e) => setHours(Math.max(1, parseInt(e.target.value) || 1))}
+                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-4">
+            <button onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleSubmit} className="btn-primary">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const initialFormData: FormData = {
   catalogueName: '',
   organizationId: '',
-  numberOfInstances: 1,
   numberOfDays: 1,
+  hoursPerDay: 1,
   expiresIn: '',
   software: [''],
   catalogueType: 'private'
@@ -58,6 +135,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   const [software, setSoftware] = useState<string[]>(['']);
   const [Org_details, setOrg_details] = useState<org | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
 
   const admin = JSON.parse(localStorage.getItem('auth') || '{}').result || {};
 
@@ -100,7 +178,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       
     }
     setFormData(prev => ({ ...prev, [name]: value }));
-    console.log(value)
   };
 
   const handleAddSoftware = () => {
@@ -117,6 +194,12 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     setSoftware(newSoftware);
   };
 
+  const handleCleanup = (hours: number) => {
+    // Handle cleanup operation with the specified hours
+    console.log('Cleanup initiated for', hours, 'hours');
+    // Add your cleanup logic here
+  };
+
   const validateForm = (): boolean => {
     if (!formData.catalogueName) {
       setError('Catalogue name is required');
@@ -126,12 +209,12 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       setError('Organization is required');
       return false;
     }
-    if (formData.numberOfInstances < 1) {
-      setError('Number of instances must be at least 1');
-      return false;
-    }
     if (formData.numberOfDays < 1) {
       setError('Number of days must be at least 1');
+      return false;
+    }
+    if (formData.hoursPerDay < 1) {
+      setError('Hours per day must be at least 1');
       return false;
     }
     if (!formData.expiresIn) {
@@ -160,7 +243,10 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
           lab_id: vmId,
           admin_id: org_details.data.data.org_admin,
           org_id: org_details.data.data.id,
-          config_details: formData,
+          config_details: {
+            ...formData,
+            numberOfInstances: formData.hoursPerDay // Map hoursPerDay to numberOfInstances
+          },
           configured_by: admin.id,
           software: software.filter(s => s.trim() !== ''),
         });
@@ -169,7 +255,10 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
           const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
             lab_id: vmId,
             admin_id: admin.id,
-            config_details: formData
+            config_details: {
+              ...formData,
+              numberOfInstances: formData.hoursPerDay // Map hoursPerDay to numberOfInstances
+            }
           });
 
           if (updateLabConfig.data.success) {
@@ -193,30 +282,19 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     }
   };
 
-  const handleClose = () => {
-    setFormData(initialFormData);
-    setSoftware(['']);
-    setError(null);
-    setSuccess(null);
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
         
-        <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-dark-200 p-6 text-left shadow-xl transition-all">
+        <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-dark-200 p-6 space-y-4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">
               <GradientText>Convert to Catalogue</GradientText>
             </h2>
-            <button 
-              onClick={handleClose}
-              className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-dark-300 rounded-lg">
               <X className="h-5 w-5 text-gray-400" />
             </button>
           </div>
@@ -275,20 +353,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Number of Instances
-                </label>
-                <input
-                  type="number"
-                  name="numberOfInstances"
-                  min="1"
-                  value={formData.numberOfInstances}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Number of Days
                 </label>
                 <input
@@ -296,6 +360,21 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
                   name="numberOfDays"
                   min="1"
                   value={formData.numberOfDays}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Hours per Day
+                </label>
+                <input
+                  type="number"
+                  name="hoursPerDay"
+                  min="1"
+                  max="24"
+                  value={formData.hoursPerDay}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
@@ -376,9 +455,14 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
 
             <div className="flex justify-end space-x-4">
               <button
-                onClick={handleClose}
+                onClick={() => setIsCleanupModalOpen(true)}
                 className="btn-secondary"
-                disabled={isLoading}
+              >
+                Cleanup
+              </button>
+              <button
+                onClick={onClose}
+                className="btn-secondary"
               >
                 Cancel
               </button>
@@ -400,6 +484,12 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
           </div>
         </div>
       </div>
+
+      <CleanupModal
+        isOpen={isCleanupModalOpen}
+        onClose={() => setIsCleanupModalOpen(false)}
+        onConfirm={handleCleanup}
+      />
     </div>
   );
 };
