@@ -76,6 +76,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLaunchProcessing , setIsLaunchProcessing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
@@ -87,7 +88,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
   const admin = JSON.parse(localStorage.getItem('auth')).result || {};
-
   useEffect(() => {
     const checkVmCreated = async () => {
       const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
@@ -96,7 +96,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       if (data.data.success) {
         setAmiData(data.data.data);
         setIsConvertEnabled(true);
-        setIsAmi(true);
+        setIsAmi(true); 
       }
     };
     checkVmCreated();
@@ -122,14 +122,14 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   }, []);
 
   const handleLaunchSoftware = async () => {
-    setIsProcessing(true);
+    setIsLaunchProcessing(true);
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/run', {
-        lab_id: vm.lab_id,
-        admin_id: admin.id,
+      const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+        public_ip: instanceDetails?.public_ip,
         buttonState: buttonLabel
       });
-      
+  
+  
       if (response.data.success) {
         const newState = buttonLabel === 'Launch Software' ? 'Stop' : 'Launch Software';
         setButtonLabel(newState);
@@ -137,20 +137,27 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           type: 'success', 
           message: newState === 'Stop' ? 'Software launched successfully' : 'Software stopped successfully' 
         });
+  
+        // Open the guacamole console if launching was successful
+        if (newState === 'Stop' && response.data.jwtToken) {
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+          window.open(guacUrl, '_blank');
+        }
       } else {
         throw new Error(response.data.message || 'Failed to launch software');
       }
     } catch (error) {
-      setIsProcessing(false);
+      setIsLaunchProcessing(false);
       setNotification({ 
         type: 'error', 
         message: error.response?.data?.message || 'Failed to launch software'
       });
     } finally {
-      setIsProcessing(false);
+      setIsLaunchProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
   };
+  
 
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
@@ -346,7 +353,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
                            transition-colors flex items-center justify-center
                            disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {isProcessing ? (
+                  {isLaunchProcessing ? (
                     <Loader className="h-4 w-4 animate-spin" />
                   ) : buttonLabel === 'Stop' ? (
                     <>

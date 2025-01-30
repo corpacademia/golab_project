@@ -87,9 +87,20 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     }
   }, [isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = async(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    try {
+      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+        org_id: formData.organizationId
+      });
+      if(org_details.data.success){
+        
+      }
+    } catch (error) {
+      
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
+    console.log(value)
   };
 
   const handleAddSoftware = () => {

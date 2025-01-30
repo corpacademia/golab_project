@@ -15,6 +15,7 @@ interface CloudVM {
   ram: number;
   storage: number;
   os: string;
+  title:string;
 }
 
 export const AdminCloudVMsPage: React.FC = () => {
@@ -51,10 +52,11 @@ export const AdminCloudVMsPage: React.FC = () => {
 
     fetchVMs();
   }, [admin.id]);
-
+ 
+  console.log(vms)
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
-      vm.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+      vm.title?.toLowerCase().includes(filters.search.toLowerCase()) ||
       vm.description?.toLowerCase().includes(filters.search.toLowerCase());
     const matchesProvider = !filters.provider || vm.provider === filters.provider;
     const matchesStatus = !filters.status || vm.status === filters.status;
