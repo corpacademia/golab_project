@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cpu, HardDrive, Database, Server, Check } from 'lucide-react';
+import { Cpu, HardDrive, Database, Server, Check, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 
 interface VMSizeConfig {
@@ -37,7 +37,6 @@ const osCategories = {
   ]
 };
 
-// Mock recommended instances
 const recommendedInstances = [
   {
     type: 't3.large',
@@ -72,8 +71,14 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedVersion, setSelectedVersion] = useState<string>('');
+  const [showError, setShowError] = useState(false);
 
   const handleSubmit = () => {
+    if (!selectedVersion) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
     onSelect(config);
     const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
     const updatedData = { ...storedData, config };
@@ -84,11 +89,13 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
     setSelectedCategory(category);
     setSelectedVersion('');
     setConfig(prev => ({ ...prev, os: '' }));
+    setShowError(false);
   };
 
   const handleVersionChange = (version: string) => {
     setSelectedVersion(version);
     setConfig(prev => ({ ...prev, os: version }));
+    setShowError(false);
   };
 
   const handleInstanceSelect = (instance: typeof recommendedInstances[0]) => {
@@ -117,9 +124,10 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
               <select
                 value={selectedCategory}
                 onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                className={`w-full px-4 py-2 bg-dark-400/50 border rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                         focus:ring-2 focus:ring-primary-500/20 transition-colors
+                         ${showError && !selectedCategory ? 'border-red-500/50' : 'border-primary-500/20'}`}
               >
                 <option value="">Select OS Category</option>
                 {Object.keys(osCategories).map(category => (
@@ -136,9 +144,10 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
                 <select
                   value={selectedVersion}
                   onChange={(e) => handleVersionChange(e.target.value)}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className={`w-full px-4 py-2 bg-dark-400/50 border rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none
-                           focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                           focus:ring-2 focus:ring-primary-500/20 transition-colors
+                           ${showError && !selectedVersion ? 'border-red-500/50' : 'border-primary-500/20'}`}
                 >
                   <option value="">Select Version</option>
                   {osCategories[selectedCategory as keyof typeof osCategories].map(os => (
@@ -249,11 +258,17 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
         </div>
       </div>
 
-      <div className="flex justify-end">
+      {/* Centered Apply Configuration Button with Error Message */}
+      <div className="flex flex-col items-center space-y-4">
+        {showError && !selectedVersion && (
+          <div className="flex items-center space-x-2 text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            <span>Please select an operating system before continuing</span>
+          </div>
+        )}
         <button
           onClick={handleSubmit}
-          disabled={!selectedVersion}
-          className="btn-primary"
+          className="btn-primary w-64 justify-center transform hover:scale-105 transition-all duration-300"
         >
           <Check className="h-4 w-4 mr-2" />
           Apply Configuration
