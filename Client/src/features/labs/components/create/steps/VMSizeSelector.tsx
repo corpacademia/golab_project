@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cpu, HardDrive, Database, Server, Check, AlertCircle } from 'lucide-react';
+import { Cpu, HardDrive, Database, Server, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 
 interface VMSizeConfig {
@@ -258,7 +258,7 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
         </div>
       </div>
 
-      {/* Centered Apply Configuration Button with Error Message */}
+      {/* Updated Apply Configuration Button Section */}
       <div className="flex flex-col items-center space-y-4">
         {showError && !selectedVersion && (
           <div className="flex items-center space-x-2 text-red-400">
@@ -268,9 +268,15 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
         )}
         <button
           onClick={handleSubmit}
-          className="btn-primary w-64 justify-center transform hover:scale-105 transition-all duration-300"
+          className="px-8 py-3 text-base font-semibold rounded-lg
+                   bg-gradient-to-r from-primary-500 to-secondary-500
+                   hover:from-primary-400 hover:to-secondary-400
+                   text-white shadow-lg shadow-primary-500/20
+                   transform hover:scale-105 transition-all duration-300
+                   min-w-[200px] focus:outline-none focus:ring-2 
+                   focus:ring-primary-500/50 focus:ring-offset-2 
+                   focus:ring-offset-dark-300"
         >
-          <Check className="h-4 w-4 mr-2" />
           Apply Configuration
         </button>
       </div>
