@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Cpu, HardDrive, Database, Server, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface VMSizeConfig {
   cpu: number;
@@ -18,24 +19,39 @@ interface OSVersion {
   version: string;
 }
 
-const osCategories = {
-  Ubuntu: [
-    { name: 'Ubuntu', version: 'ubuntu' },
-    { name: 'Ubuntu Pro', version: 'ubuntu-pro' }
-  ],
-  Windows: [
-    { name: 'Windows Server 2022', version: 'windows' },
-    { name: 'Windows Server 2019', version: 'windows-2019' }
-  ],
-  RedHat: [
-    { name: 'RHEL 9', version: 'rhel' },
-    { name: 'RHEL 8', version: 'rhel-8' }
-  ],
-  Linux: [
-    { name: 'Amazon Linux 2', version: 'linux' },
-    { name: 'CentOS 7', version: 'linux-centos' }
-  ]
-};
+// const osCategories = {
+//   Ubuntu: [
+//     { name: 'Ubuntu', version: 'ubuntu' },
+//     { name: 'Ubuntu Pro', version: 'ubuntu-pro' }
+//   ],
+//   Windows: [
+//     { name: 'Windows Server 2022', version: 'windows' },
+//     { name: 'Windows Server 2019', version: 'windows-2019' }
+//   ],
+//   RedHat: [
+//     { name: 'RHEL 9', version: 'rhel' },
+//     { name: 'RHEL 8', version: 'rhel-8' }
+//   ],
+//   Linux: [
+//     { name: 'Amazon Linux 2', version: 'linux' },
+//     { name: 'CentOS 7', version: 'linux-centos' }
+//   ]
+// };
+
+function convertToOSCategories(data) {
+  const osCategories = {};
+  
+  data.forEach(({ category, name }) => {
+    if (!osCategories[category]) {
+      osCategories[category] = [];
+    }
+     osCategories[category].push({ name: name, version:name });
+  });
+  
+  return osCategories;
+}
+
+
 
 const recommendedInstances = [
   {
@@ -72,6 +88,20 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedVersion, setSelectedVersion] = useState<string>('');
   const [showError, setShowError] = useState(false);
+  const [osCategories,setOsCategories] = useState<undefined>(undefined)
+  const [isProcess,setIsprocess] = useState(false)
+
+  useEffect(()=>{
+    const osList = async()=>{
+      const getOs = await axios.get('http://localhost:3000/api/v1/getOs')
+
+      if(getOs.data.success){
+        setOsCategories(convertToOSCategories(getOs.data.data))
+        setIsprocess(true)
+      }
+    }
+    osList();
+  },[])
 
   const handleSubmit = () => {
     if (!selectedVersion) {
@@ -88,13 +118,13 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     setSelectedVersion('');
-    setConfig(prev => ({ ...prev, os: '' }));
+    setConfig(prev => ({ ...prev, os: category }));
     setShowError(false);
   };
 
   const handleVersionChange = (version: string) => {
     setSelectedVersion(version);
-    setConfig(prev => ({ ...prev, os: version }));
+    setConfig(prev => ({ ...prev, os_version: version }));
     setShowError(false);
   };
 
@@ -107,6 +137,9 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
     }));
   };
 
+if(!isProcess){
+  return <>Loading...</>
+}
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-display font-semibold">
