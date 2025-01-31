@@ -50,11 +50,11 @@ export const UserList: React.FC<UserListProps> = ({
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
                       <span className="text-lg font-medium text-primary-400">
-                        {user.name.charAt(0)}
+                        {user.name ? user.name.charAt(0).toUpperCase() : '?'}
                       </span>
                     </div>
                     <div>
-                      <p className="text-gray-200 font-medium">{user.name}</p>
+                      <p className="text-gray-200 font-medium">{user.name || 'Unnamed User'}</p>
                       <div className="flex items-center text-sm text-gray-400">
                         <Mail className="h-3 w-3 mr-1" />
                         {user.email}
