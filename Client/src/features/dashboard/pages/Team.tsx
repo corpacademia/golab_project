@@ -3,6 +3,7 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { UserFilters } from '../../../features/users/components/UserFilters';
 import { UserStats } from '../../../features/users/components/UserStats';
 import { UserList } from '../../../features/users/components/UserList';
+import { AddTeamMemberModal } from '../../../features/users/components/AddTeamMemberModal';
 import { User } from '../../../features/users/types';
 import { UserPlus } from 'lucide-react';
 import axios from 'axios';
@@ -10,6 +11,7 @@ import axios from 'axios';
 export const Team: React.FC = () => {
   const [originalUsers, setOriginalUsers] = useState([]);
   const [users, setUsers] = useState([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [mockStats, setMockStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -19,31 +21,32 @@ export const Team: React.FC = () => {
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/getTeamMembers', {
+        orgId: admin.organization_id
+      });
+      setOriginalUsers(response.data.data);
+      setUsers(response.data.data);
+      
+      const totalUsers = response.data.data.length;
+      const activeUsers = response.data.data.filter((u) => u.status === 'active').length;
+      const trainers = response.data.data.filter((u) => u.role === 'trainer').length;
+      
+      setMockStats({
+        ...mockStats,
+        totalUsers,
+        activeUsers,
+        trainers,
+        organizations: 1
+      });
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+    }
+  };
+
   useEffect(() => {
-    const getUsers = async () => {
-      try {
-        const response = await axios.post('http://localhost:3000/api/v1/getTeamMembers', {
-          orgId: admin.organization_id
-        });
-        setOriginalUsers(response.data.data);
-        setUsers(response.data.data);
-        
-        const totalUsers = response.data.data.length;
-        const activeUsers = response.data.data.filter((u) => u.status === 'active').length;
-        const trainers = response.data.data.filter((u) => u.role === 'trainer').length;
-        
-        setMockStats({
-          ...mockStats,
-          totalUsers,
-          activeUsers,
-          trainers,
-          organizations: 1 // Since this is team view, we only have one organization
-        });
-      } catch (error) {
-        console.error('Error fetching team members:', error);
-      }
-    };
-    getUsers();
+    fetchTeamMembers();
   }, []);
 
   const [filters, setFilters] = useState({
@@ -87,7 +90,10 @@ export const Team: React.FC = () => {
         <h1 className="text-3xl font-display font-bold">
           <GradientText>Team Members</GradientText>
         </h1>
-        <button className="btn-primary">
+        <button 
+          className="btn-primary"
+          onClick={() => setIsAddModalOpen(true)}
+        >
           <UserPlus className="h-4 w-4 mr-2" />
           Add Team Member
         </button>
@@ -105,6 +111,12 @@ export const Team: React.FC = () => {
         users={users}
         onViewDetails={handleViewDetails}
         hideOrganization={true}
+      />
+
+      <AddTeamMemberModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchTeamMembers}
       />
     </div>
   );

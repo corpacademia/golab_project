@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, Filter, Calendar } from 'lucide-react';
 
 interface UserFilterUpdate {
@@ -17,17 +17,20 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
   filters,
   setFilters 
 }) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+
   const handleInputChange = (key: string, value: string) => {
     onFilterChange({ key, value });
   };
 
-  const handleDateRangeClick = () => {
-    const startDate = prompt('Enter start date (YYYY-MM-DD)');
-    const endDate = prompt('Enter end date (YYYY-MM-DD)');
-    
-    if (startDate && endDate) {
-      const dateRange = `${startDate},${endDate}`;
-      handleInputChange('dateRange', dateRange);
+  const handleDateSubmit = () => {
+    if (dateRange.startDate && dateRange.endDate) {
+      handleInputChange('dateRange', `${dateRange.startDate},${dateRange.endDate}`);
+      setShowDatePicker(false);
     }
   };
 
@@ -71,22 +74,68 @@ export const UserFilters: React.FC<UserFiltersProps> = ({
             <option value="pending">Pending</option>
           </select>
 
-          <button 
-            className="btn-secondary"
-            onClick={handleDateRangeClick}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Date Range
-          </button>
+          <div className="relative">
+            <button 
+              className="btn-secondary"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Date Range
+            </button>
+
+            {showDatePicker && (
+              <div className="absolute top-full mt-2 right-0 bg-dark-200 rounded-lg p-4 shadow-lg border border-primary-500/20 z-50">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.startDate}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                    <input
+                      type="date"
+                      value={dateRange.endDate}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button 
+                      onClick={() => setShowDatePicker(false)}
+                      className="btn-secondary text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleDateSubmit}
+                      className="btn-primary text-sm"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <button 
             className="btn-secondary"
-            onClick={() => setFilters({
-              search: '',
-              role: '',
-              status: '',
-              dateRange: ''
-            })}
+            onClick={() => {
+              setFilters({
+                search: '',
+                role: '',
+                status: '',
+                dateRange: ''
+              });
+              setDateRange({ startDate: '', endDate: '' });
+            }}
           >
             <Filter className="h-4 w-4 mr-2" />
             Clear Filters
