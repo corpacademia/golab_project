@@ -6,13 +6,18 @@ import { User } from '../types';
 interface UserListProps {
   users: User[];
   onViewDetails: (user: User) => void;
+  hideOrganization?: boolean;
 }
 
-export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
+export const UserList: React.FC<UserListProps> = ({ 
+  users, 
+  onViewDetails,
+  hideOrganization = false 
+}) => {
   const navigate = useNavigate();
 
   const handleViewDetails = (user: User) => {
-    navigate(`/dashboard/users/${user.id}`);
+    navigate(`/dashboard/team/${user.id}`);
     onViewDetails(user);
   };
 
@@ -24,7 +29,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
             <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
               <th className="pb-4 pl-4">User</th>
               <th className="pb-4">Role</th>
-              <th className="pb-4">Organization</th>
+              {!hideOrganization && <th className="pb-4">Organization</th>}
               <th className="pb-4">Status</th>
               <th className="pb-4">Last Active</th>
               <th className="pb-4"></th>
@@ -41,7 +46,7 @@ export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
                       <span className="text-lg font-medium text-primary-400">
-                        {user.name}
+                        {user.name.charAt(0)}
                       </span>
                     </div>
                     <div>
@@ -62,9 +67,11 @@ export const UserList: React.FC<UserListProps> = ({ users, onViewDetails }) => {
                     {user.role}
                   </span>
                 </td>
-                <td className="py-4 text-gray-300">
-                  {user.organization || '-'}
-                </td>
+                {!hideOrganization && (
+                  <td className="py-4 text-gray-300">
+                    {user.organization || '-'}
+                  </td>
+                )}
                 <td className="py-4">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     user.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
