@@ -9,141 +9,122 @@ import { User } from '../types';
 import { Upload, UserPlus } from 'lucide-react';
 import axios from 'axios';
 
-// Mock users with consistent IDs
-// const mockUsers: User[] = [
-//   {
-//     id: 'user-1', // Individual user
-//     name: 'John Smith',
-//     email: 'john.smith@example.com',
-//     role: 'user',
-//     status: 'active',
-//     lastActive: new Date(),
-//     createdAt: new Date('2024-01-15')
-//   },
-//   {
-//     id: 'trainer-1', // Independent trainer
-//     name: 'Sarah Johnson',
-//     email: 'sarah.johnson@example.com',
-//     role: 'trainer',
-//     status: 'active',
-//     lastActive: new Date(),
-//     createdAt: new Date('2023-11-20')
-//   },
-//   {
-//     id: 'orgadmin-1', // Training organization admin
-//     name: 'Michael Chen',
-//     email: 'michael.chen@techtraining.com',
-//     role: 'orgadmin',
-//     organization: 'TechTraining Solutions',
-//     status: 'active',
-//     lastActive: new Date(),
-//     createdAt: new Date('2023-09-15')
-//   },
-//   {
-//     id: 'orgadmin-2', // Educational institution admin
-//     name: 'Dr. Patricia Williams',
-//     email: 'p.williams@techuniversity.edu',
-//     role: 'orgadmin',
-//     organization: 'Tech University',
-//     status: 'active',
-//     lastActive: new Date(),
-//     createdAt: new Date('2023-10-01')
-//   }
-// ];
-
-
-
-
-
 export const UsersPage: React.FC = () => {
-  const [originalUsers,setOriginalUsers] = useState([]);
+  const [originalUsers, setOriginalUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [mockStats,setMockstats] = useState({
+  const [mockStats, setMockStats] = useState({
     totalUsers: 0,
-          activeUsers: 0,
-          trainers: 0,
-          organizations: 0
-  })
+    activeUsers: 0,
+    trainers: 0,
+    organizations: 0
+  });
 
-  useEffect(()=>{
-    const getUsers=async ()=>{
-      try{
-        const response = await axios.get('http://localhost:3000/api/v1/allUsers')
-        setOriginalUsers(response.data.data)
-        setUsers(response.data.data)
-          let  totalUsers = response.data.data.length
-          let activeUsers = response.data.data.filter((u)=>(  u.status ==='active' )).length;
-          let trainers = response.data.data.filter((u)=>(  u.role ==='trainer' )).length;
-          const distinctOrganizations = new Set(
-            response.data.data
-              .map(org => org.organization)
-              .filter(name => name !== null && name !== undefined) // Exclude null or undefined
-          );
-          let organizations = distinctOrganizations.size
-          setMockstats({...mockStats,totalUsers,activeUsers,trainers,organizations})
+  useEffect(() => {
+    const getUsers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        setOriginalUsers(response.data.data);
+        setUsers(response.data.data);
         
+        let totalUsers = response.data.data.length;
+        let activeUsers = response.data.data.filter((u) => u.status === 'active').length;
+        let trainers = response.data.data.filter((u) => u.role === 'trainer').length;
+        const distinctOrganizations = new Set(
+          response.data.data
+            .map(org => org.organization)
+            .filter(name => name !== null && name !== undefined)
+        );
+        let organizations = distinctOrganizations.size;
+        
+        setMockStats({
+          totalUsers,
+          activeUsers,
+          trainers,
+          organizations
+        });
+      } catch (error) {
+        console.error('Error fetching users:', error);
       }
-      catch(error){
-        console.log(error)
-      }
-  }
-  getUsers();
-  },[])
+    };
+    getUsers();
+  }, []);
+
   const [filters, setFilters] = useState({
     search: "",
     role: "",
     status: "",
+    dateRange: ""
   });
+
   const handleFilterChange = (update: { key: string; value: string }) => {
     const updatedFilters = { ...filters, [update.key]: update.value };
     setFilters(updatedFilters);
-  }
+  };
 
-  // Use useEffect to apply the filtering whenever the filters or users change
   useEffect(() => {
     const filteredUsers = originalUsers.filter((user) => {
-      const matchesSearch =
-        !filters.search || user.name.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesSearch = !filters.search || 
+        user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.email.toLowerCase().includes(filters.search.toLowerCase());
       const matchesRole = !filters.role || user.role === filters.role;
       const matchesStatus = !filters.status || user.status === filters.status;
+      
+      // Handle date range filtering
+      if (filters.dateRange) {
+        const userDate = new Date(user.created_at);
+        const [start, end] = filters.dateRange.split(',').map(date => new Date(date));
+        if (userDate < start || userDate > end) return false;
+      }
+      
       return matchesSearch && matchesRole && matchesStatus;
     });
     setUsers(filteredUsers);
-  }, [filters]); // Re-run this effect whenever filters change
+  }, [filters, originalUsers]);
 
-  
- 
   const handleViewDetails = (user: User) => {
-    console.log('Viewing details for:', user);
+    // Navigation is handled by the UserList component
   };
 
   const handleAddUser = async (userData: Omit<User, 'id' | 'lastActive' | 'createdAt'>) => {
-    // const newUser: User = {
-    //   id: `new-${Date.now()}`,
-    //   ...userData,
-    //   lastActive: new Date(),
-    //   createdAt: new Date(),
-    //   status: 'pending'
-    // };
-    
-    // setUsers([...users, newUser]);
-    // setIsAddModalOpen(false);
+    try {
+      const result = await axios.post('http://localhost:3000/api/v1/addUser', {
+        formData: userData,
+        user: JSON.parse(localStorage.getItem('auth') || '{}').result
+      });
+
+      if (result.data.success) {
+        setIsAddModalOpen(false);
+        // Refresh the user list
+        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        setOriginalUsers(response.data.data);
+        setUsers(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error adding user:', error);
+    }
   };
 
   const handleBulkUpload = async (uploadedUsers: any[]) => {
-    const newUsers = uploadedUsers.map((userData, index) => ({
-      id: `bulk-${Date.now()}-${index}`,
-      ...userData,
-      lastActive: new Date(),
-      createdAt: new Date(),
-      status: 'pending' as const
-    }));
-    
-    setUsers([...users, ...newUsers]);
-    setIsUploadModalOpen(false);
+    try {
+      const result = await axios.post('http://localhost:3000/api/v1/bulkUploadUsers', {
+        users: uploadedUsers,
+        admin: JSON.parse(localStorage.getItem('auth') || '{}').result
+      });
+
+      if (result.data.success) {
+        setIsUploadModalOpen(false);
+        // Refresh the user list
+        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        setOriginalUsers(response.data.data);
+        setUsers(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error bulk uploading users:', error);
+    }
   };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -170,11 +151,16 @@ export const UsersPage: React.FC = () => {
 
       <UserStats stats={mockStats} />
       
-      <UserFilters onFilterChange={handleFilterChange} filters={filters} setFilters={setFilters}/>
+      <UserFilters 
+        onFilterChange={handleFilterChange} 
+        filters={filters} 
+        setFilters={setFilters}
+      />
       
       <UserList 
         users={users}
         onViewDetails={handleViewDetails}
+        hideOrganization={false}
       />
 
       <BulkUploadModal
