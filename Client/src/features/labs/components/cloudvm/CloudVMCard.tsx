@@ -23,6 +23,7 @@ import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import { EditModal } from './EditModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
+import { hostname } from 'os';
 
 interface CloudVM {
   id: string;
@@ -49,6 +50,7 @@ interface Instance {
   instance_id: string;
   instance_name: string;
   public_ip: string;
+  password:string;
 }
 
 interface EditModalProps {
@@ -96,12 +98,13 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       if (data.data.success) {
         setAmiData(data.data.data);
         setIsConvertEnabled(true);
-        setIsAmi(true); 
+        // setIsAmi(true); 
       }
     };
     checkVmCreated();
   }, []);
 
+  
   useEffect(() => {
     const fetchInstanceDetails = async () => {
       try {
@@ -125,7 +128,10 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     setIsLaunchProcessing(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
-        public_ip: instanceDetails?.public_ip,
+        os_name:vm.os,
+        instance_id: instanceDetails?.instance_id,
+        hostname: instanceDetails?.public_ip,
+        password:instanceDetails?.password,
         buttonState: buttonLabel
       });
   
@@ -165,33 +171,34 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
         lab_id: vm.lab_id
       });
-
-      const checkResponse = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-        lab_id: vm.lab_id
-      });
-      if (checkResponse.data.success) {
-        setNotification({ type: 'error', message: 'VM is already created to this lab' });
-        setTimeout(() => setNotification(null), 3000);
-        setIsProcessing(false);
-        return;
-      }
-
-      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-        instance_id: result.data.result.instance_id,
-        lab_id: vm.lab_id
-      });
-
-      if (response.data.success) {
-        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
+      
+      // const checkResponse = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+      //   lab_id: vm.lab_id
+      // });
+      // if (checkResponse.data.success) {
+      //   setNotification({ type: 'error', message: 'VM is already created to this lab' });
+      //   setTimeout(() => setNotification(null), 3000);
+      //   setIsProcessing(false);
+      //   return;
+      // }
+      // if(!checkResponse.data.success){
+        const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+          instance_id: result.data.result.instance_id,
           lab_id: vm.lab_id
         });
-        setNotification({ type: 'success', message: 'Golden image created successfully' });
-        setAmiId(ami.data.ami_id);
-        setIsConvertEnabled(true);
-      } else {
-        throw new Error(response.data.message || 'Failed to create golden image');
-      }
-    } catch (error) {
+
+          if (response.data.success) {
+          const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
+            lab_id: vm.lab_id
+          });
+          setNotification({ type: 'success', message: 'Golden image created successfully' });
+          setAmiId(ami.data.ami_id);
+          setIsConvertEnabled(true);
+        } else {
+          throw new Error(response.data.message || 'Failed to create golden image');
+        }
+      // }
+     } catch (error) {
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to create golden image'
@@ -249,7 +256,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     }
   };
 
-  if (!isInstance || !isAmi) {
+  if (!isInstance ) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader className="animate-spin h-8 w-8 text-primary-400" />

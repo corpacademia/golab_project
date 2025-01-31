@@ -98,33 +98,10 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
       const tf = await axios.post("http://localhost:3000/api/v1/pythontf", {
         lab_id:response.data.output.lab_id
       });
-
-      // if (tf.data.success) {
-      //   // Polling the terraform API response until success is received
-      //   let isTerraformSuccess = false;
-
-      //   // Start polling the terraform API for success
-      //   while (!isTerraformSuccess) {
-      //     try {
-      //       // Check terraform status (you can call another endpoint if necessary)
-      //       const terraformStatus = await axios.post("http://localhost:3000/api/v1/terraformStatus", {
-      //         lab_id: response.data.output.lab_id, // Use lab_id from the previous response
-      //       });
-
-      //       // If terraformStatus success is true, proceed
-      //       if (terraformStatus.data.success) {
-      //         isTerraformSuccess = true;
-      //         console.log("Terraform completed successfully");
-      //       } else {
-      //         console.log("Waiting for terraform to complete...");
-      //         await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for 5 seconds before retry
-      //       }
-      //     } catch (err) {
-      //       console.error("Error polling terraform status:", err);
-      //       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait before retrying
-      //     }
-      //   }
-      // }
+      
+      if (tf.data.success) {
+        const decrypt_password = await axios.get("http://localhost:3000/api/v1/decryptPassword");
+      }
 
       try {
         // Perform some operations

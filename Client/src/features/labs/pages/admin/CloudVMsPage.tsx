@@ -53,7 +53,6 @@ export const AdminCloudVMsPage: React.FC = () => {
     fetchVMs();
   }, [admin.id]);
  
-  console.log(vms)
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
       vm.title?.toLowerCase().includes(filters.search.toLowerCase()) ||
