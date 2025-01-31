@@ -8,6 +8,7 @@ import { UserPurchaseHistory } from '../components/profile/UserPurchaseHistory';
 import { TrainerStats } from '../components/profile/TrainerStats';
 import { OrgAdminStats } from '../components/profile/OrgAdminStats';
 import { UserRoleUpgrade } from '../components/profile/UserRoleUpgrade';
+import { OrganizationAssignment } from '../components/profile/OrganizationAssignment';
 import { EditProfileModal } from '../components/EditProfileModal';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { Pencil } from 'lucide-react';
@@ -18,6 +19,7 @@ export const UserProfilePage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('auth') ?? '{}').result;
   const isOrgAdmin = currentUser?.role === 'orgadmin';
+  const isSuperAdmin = currentUser?.role === 'superadmin';
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading user profile</div>;
@@ -38,11 +40,17 @@ export const UserProfilePage: React.FC = () => {
         )}
       </div>
 
-      {!isOrgAdmin && (
-        <UserRoleUpgrade 
-          userId={userId!}
-          currentRole={user.user.role}
-        />
+      {isSuperAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OrganizationAssignment 
+            userId={userId!}
+            currentOrganization={user.user.organization}
+          />
+          <UserRoleUpgrade 
+            userId={userId!}
+            currentRole={user.user.role}
+          />
+        </div>
       )}
 
       {user.user.role === 'trainer' ? (
