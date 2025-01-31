@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreVertical, Mail, ExternalLink } from 'lucide-react';
 import { User } from '../types';
+import { useAuthStore } from '../../../store/authStore';
 
 interface UserListProps {
   users: User[];
@@ -15,9 +16,12 @@ export const UserList: React.FC<UserListProps> = ({
   hideOrganization = false 
 }) => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuthStore();
 
   const handleViewDetails = (user: User) => {
-    navigate(`/dashboard/team/${user.id}`);
+    // Use different routes based on the context
+    const basePath = currentUser?.role === 'orgadmin' ? 'team' : 'users';
+    navigate(`/dashboard/${basePath}/${user.id}`);
     onViewDetails(user);
   };
 
