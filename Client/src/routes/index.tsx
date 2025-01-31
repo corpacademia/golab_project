@@ -19,6 +19,7 @@ import { Settings } from '../features/dashboard/pages/Settings';
 import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { MyLabs } from '../features/dashboard/pages/MyLabs';
 import { Assessments } from '../features/dashboard/pages/Assessments';
+import { Team } from '../features/dashboard/pages/Team';
 import { useAuthStore } from '../store/authStore';
 
 export const AppRoutes: React.FC = () => {
@@ -41,6 +42,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="organizations" element={<Organizations />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserProfilePage />} />
+        <Route path="team" element={<Team />} />
+        <Route path="team/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
         <Route path="labs/catalogue" element={<CataloguePage />} />
         <Route 
