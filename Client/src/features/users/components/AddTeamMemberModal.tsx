@@ -76,9 +76,9 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
 
     try {
       const admin = JSON.parse(localStorage.getItem('auth') || '{}').result;
-      const response = await axios.post('http://localhost:3000/api/v1/addTeamMember', {
+      const response = await axios.post('http://localhost:3000/api/v1/addOrganizationUser', {
         ...formData,
-        organizationId: admin.organization_id
+        admin_id: admin.id,
       });
 
       if (response.data.success) {

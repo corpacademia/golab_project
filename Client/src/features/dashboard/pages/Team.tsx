@@ -23,8 +23,8 @@ export const Team: React.FC = () => {
 
   const fetchTeamMembers = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/getTeamMembers', {
-        orgId: admin.organization_id
+      const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
+        admin_id: admin.id
       });
       setOriginalUsers(response.data.data);
       setUsers(response.data.data);

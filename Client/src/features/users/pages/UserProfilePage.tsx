@@ -28,7 +28,7 @@ export const UserProfilePage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <UserProfileHeader user={user.user} />
+        <UserProfileHeader user={user.name} />
         {isOrgAdmin && (
           <button
             onClick={() => setIsEditModalOpen(true)}
@@ -71,7 +71,7 @@ export const UserProfilePage: React.FC = () => {
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        user={user.user}
+        user={user.name}
       />
     </div>
   );
