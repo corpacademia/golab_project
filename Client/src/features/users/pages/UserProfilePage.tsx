@@ -20,15 +20,14 @@ export const UserProfilePage: React.FC = () => {
   const currentUser = JSON.parse(localStorage.getItem('auth') ?? '{}').result;
   const isOrgAdmin = currentUser?.role === 'orgadmin';
   const isSuperAdmin = currentUser?.role === 'superadmin';
-
+ 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading user profile</div>;
   if (!user) return <div>User not found</div>;
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
-        <UserProfileHeader user={user.name} />
+        <UserProfileHeader user={user.user} />
         {isOrgAdmin && (
           <button
             onClick={() => setIsEditModalOpen(true)}
@@ -71,7 +70,7 @@ export const UserProfilePage: React.FC = () => {
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        user={user.name}
+        user={user.user.name}
       />
     </div>
   );

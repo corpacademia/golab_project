@@ -121,7 +121,7 @@ export const useUserProfile = (userId: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  console.log(user)
+  console.log(userId)
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -133,7 +133,6 @@ export const useUserProfile = (userId: string) => {
         if (!userData.data.success) {
           throw new Error('User not found');
         }
-        
         setUser(userData.data.response);
       } 
       catch (err) {

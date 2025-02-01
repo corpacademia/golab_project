@@ -3,29 +3,24 @@ import {
   Clock, 
   Tag, 
   BookOpen, 
-  Play, 
-  Plus,
+  AlertCircle, 
   Check,
-  AlertCircle,
   X,
   Cpu,
   Hash,
   FileCode,
   HardDrive,
   Server,
-  UserPlus,
-  Loader,
+  Users,
   Pencil,
   Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import axios from 'axios';
-import { jsPDF } from "jspdf";
 
 interface CloudVMAssessmentProps {
   assessment: {
-    lab_id?: string;
-    assessment_id?: string;
+    assessment_id: string;
     title: string;
     description: string;
     provider: string;
@@ -37,191 +32,30 @@ interface CloudVMAssessmentProps {
     storage: number;
     os: string;
     software: string[];
-    config_details?: any;
   };
 }
 
-interface EditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
-  currentStorage: number;
+interface org {
+  id: string;
+  organization_name: string;
+  org_id: string;
+  org_admin: string;
+  org_type: string;
 }
 
-interface DeleteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-  isDeleting: boolean;
+interface LabDetails {
+  cpu: string;
+  ram: string;
+  storage: string;
+  instance: string;
+  description: string;
 }
 
-const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSubmit, currentStorage }) => {
-  const [increaseStorage, setIncreaseStorage] = useState(0);
-  const [decreaseStorage, setDecreaseStorage] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async () => {
-    if (decreaseStorage > currentStorage) {
-      setError('Decrease amount cannot be greater than current storage');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onSubmit({ increase: increaseStorage, decrease: decreaseStorage });
-      onClose();
-    } catch (error) {
-      console.error('Error updating storage:', error);
-      setError('Failed to update storage');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Modify Storage</GradientText>
-          </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          <div className="p-4 bg-dark-300/50 rounded-lg">
-            <p className="text-sm text-gray-400 mb-2">Current Storage</p>
-            <p className="text-2xl font-semibold text-gray-200">{currentStorage} GB</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Increase Storage (GB)
-              </label>
-              <input
-                type="number"
-                value={increaseStorage}
-                onChange={(e) => setIncreaseStorage(Math.max(0, Number(e.target.value)))}
-                min="0"
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Decrease Storage (GB)
-              </label>
-              <input
-                type="number"
-                value={decreaseStorage}
-                onChange={(e) => setDecreaseStorage(Math.max(0, Number(e.target.value)))}
-                min="0"
-                max={currentStorage}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-4">
-            <button
-              onClick={onClose}
-              className="btn-secondary"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || (increaseStorage === 0 && decreaseStorage === 0)}
-              className="btn-primary"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Updating...
-                </span>
-              ) : (
-                'Update Storage'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, isDeleting }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Confirm Deletion</GradientText>
-          </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-sm text-red-400">
-              Are you sure you want to delete this assessment? This action cannot be undone.
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <button
-              onClick={onClose}
-              className="btn-secondary"
-              disabled={isDeleting}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isDeleting}
-              className="btn-primary bg-red-500 hover:bg-red-600"
-            >
-              {isDeleting ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Deleting...
-                </span>
-              ) : (
-                'Delete Assessment'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
 
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -234,6 +68,9 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [orgDetails, setOrgDetails] = useState<org | null>(null);
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [load, setLoad] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
@@ -248,6 +85,32 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     };
     fetchOrg();
   }, [assessment.config_details?.organizationId]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers',{
+          admin_id : admin.id
+        });
+        console.log()
+        setUsers(response.data.data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchUsers();
+  }, [admin.organization_id]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isDropdownOpen && !(event.target as Element).closest('.dropdown-container')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen]);
 
   useEffect(() => {
     const fetch = async () => {
@@ -273,139 +136,44 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
   }, [assessment.lab_id]);
 
-  const pdfGenerate = (users: any[]) => {
-    try {
-      const pdf = new jsPDF();
-      pdf.setFontSize(16);
-      pdf.text('User Credentials', 10, 10);
-      pdf.setFontSize(12);
-  
-      users.forEach((user, index) => {
-        pdf.text(`${index + 1}. User ID: ${user.userId}`, 10, 20 + index * 10);
-        pdf.text(`   Password: ${user.password}`, 10, 30 + index * 10);
-      });
-  
-      const pdfBlob = pdf.output('blob');
-      const downloadLink = document.createElement('a');
-      downloadLink.href = URL.createObjectURL(pdfBlob);
-      downloadLink.download = 'User_Credentials.pdf';
-      downloadLink.click();
-  
-      const formData = new FormData();
-      formData.append('file', pdfBlob, 'User_Credentials.pdf');
-      formData.append('email', email);
-      formData.append('subject', 'User Credentials');
-      formData.append('body', 'Please find attached the user credentials.');
-  
-      return formData;
-    } catch (error) {
-      console.error("Error in pdfGenerate:", error);
-      throw new Error("Failed to generate PDF.");
-    }
-  };
-
-  const mail = async (formData: FormData) => {
-    const emailResponse = await axios.post('http://localhost:3000/api/v1/sendmail', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (!emailResponse.data.success) {
-      throw new Error('Failed to send email');
-    }
-  };
-
-  const generateUserCredentials = (n: number) => {
-    const users = [];
-    for (let i = 0; i < n; i++) {
-      const userId = `${Math.random().toString(36).slice(2, 10)}@golabing.ai`;
-      const password = Math.random().toString(36).slice(2, 12);
-      users.push({ userId, password });
-    }
-    return users;
-  };
-
-  const handleCreateUser = async () => {
-    if (!email) {
-      setNotification({ type: 'error', message: 'Please enter an email address' });
+  const handleAssignLab = async () => {
+    if (!selectedUsers.length && !email) {
+      setNotification({ type: 'error', message: 'Please select users or enter an email address' });
       return;
     }
 
     setIsLoading(true);
     try {
-      const users = generateUserCredentials(assessment.config_details?.numberOfInstances || 1);
-
-      const insertUsersResponse = await axios.post('http://localhost:3000/api/v1/insertUsers', {
-        users: users,
-        organization: orgDetails?.organization_name,
-        admin_id: admin.id,
-        organization_type: orgDetails?.org_type,
+      const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
+        lab:assessment.lab_id,
+        userId:selectedUsers,
+        assign_admin_id : admin.id
       });
-
-      if (!insertUsersResponse.data.success) {
-        throw new Error("Failed to insert users.");
-      }
-
-      const formData = pdfGenerate(users);
-      await mail(formData);
-
-      const assignLabResponse = await axios.post('http://localhost:3000/api/v1/assignlab', {
-        lab: assessment.lab_id,
-        duration: 60,
-        userId: users,
-        assign_admin_id: admin.id,
-      });
-      if (assignLabResponse.data.success) {
-        setNotification({ type: 'success', message: 'User created successfully' });
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Lab assigned successfully' });
+        setSelectedUsers([]);
         setEmail('');
         setTimeout(() => {
           setIsModalOpen(false);
           setNotification(null);
         }, 2000);
       } else {
-        throw new Error("Failed to assign lab to user.");
+        throw new Error(response.data.message || 'Failed to assign lab');
       }
     } catch (error) {
-      console.error("Error in handleCreateUser:", error);
       setNotification({
         type: 'error',
-        message: error.response?.data?.message || 'An error occurred while processing the request.',
+        message: error.response?.data?.message || 'Failed to assign lab'
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
-    try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateAssessment/${assessment.lab_id}`, {
-        storageIncrease: storageChange.increase,
-        storageDecrease: storageChange.decrease
-      });
-
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Storage updated successfully' });
-        window.location.reload();
-      } else {
-        throw new Error(response.data.message || 'Failed to update storage');
-      }
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to update storage'
-      });
-      throw error;
-    }
-  };
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/deleteAssessment`,{
-        batch_id:assessment.batch_id,
-        admin_id:admin.id
-
-      });
+      const response = await axios.delete(`http://localhost:3000/api/v1/deleteAssessment/${assessment.assessment_id}`);
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Assessment deleted successfully' });
@@ -453,7 +221,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
               <h3 className="text-lg font-semibold mb-1">
                 <GradientText>{assessment.config_details?.catalogueName || assessment.title}</GradientText>
               </h3>
-              <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description || assessment.description}</p>
+              <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description}</p>
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -481,19 +249,19 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex items-center text-sm text-gray-400">
               <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{labDetails?.cpu || assessment.cpu} vCPU</span>
+              <span className="truncate">{labDetails?.cpu} vCPU</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{labDetails?.ram || assessment.ram}GB RAM</span>
+              <span className="truncate">{labDetails?.ram}GB RAM</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">Instance: {labDetails?.instance || assessment.instance}</span>
+              <span className="truncate">Instance: {labDetails?.instance}</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">Storage: {labDetails?.storage || assessment.storage}GB</span>
+              <span className="truncate">Storage: {labDetails?.storage}GB</span>
             </div>
           </div>
 
@@ -518,25 +286,27 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                        text-white shadow-lg shadow-primary-500/20
                        flex items-center justify-center"
             >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create Users
+              <Users className="h-4 w-4 mr-2" />
+              Assign Lab
             </button>
           </div>
         </div>
       </div>
 
+      {/* Assign Lab Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">
-                <GradientText>Create Assessment User</GradientText>
+                <GradientText>Assign Lab</GradientText>
               </h2>
               <button 
                 onClick={() => {
                   setIsModalOpen(false);
                   setNotification(null);
                   setEmail('');
+                  setSelectedUsers([]);
                 }}
                 className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
               >
@@ -545,15 +315,64 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
             </div>
 
             <div className="space-y-4">
+              {/* User Selection Dropdown */}
+              <div className="relative dropdown-container">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Select Users
+                </label>
+                <div 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 cursor-pointer flex justify-between items-center"
+                >
+                  <span>
+                    {selectedUsers.length 
+                      ? `${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''} selected` 
+                      : 'Select users'}
+                  </span>
+                  <Users className="h-4 w-4 text-gray-400" />
+                </div>
+                
+                {isDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-dark-200 border border-primary-500/20 rounded-lg shadow-lg">
+                    <div className="max-h-48 overflow-y-auto py-1">
+                      {users.map(user => (
+                        <label 
+                          key={user.id} 
+                          className="flex items-center space-x-3 px-4 py-2 hover:bg-dark-300/50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.id)}
+                            onChange={() => {
+                              setSelectedUsers(prev => 
+                                prev.includes(user.id)
+                                  ? prev.filter(id => id !== user.id)
+                                  : [...prev, user.id]
+                              );
+                            }}
+                            className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
+                          />
+                          <div>
+                            <p className="text-gray-300">{user.name}</p>
+                            <p className="text-gray-400 text-sm">{user.email}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Email Address
+                  Or Enter Email Address
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter user's email"
+                  placeholder="Enter email address"
                   className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none
                            focus:ring-2 focus:ring-primary-500/20 transition-colors"
@@ -561,30 +380,65 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
               </div>
 
               <button
-                onClick={handleCreateUser}
+                onClick={handleAssignLab}
                 disabled={isLoading}
                 className="w-full btn-primary"
               >
-                {isLoading ? 'Creating...' : 'Create User'}
+                {isLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Assigning...
+                  </span>
+                ) : (
+                  'Assign Lab'
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <EditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEdit}
-        currentStorage={assessment.storage}
-      />
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">
+                <GradientText>Confirm Deletion</GradientText>
+              </h2>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
 
-      <DeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        isDeleting={isDeleting}
-      />
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this assessment? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="btn-primary bg-red-500 hover:bg-red-600"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

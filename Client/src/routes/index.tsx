@@ -42,8 +42,15 @@ export const AppRoutes: React.FC = () => {
         <Route path="organizations" element={<Organizations />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserProfilePage />} />
+        <Route path="user/:userId" element={<UserProfilePage />} />
         <Route path="team" element={<Team />} />
         <Route path="team/:userId" element={<UserProfilePage />} />
+        {/* Add trainer routes */}
+        <Route path="trainer/:userId" element={<UserProfilePage />} />
+        <Route path="trainers/:userId" element={<UserProfilePage />} />
+        {/* Add organization user routes */}
+        <Route path="organization-user/:userId" element={<UserProfilePage />} />
+        <Route path="organization-users/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
         <Route path="labs/catalogue" element={<CataloguePage />} />
         <Route 

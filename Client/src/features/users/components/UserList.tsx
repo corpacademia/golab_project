@@ -17,9 +17,9 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
- console.log(users)
   const handleViewDetails = (user: User) => {
     // Use different routes based on the context
+    console.log(user)
     const basePath = currentUser?.role === 'orgadmin' ? 'trainer' : 'user';
     navigate(`/dashboard/${basePath}/${user.id}`);
     onViewDetails(user);
@@ -42,7 +42,7 @@ export const UserList: React.FC<UserListProps> = ({
           <tbody>
             {users.map((user) => (
               <tr 
-                key={user.user_id} 
+                key={user.id} 
                 className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
                 onClick={() => handleViewDetails(user)}
               >
