@@ -12,7 +12,7 @@ import {
   HardDrive,
   Server,
   Users,
-  Pencil,
+  Pencil, 
   Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
@@ -32,6 +32,8 @@ interface CloudVMAssessmentProps {
     storage: number;
     os: string;
     software: string[];
+    config_details?: any;
+    lab_id: string;
   };
 }
 
@@ -51,12 +53,6 @@ interface LabDetails {
   description: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -67,10 +63,10 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [orgDetails, setOrgDetails] = useState<org | null>(null);
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
-  const [load, setLoad] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; }[]>([]);
+  const [load, setLoad] = useState(true);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
@@ -89,17 +85,16 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers',{
-          admin_id : admin.id
+        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
+          admin_id: admin.id
         });
-        console.log()
         setUsers(response.data.data);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
     fetchUsers();
-  }, [admin.organization_id]);
+  }, [admin.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -145,10 +140,11 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     setIsLoading(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
-        lab:assessment.lab_id,
-        userId:selectedUsers,
-        assign_admin_id : admin.id
+        lab: assessment.lab_id,
+        userId: selectedUsers,
+        assign_admin_id: admin.id
       });
+
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Lab assigned successfully' });
         setSelectedUsers([]);
