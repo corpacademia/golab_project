@@ -1,9 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { 
   Clock, Tag, BookOpen, Play, FolderX, Brain, 
-  Search, Filter, Sparkles, Target, TrendingUp
+  Search, Filter, Sparkles, Target, TrendingUp,
+  Loader, AlertCircle, Check, Square,
+  Cpu, Server, HardDrive
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -11,6 +12,17 @@ interface Filters {
   search: string;
   provider: string;
   status: string;
+}
+
+interface LabControl {
+  isLaunched: boolean;
+  isLaunching: boolean;
+  isProcessing: boolean;
+  buttonLabel: 'Start Lab' | 'Stop Lab';
+  notification: {
+    type: 'success' | 'error';
+    message: string;
+  } | null;
 }
 
 export const MyLabs: React.FC = () => {
@@ -23,10 +35,10 @@ export const MyLabs: React.FC = () => {
     provider: '',
     status: ''
   });
-  // Fetch labs data
+  const [labControls, setLabControls] = useState<Record<string, LabControl>>({});
+
   useEffect(() => {
     const fetchLabs = async () => {
-
       try {
         const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
         const catalogues = await axios.get('http://localhost:3000/api/v1/getCatalogues');
@@ -43,6 +55,24 @@ export const MyLabs: React.FC = () => {
         setLabs(filteredCatalogues);
         setFilteredLabs(filteredCatalogues);
         setLabStatus(labss);
+
+        // Initialize lab controls
+        const controls: Record<string, LabControl> = {};
+        filteredCatalogues.forEach((lab) => {
+          controls[lab.lab_id] = {
+            isLaunched: false,
+            isLaunching: false,
+            isProcessing: false,
+            buttonLabel: 'Start Lab',
+            notification: null
+          };
+        });
+        setLabControls(controls);
+
+        // Check initial lab states
+        filteredCatalogues.forEach((lab) => {
+          checkLabStatus(lab.lab_id);
+        });
       } catch (error) {
         console.error('Error fetching labs:', error);
       } finally {
@@ -53,7 +83,6 @@ export const MyLabs: React.FC = () => {
     fetchLabs();
   }, []);
 
-  // Apply filters
   useEffect(() => {
     let result = [...labs];
 
@@ -76,6 +105,121 @@ export const MyLabs: React.FC = () => {
 
     setFilteredLabs(result);
   }, [filters, labs, labStatus]);
+
+  const checkLabStatus = async (labId: string) => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/checkLabStatus', {
+        lab_id: labId
+      });
+
+      if (response.data.success) {
+        setLabControls(prev => ({
+          ...prev,
+          [labId]: {
+            ...prev[labId],
+            isLaunched: response.data.isLaunched,
+            buttonLabel: response.data.isRunning ? 'Stop Lab' : 'Start Lab'
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error checking lab status:', error);
+    }
+  };
+
+  const handleLaunchLab = async (labId: string) => {
+    setLabControls(prev => ({
+      ...prev,
+      [labId]: {
+        ...prev[labId],
+        isLaunching: true,
+        notification: null
+      }
+    }));
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/launchLab', {
+        lab_id: labId
+      });
+
+      if (response.data.success) {
+        setLabControls(prev => ({
+          ...prev,
+          [labId]: {
+            ...prev[labId],
+            isLaunched: true,
+            isLaunching: false,
+            notification: {
+              type: 'success',
+              message: 'Lab launched successfully'
+            }
+          }
+        }));
+      } else {
+        throw new Error(response.data.message || 'Failed to launch lab');
+      }
+    } catch (error: any) {
+      setLabControls(prev => ({
+        ...prev,
+        [labId]: {
+          ...prev[labId],
+          isLaunching: false,
+          notification: {
+            type: 'error',
+            message: error.response?.data?.message || 'Failed to launch lab'
+          }
+        }
+      }));
+    }
+  };
+
+  const handleStartStopLab = async (labId: string) => {
+    const isStop = labControls[labId]?.buttonLabel === 'Stop Lab';
+    
+    setLabControls(prev => ({
+      ...prev,
+      [labId]: {
+        ...prev[labId],
+        isProcessing: true,
+        notification: null
+      }
+    }));
+
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/${isStop ? 'stopLab' : 'startLab'}`, {
+        lab_id: labId
+      });
+
+      if (response.data.success) {
+        setLabControls(prev => ({
+          ...prev,
+          [labId]: {
+            ...prev[labId],
+            isProcessing: false,
+            buttonLabel: isStop ? 'Start Lab' : 'Stop Lab',
+            notification: {
+              type: 'success',
+              message: `Lab ${isStop ? 'stopped' : 'started'} successfully`
+            }
+          }
+        }));
+      } else {
+        throw new Error(response.data.message || `Failed to ${isStop ? 'stop' : 'start'} lab`);
+      }
+    } catch (error: any) {
+      setLabControls(prev => ({
+        ...prev,
+        [labId]: {
+          ...prev[labId],
+          isProcessing: false,
+          notification: {
+            type: 'error',
+            message: error.response?.data?.message || `Failed to ${isStop ? 'stop' : 'start'} lab`
+          }
+        }
+      }));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -115,22 +259,19 @@ export const MyLabs: React.FC = () => {
               value={filters.provider}
               onChange={(e) => setFilters(prev => ({ ...prev, provider: e.target.value }))}
               className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none
-                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
             >
               <option value="">All Providers</option>
               <option value="aws">AWS</option>
               <option value="azure">Azure</option>
-              <option value="ibm">IBM</option>
-              <option value="oracle">Oracle</option>
+              <option value="gcp">GCP</option>
             </select>
 
             <select
               value={filters.status}
               onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
               className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none
-                       focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
             >
               <option value="">All Status</option>
               <option value="completed">Completed</option>
@@ -145,57 +286,6 @@ export const MyLabs: React.FC = () => {
               <Filter className="h-4 w-4 mr-2" />
               Clear Filters
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* AI Recommendations */}
-      <div className="glass-panel p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Brain className="h-6 w-6 text-primary-400" />
-          <div>
-            <h2 className="text-lg font-semibold">
-              <GradientText>AI Recommendations</GradientText>
-            </h2>
-            <p className="text-sm text-gray-400">Personalized suggestions based on your progress</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <Target className="h-5 w-5 text-primary-400" />
-              <h3 className="font-medium text-gray-200">Next Best Lab</h3>
-            </div>
-            <p className="text-sm text-gray-400 mb-3">Complete AWS Solutions Architect to advance your cloud skills</p>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-primary-400">98% match</span>
-              <button className="text-xs text-primary-400 hover:text-primary-300">View Details →</button>
-            </div>
-          </div>
-
-          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="h-5 w-5 text-accent-400" />
-              <h3 className="font-medium text-gray-200">Skill Gap</h3>
-            </div>
-            <p className="text-sm text-gray-400 mb-3">Focus on Kubernetes to strengthen your container orchestration</p>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-accent-400">Key skill</span>
-              <button className="text-xs text-accent-400 hover:text-accent-300">Explore Labs →</button>
-            </div>
-          </div>
-
-          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/20 hover:border-primary-500/40 transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-secondary-400" />
-              <h3 className="font-medium text-gray-200">Learning Path</h3>
-            </div>
-            <p className="text-sm text-gray-400 mb-3">Continue Cloud Architecture path - 65% complete</p>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-secondary-400">In Progress</span>
-              <button className="text-xs text-secondary-400 hover:text-secondary-300">Resume →</button>
-            </div>
           </div>
         </div>
       </div>
@@ -224,59 +314,140 @@ export const MyLabs: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Rest of the lab cards code remains the same */}
-          {filteredLabs.map((lab, index) => (
-            <div key={lab.lab_id} 
-                className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
-                          hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
-                          transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                          hover:translate-y-[-2px] group">
-              <div className="p-4 flex flex-col h-full">
-                <div className="flex justify-between items-start gap-4 mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">
-                      <GradientText>{lab.title}</GradientText>
-                    </h3>
-                    <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    labStatus[index]?.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
-                    labStatus[index]?.status === 'in_progress' ? 'bg-amber-500/20 text-amber-300' :
-                    'bg-primary-500/20 text-primary-300'
+          {filteredLabs.map((lab, index) => {
+            // Clear notification after 3 seconds
+            if (labControls[lab.lab_id]?.notification) {
+              setTimeout(() => {
+                setLabControls(prev => ({
+                  ...prev,
+                  [lab.lab_id]: {
+                    ...prev[lab.lab_id],
+                    notification: null
+                  }
+                }));
+              }, 3000);
+            }
+
+            return (
+              <div key={lab.lab_id} 
+                  className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
+                            hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
+                            transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
+                            hover:translate-y-[-2px] group relative">
+                {labControls[lab.lab_id]?.notification && (
+                  <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+                    labControls[lab.lab_id].notification.type === 'success' 
+                      ? 'bg-emerald-500/20 text-emerald-300' 
+                      : 'bg-red-500/20 text-red-300'
                   }`}>
-                    {labStatus[index]?.status || 'Not Started'}
-                  </span>
-                </div>
+                    {labControls[lab.lab_id].notification.type === 'success' ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" />
+                    )}
+                    <span className="text-sm">{labControls[lab.lab_id].notification.message}</span>
+                  </div>
+                )}
+                
+                <div className="p-4 flex flex-col h-full">
+                  <div className="flex justify-between items-start gap-4 mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-1">
+                        <GradientText>{lab.title}</GradientText>
+                      </h3>
+                      <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      labStatus[index]?.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                      labStatus[index]?.status === 'in_progress' ? 'bg-amber-500/20 text-amber-300' :
+                      'bg-primary-500/20 text-primary-300'
+                    }`}>
+                      {labStatus[index]?.status || 'Not Started'}
+                    </span>
+                  </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Clock className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">{lab.duration} mins</span>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center text-sm text-gray-400">
+                      <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                      <span className="truncate">{lab.cpu} vCPU</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-400">
+                      <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                      <span className="truncate">{lab.ram}GB RAM</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-400">
+                      <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                      <span className="truncate">Instance: {lab.instance}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-400">
+                      <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                      <span className="truncate">Storage: {lab.storage}GB</span>
+                    </div>
                   </div>
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">{lab.provider}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-400">
-                    <BookOpen className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">Lab #{lab.lab_id}</span>
-                  </div>
-                </div>
 
-                <div className="mt-auto pt-3 border-t border-primary-500/10">
-                  <button className="w-full px-4 py-2 rounded-lg text-sm font-medium
+                  {/* Software Installed Section */}
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-400 mb-2">Software Installed:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {lab.software?.map((software, idx) => (
+                        <span key={idx} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                          {software}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-3 border-t border-primary-500/10 space-y-2">
+                    {!labControls[lab.lab_id]?.isLaunched && (
+                      <button
+                        onClick={() => handleLaunchLab(lab.lab_id)}
+                        disabled={labControls[lab.lab_id]?.isLaunching}
+                        className="w-full px-4 py-2 rounded-lg text-sm font-medium
                                   bg-gradient-to-r from-primary-500 to-secondary-500
                                   hover:from-primary-400 hover:to-secondary-400
                                   transform hover:scale-105 transition-all duration-300
-                                  text-white shadow-lg shadow-primary-500/20 flex items-center justify-center">
-                    <Play className="h-4 w-4 mr-2" />
-                    {labStatus[index]?.status === 'completed' ? 'Review Lab' : 
-                     labStatus[index]?.status === 'in_progress' ? 'Continue Lab' : 'Start Lab'}
-                  </button>
+                                  text-white shadow-lg shadow-primary-500/20 
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                  flex items-center justify-center"
+                      >
+                        {labControls[lab.lab_id]?.isLaunching ? (
+                          <Loader className="animate-spin h-4 w-4 mr-2" />
+                        ) : (
+                          <Play className="h-4 w-4 mr-2" />
+                        )}
+                        {labControls[lab.lab_id]?.isLaunching ? 'Launching...' : 'Launch Lab'}
+                      </button>
+                    )}
+
+                    {labControls[lab.lab_id]?.isLaunched && (
+                      <button
+                        onClick={() => handleStartStopLab(lab.lab_id)}
+                        disabled={labControls[lab.lab_id]?.isProcessing}
+                        className={`w-full px-4 py-2 rounded-lg text-sm font-medium
+                                  flex items-center justify-center
+                                  ${labControls[lab.lab_id]?.buttonLabel === 'Stop Lab'
+                                    ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                                  }
+                                  transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {labControls[lab.lab_id]?.isProcessing ? (
+                          <Loader className="animate-spin h-4 w-4 mr-2" />
+                        ) : labControls[lab.lab_id]?.buttonLabel === 'Stop Lab' ? (
+                          <Square className="h-4 w-4 mr-2" />
+                        ) : (
+                          <Play className="h-4 w-4 mr-2" />
+                        )}
+                        {labControls[lab.lab_id]?.isProcessing 
+                          ? `${labControls[lab.lab_id]?.buttonLabel === 'Stop Lab' ? 'Stopping' : 'Starting'}...` 
+                          : labControls[lab.lab_id]?.buttonLabel}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
