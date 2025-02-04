@@ -442,12 +442,13 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         amiId={amiId}
       />
 
-      {/* <EditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEdit}
-        currentStorage={vm.storage}
-      /> */}
+<EditModal
+  isOpen={isEditModalOpen}
+  onClose={() => setIsEditModalOpen(false)}
+  currentStorage={Number(labDetails?.storage) || 0}
+  assessmentId={vm.lab_id}
+  onSuccess={handleEditSuccess}
+/>
 
       {/* <EditStorageModal
               isOpen={isEditModalOpen}
