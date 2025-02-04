@@ -89,6 +89,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [amiData, setAmiData] = useState<Ami | undefined>(undefined);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
+
   const admin = JSON.parse(localStorage.getItem('auth')).result || {};
   useEffect(() => {
     const checkVmCreated = async () => {
@@ -235,8 +236,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
     try {
       const response = await axios.put(`http://localhost:3000/api/v1/updateVM/${vm.lab_id}`, {
-        storageIncrease: storageChange.increase,
-        storageDecrease: storageChange.decrease
+        new_volume_size:
+        instance_id:instanceDetails?.instance_id
       });
 
       if (response.data.success) {
@@ -446,6 +447,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         onSubmit={handleEdit}
         currentStorage={vm.storage}
       />
+
+     
 
       <DeleteModal
         isOpen={isDeleteModalOpen}

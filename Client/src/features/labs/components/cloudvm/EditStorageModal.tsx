@@ -18,6 +18,7 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
   assessmentId,
   onSuccess
 }) => {
+  console.log(assessmentId)
   const [storageChange, setStorageChange] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -38,7 +39,7 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
 
     try {
       const response = await axios.put(`http://localhost:3000/api/v1/updateAssessmentStorage/${assessmentId}`, {
-        storageChange
+        new_volume_size:currentStorage+storageChange,
       });
 
       if (response.data.success) {

@@ -70,7 +70,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [load, setLoad] = useState(true);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
-
   useEffect(() => {
     const fetchOrg = async () => {
       if (assessment.config_details?.organizationId) {
