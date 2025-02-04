@@ -23,7 +23,6 @@ import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import { EditModal } from './EditModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
-import { hostname } from 'os';
 
 interface CloudVM {
   id: string;
@@ -38,6 +37,8 @@ interface CloudVM {
   ram: number;
   storage: number;
   os: string;
+  lab_id: string;
+  title: string;
 }
 
 interface CloudVMProps {
@@ -50,27 +51,15 @@ interface Instance {
   instance_id: string;
   instance_name: string;
   public_ip: string;
-  password:string;
+  password: string;
 }
 
-interface EditModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
-  currentStorage: number;
-}
-
-interface DeleteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-  isDeleting: boolean;
-}
-
-interface Ami {
-  lab_id: string;
-  ami_id: string;
-  created_at: string;
+interface LabDetails {
+  cpu: string;
+  ram: string;
+  storage: string;
+  instance: string;
+  description: string;
 }
 
 export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
@@ -78,7 +67,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isLaunchProcessing , setIsLaunchProcessing] = useState(false)
+  const [isLaunchProcessing, setIsLaunchProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
@@ -86,25 +75,24 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isInstance, setIsInstance] = useState(false);
   const [isAmi, setIsAmi] = useState(false);
-  const [amiData, setAmiData] = useState<Ami | undefined>(undefined);
+  const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
   const admin = JSON.parse(localStorage.getItem('auth')).result || {};
+
   useEffect(() => {
     const checkVmCreated = async () => {
       const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
         lab_id: vm.lab_id
       });
       if (data.data.success) {
-        setAmiData(data.data.data);
+        setAmiId(data.data.data.ami_id);
         setIsConvertEnabled(true);
-        // setIsAmi(true); 
       }
     };
     checkVmCreated();
-  }, []);
+  }, [vm.lab_id]);
 
-  
   useEffect(() => {
     const fetchInstanceDetails = async () => {
       try {
@@ -122,43 +110,78 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     };
 
     fetchInstanceDetails();
-  }, []);
+  }, [vm.lab_id]);
+
+  useEffect(() => {
+    const fetchLabDetails = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:3000/api/v1/getLabOnId",
+          {
+            labId: vm.lab_id,
+          }
+        );
+        if (response.data.success) {
+          setLabDetails(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching lab details:", error);
+      }
+    };
+    fetchLabDetails();
+  }, [vm.lab_id]);
+
+  const handleEditSuccess = () => {
+    const fetchLabDetails = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:3000/api/v1/getLabOnId",
+          {
+            labId: vm.lab_id,
+          }
+        );
+        if (response.data.success) {
+          setLabDetails(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching lab details:", error);
+      }
+    };
+    fetchLabDetails();
+  };
 
   const handleLaunchSoftware = async () => {
     setIsLaunchProcessing(true);
-    if(buttonLabel === 'Stop'){
-          try {
-            const response = await axios.post('http://localhost:3000/api/v1/instancestop', {
-              instance_id: instanceDetails?.instance_id,
-            });
+    if (buttonLabel === 'Stop') {
+      try {
+        const response = await axios.post('http://localhost:3000/api/v1/instancestop', {
+          instance_id: instanceDetails?.instance_id,
+        });
 
-            if (response.data.success) {
-              const newState = 'Launch Software';
-              setButtonLabel(newState);
-              setNotification({ 
-                type: 'success', 
-                message: 'Software stopped successfully' 
-              });
-            }
-
-          } catch (error) {
-            setIsLaunchProcessing(false);
-            setNotification({ 
-              type: 'error', 
-              message: error.response?.data?.message || 'Failed to stop Instance'
-            });
-          }
+        if (response.data.success) {
+          setButtonLabel('Launch Software');
+          setNotification({ 
+            type: 'success', 
+            message: 'Software stopped successfully' 
+          });
+        }
+      } catch (error) {
+        setIsLaunchProcessing(false);
+        setNotification({ 
+          type: 'error', 
+          message: error.response?.data?.message || 'Failed to stop Instance'
+        });
+      }
     }
     try {
       const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
-        os_name:vm.os,
+        os_name: vm.os,
         instance_id: instanceDetails?.instance_id,
         hostname: instanceDetails?.public_ip,
-        password:instanceDetails?.password,
+        password: instanceDetails?.password,
         buttonState: buttonLabel
       });
-  
-  
+
       if (response.data.success) {
         const newState = buttonLabel === 'Launch Software' ? 'Stop' : 'Launch Software';
         setButtonLabel(newState);
@@ -166,8 +189,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
           type: 'success', 
           message: newState === 'Stop' ? 'Software launched successfully' : 'Software stopped successfully' 
         });
-  
-        // Open the guacamole console if launching was successful
+
         if (newState === 'Stop' && response.data.jwtToken) {
           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
           window.open(guacUrl, '_blank');
@@ -186,7 +208,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       setTimeout(() => setNotification(null), 3000);
     }
   };
-  
 
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
@@ -195,33 +216,22 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         lab_id: vm.lab_id
       });
       
-      // const checkResponse = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-      //   lab_id: vm.lab_id
-      // });
-      // if (checkResponse.data.success) {
-      //   setNotification({ type: 'error', message: 'VM is already created to this lab' });
-      //   setTimeout(() => setNotification(null), 3000);
-      //   setIsProcessing(false);
-      //   return;
-      // }
-      // if(!checkResponse.data.success){
-        const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
-          instance_id: result.data.result.instance_id,
+      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+        instance_id: result.data.result.instance_id,
+        lab_id: vm.lab_id
+      });
+
+      if (response.data.success) {
+        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
           lab_id: vm.lab_id
         });
-
-          if (response.data.success) {
-          const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
-            lab_id: vm.lab_id
-          });
-          setNotification({ type: 'success', message: 'Golden image created successfully' });
-          setAmiId(ami.data.ami_id);
-          setIsConvertEnabled(true);
-        } else {
-          throw new Error(response.data.message || 'Failed to create golden image');
-        }
-      // }
-     } catch (error) {
+        setNotification({ type: 'success', message: 'Golden image created successfully' });
+        setAmiId(ami.data.ami_id);
+        setIsConvertEnabled(true);
+      } else {
+        throw new Error(response.data.message || 'Failed to create golden image');
+      }
+    } catch (error) {
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to create golden image'
@@ -232,64 +242,12 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     }
   };
 
-  const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
-    try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateVM/${vm.lab_id}`, {
-        storageIncrease: storageChange.increase,
-        storageDecrease: storageChange.decrease
-      });
-
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Storage updated successfully' });
-        window.location.reload();
-        setTimeout(() => setNotification(null), 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to update storage');
-      }
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to update storage'
-      });
-      setTimeout(() => setNotification(null), 3000);
-      throw error;
-    }
-  };
-
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/deletevm', {
-        id: vm.lab_id,
-        instance_id : instanceDetails?.instance_id,
-        ami_id: amiData.ami_id,
-      });
-      
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'VM deleted successfully' });
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        throw new Error(response.data.message || 'Failed to delete VM');
-      }
-    } catch (error) {
-      console.log(error)
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to delete VM'
-      });
-      setTimeout(() => setNotification(null), 3000);
-    } finally {
-      setIsDeleting(false);
-      setIsDeleteModalOpen(false);
-    }
-  };
-
-  if (!isInstance ) {
+  if (!isInstance) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader className="animate-spin h-8 w-8 text-primary-400" />
         <span className="ml-2 text-gray-300">
-          Loading {isInstance ? 'AMI' : isAmi ? 'instance' : 'both'} details...
+          Loading instance details...
         </span>
       </div>
     );
@@ -366,10 +324,10 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
               <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
               <span className="truncate">ID: {instanceDetails?.instance_id || 'N/A'}</span>
             </div>
-            {amiData && (
+            {amiId && (
               <div className="flex items-center text-sm text-gray-400">
                 <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                <span className="truncate">AMI: {amiData?.ami_id}</span>
+                <span className="truncate">AMI: {amiId}</span>
               </div>
             )}
           </div>
@@ -443,14 +401,15 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       <EditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleEdit}
-        currentStorage={vm.storage}
+        currentStorage={Number(labDetails?.storage) || 0}
+        assessmentId={vm.lab_id}
+        onSuccess={handleEditSuccess}
       />
 
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
+        onConfirm={() => {}}
         isDeleting={isDeleting}
       />
     </>
