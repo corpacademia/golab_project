@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, Check, Loader, HardDrive } from 'lucide-react';
+import { X, AlertCircle, Check, Loader, HardDrive, Plus, Minus } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
