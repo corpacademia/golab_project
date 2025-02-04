@@ -126,6 +126,29 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
 
   const handleLaunchSoftware = async () => {
     setIsLaunchProcessing(true);
+    if(buttonLabel === 'Stop'){
+          try {
+            const response = await axios.post('http://localhost:3000/api/v1/instancestop', {
+              instance_id: instanceDetails?.instance_id,
+            });
+
+            if (response.data.success) {
+              const newState = 'Launch Software';
+              setButtonLabel(newState);
+              setNotification({ 
+                type: 'success', 
+                message: 'Software stopped successfully' 
+              });
+            }
+
+          } catch (error) {
+            setIsLaunchProcessing(false);
+            setNotification({ 
+              type: 'error', 
+              message: error.response?.data?.message || 'Failed to stop Instance'
+            });
+          }
+    }
     try {
       const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
         os_name:vm.os,
@@ -219,6 +242,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Storage updated successfully' });
         window.location.reload();
+        setTimeout(() => setNotification(null), 3000);
       } else {
         throw new Error(response.data.message || 'Failed to update storage');
       }
@@ -227,6 +251,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         type: 'error',
         message: error.response?.data?.message || 'Failed to update storage'
       });
+      setTimeout(() => setNotification(null), 3000);
       throw error;
     }
   };
@@ -236,6 +261,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     try {
       const response = await axios.post('http://localhost:3000/api/v1/deletevm', {
         id: vm.lab_id,
+        instance_id : instanceDetails?.instance_id,
         ami_id: amiData.ami_id,
       });
       
@@ -246,10 +272,12 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         throw new Error(response.data.message || 'Failed to delete VM');
       }
     } catch (error) {
+      console.log(error)
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete VM'
       });
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);

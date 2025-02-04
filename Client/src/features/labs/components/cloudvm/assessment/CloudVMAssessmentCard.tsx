@@ -16,6 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
+import { EditStorageModal } from '../EditStorageModal';
 import axios from 'axios';
 
 interface CloudVMAssessmentProps {
@@ -131,6 +132,31 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
   }, [assessment.lab_id]);
 
+  const handleEditSuccess = () => {
+    const fetchLabDetails = async () => {
+      try {
+        const response = await axios.post(
+          "http://localhost:3000/api/v1/getLabOnId",
+          {
+            labId: assessment.lab_id,
+          }
+        );
+        if (response.data.success) {
+          setLabDetails(response.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching lab details:", error);
+      }
+    };
+    fetchLabDetails();
+  };
+
+  const clearForm = () => {
+    setEmail('');
+    setSelectedUsers([]);
+    setNotification(null);
+  };
+
   const handleAssignLab = async () => {
     if (!selectedUsers.length && !email) {
       setNotification({ type: 'error', message: 'Please select users or enter an email address' });
@@ -138,6 +164,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
 
     setIsLoading(true);
+    setNotification(null);
+
     try {
       const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
         lab: assessment.lab_id,
@@ -147,16 +175,14 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
 
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Lab assigned successfully' });
-        setSelectedUsers([]);
-        setEmail('');
         setTimeout(() => {
+          clearForm();
           setIsModalOpen(false);
-          setNotification(null);
         }, 2000);
       } else {
         throw new Error(response.data.message || 'Failed to assign lab');
       }
-    } catch (error) {
+    } catch (error: any) {
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to assign lab'
@@ -177,7 +203,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
       } else {
         throw new Error(response.data.message || 'Failed to delete assessment');
       }
-    } catch (error) {
+    } catch (error: any) {
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete assessment'
@@ -198,7 +224,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group relative">
-        {notification && (
+        {notification && !isModalOpen && (
           <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
             notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
           }`}>
@@ -299,10 +325,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
               </h2>
               <button 
                 onClick={() => {
+                  clearForm();
                   setIsModalOpen(false);
-                  setNotification(null);
-                  setEmail('');
-                  setSelectedUsers([]);
                 }}
                 className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
               >
@@ -375,6 +399,25 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                 />
               </div>
 
+              {notification && (
+                <div className={`p-4 rounded-lg flex items-center space-x-2 ${
+                  notification.type === 'success' 
+                    ? 'bg-emerald-500/20 border border-emerald-500/20' 
+                    : 'bg-red-500/20 border border-red-500/20'
+                }`}>
+                  {notification.type === 'success' ? (
+                    <Check className="h-5 w-5 text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-red-400" />
+                  )}
+                  <span className={`text-sm ${
+                    notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+                  }`}>
+                    {notification.message}
+                  </span>
+                </div>
+              )}
+
               <button
                 onClick={handleAssignLab}
                 disabled={isLoading}
@@ -435,6 +478,14 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         </div>
       )}
+
+      <EditStorageModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        currentStorage={Number(labDetails?.storage) || 0}
+        assessmentId={assessment.assessment_id}
+        onSuccess={handleEditSuccess}
+      />
     </>
   );
 };
