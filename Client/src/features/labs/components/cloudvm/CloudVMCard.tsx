@@ -237,14 +237,14 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
     try {
       const response = await axios.put(`http://localhost:3000/api/v1/updateVM/${vm.lab_id}`, {
-        new_volume_size:
+        // new_volume_size:sto
         instance_id:instanceDetails?.instance_id
       });
 
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Storage updated successfully' });
         window.location.reload();
-        setTimeout(() => setNotification(null), 3000);
+        // setTimeout(() => setNotification(null), 3000);
       } else {
         throw new Error(response.data.message || 'Failed to update storage');
       }
