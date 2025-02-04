@@ -1,45 +1,66 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, Loader } from 'lucide-react';
+import { X, AlertCircle, Check, Loader, HardDrive } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (storageChange: { increase: number; decrease: number }) => Promise<void>;
   currentStorage: number;
+  assessmentId: string;
+  onSuccess: () => void;
 }
 
 export const EditModal: React.FC<EditModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
-  currentStorage
+  currentStorage,
+  assessmentId,
+  onSuccess
 }) => {
-  const [increaseStorage, setIncreaseStorage] = useState(0);
-  const [decreaseStorage, setDecreaseStorage] = useState(0);
+  const [storageChange, setStorageChange] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const handleSubmit = async () => {
-    if (decreaseStorage > currentStorage) {
-      setError('Decrease amount cannot be greater than current storage');
+    if (storageChange === 0) {
+      setNotification({ type: 'error', message: 'Please specify a storage change amount' });
+      return;
+    }
+
+    if (storageChange < 0 && Math.abs(storageChange) > currentStorage) {
+      setNotification({ type: 'error', message: 'Cannot reduce storage below 0' });
       return;
     }
 
     setIsSubmitting(true);
-    setError(null);
+    setNotification(null);
+
     try {
-      await onSubmit({ increase: increaseStorage, decrease: decreaseStorage });
-      onClose();
-    } catch (error) {
-      console.error('Error updating storage:', error);
-      setError('Failed to update storage');
+      const response = await axios.put(`http://localhost:3000/api/v1/updateAssessmentStorage/${assessmentId}`, {
+        storageChange
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Storage updated successfully' });
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to update storage');
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to update storage'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -57,45 +78,63 @@ export const EditModal: React.FC<EditModalProps> = ({
         </div>
 
         <div className="space-y-6">
+          {/* Current Storage Display */}
           <div className="p-4 bg-dark-300/50 rounded-lg">
-            <p className="text-sm text-gray-400 mb-2">Current Storage</p>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-400">Current Storage</span>
+              <HardDrive className="h-5 w-5 text-primary-400" />
+            </div>
             <p className="text-2xl font-semibold text-gray-200">{currentStorage} GB</p>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Increase Storage (GB)
-              </label>
+          {/* Storage Change Input */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Storage Change (GB)
+            </label>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setStorageChange(prev => prev - 1)}
+                className="p-2 rounded-lg bg-dark-300/50 hover:bg-dark-300 text-red-400 transition-colors"
+                disabled={storageChange <= -currentStorage}
+              >
+                <Minus className="h-5 w-5" />
+              </button>
               <input
                 type="number"
-                value={increaseStorage}
-                onChange={(e) => setIncreaseStorage(Math.max(0, Number(e.target.value)))}
-                min="0"
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                value={storageChange}
+                onChange={(e) => setStorageChange(Number(e.target.value))}
+                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none text-center"
               />
+              <button
+                onClick={() => setStorageChange(prev => prev + 1)}
+                className="p-2 rounded-lg bg-dark-300/50 hover:bg-dark-300 text-emerald-400 transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Decrease Storage (GB)
-              </label>
-              <input
-                type="number"
-                value={decreaseStorage}
-                onChange={(e) => setDecreaseStorage(Math.max(0, Number(e.target.value)))}
-                min="0"
-                max={currentStorage}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
+            <p className="text-sm text-gray-400 text-center">
+              New Total: {currentStorage + storageChange} GB
+            </p>
           </div>
 
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-sm text-red-400">{error}</p>
+          {notification && (
+            <div className={`p-4 rounded-lg flex items-center space-x-2 ${
+              notification.type === 'success' 
+                ? 'bg-emerald-500/20 border border-emerald-500/20' 
+                : 'bg-red-500/20 border border-red-500/20'
+            }`}>
+              {notification.type === 'success' ? (
+                <Check className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              )}
+              <span className={`text-sm ${
+                notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+              }`}>
+                {notification.message}
+              </span>
             </div>
           )}
 
@@ -109,16 +148,20 @@ export const EditModal: React.FC<EditModalProps> = ({
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || (increaseStorage === 0 && decreaseStorage === 0)}
-              className="btn-primary"
+              disabled={isSubmitting || storageChange === 0}
+              className={`btn-primary ${
+                storageChange < 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'
+              }`}
             >
               {isSubmitting ? (
                 <span className="flex items-center">
                   <Loader className="animate-spin h-4 w-4 mr-2" />
                   Updating...
                 </span>
+              ) : storageChange < 0 ? (
+                'Reduce Storage'
               ) : (
-                'Update Storage'
+                'Add Storage'
               )}
             </button>
           </div>

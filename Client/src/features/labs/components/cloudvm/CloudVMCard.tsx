@@ -21,6 +21,7 @@ import {
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import { EditModal } from './EditModal';
+import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
 import { hostname } from 'os';
@@ -441,14 +442,20 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         amiId={amiId}
       />
 
-      <EditModal
+      {/* <EditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleEdit}
         currentStorage={vm.storage}
-      />
+      /> */}
 
-     
+      {/* <EditStorageModal
+              isOpen={isEditModalOpen}
+              onClose={() => setIsEditModalOpen(false)}
+              currentStorage={Number(labDetails?.storage) || 0}
+              assessmentId={assessment.assessment_id}
+              onSuccess={handleEdit}
+            /> */}
 
       <DeleteModal
         isOpen={isDeleteModalOpen}
