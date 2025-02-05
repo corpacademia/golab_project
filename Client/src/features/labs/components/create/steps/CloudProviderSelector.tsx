@@ -29,7 +29,7 @@ export const CloudProviderSelector: React.FC<CloudProviderSelectorProps> = ({ on
     setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/connect-corp-aws');
+      const response = await axios.get('http://localhost:3000/api/v1/connectCorpAws');
       
       if (response.data.success) {
         setSuccess('Successfully connected to Corporate AWS');
@@ -53,7 +53,7 @@ export const CloudProviderSelector: React.FC<CloudProviderSelectorProps> = ({ on
     setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/connect-org-aws', {
+      const response = await axios.post('http://localhost:3000/api/v1/connectOrgAws', {
         aws_access_key: awsCredentials.accessKey,
         aws_secret_key: awsCredentials.secretKey,
       });

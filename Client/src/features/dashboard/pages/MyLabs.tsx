@@ -13,6 +13,13 @@ interface Filters {
   provider: string;
   status: string;
 }
+interface Instance{
+  username:string;
+  user_id:string;
+  instance_id:string;
+  public_ip:string;
+  password:string;
+}
 
 interface LabControl {
   isLaunched: boolean;
@@ -149,6 +156,7 @@ export const MyLabs: React.FC = () => {
   const [filteredLabs, setFilteredLabs] = useState([]);
   const [labStatus, setLabStatus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [instanceDetails , setInstanceDetails]= useState<Instance | undefined>(undefined)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     provider: '',
@@ -283,14 +291,19 @@ export const MyLabs: React.FC = () => {
       const labConfig = await axios.post('http://localhost:3000/api/v1/getAssignLabOnId',{labId:lab.lab_id})
 
       const response = await axios.post('http://localhost:3000/api/v1/launchInstance', {
+        name:user.name,
         ami_id:ami.data.result.ami_id,
         user_id:user.id,
+        lab_id:lab.lab_id,
         instance_type:lab.instance,
         start_date:formatDate(new Date()),
         end_date:formatDate(labConfig.data.data.completion_date),
       });
-      console.log(response)
       if (response.data.success) {
+        console.log(response)
+        
+        //decrypt password api
+        const decrypt_password = await axios.get("http://localhost:3000/api/v1/decryptPassword");
         setLabControls(prev => ({
           ...prev,
           [lab.lab_id]: {
@@ -321,28 +334,41 @@ export const MyLabs: React.FC = () => {
     }
   };
 
-  const handleStartStopLab = async (labId: string) => {
-    const isStop = labControls[labId]?.buttonLabel === 'Stop Lab';
+  const handleStartStopLab = async (lab) => {
+    const isStop = labControls[lab.lab_id]?.buttonLabel === 'Stop Lab';
     
     setLabControls(prev => ({
       ...prev,
-      [labId]: {
-        ...prev[labId],
+      [lab.lab_id]: {
+        ...prev[lab.lab_id],
         isProcessing: true,
         notification: null
       }
     }));
 
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/${isStop ? 'stopLab' : 'startLab'}`, {
-        lab_id: labId
+      // const response = await axios.post(`http://localhost:3000/api/v1/${isStop ? 'stopLab' : 'startLab'}`, {
+      //   lab_id: lab.lab_id
+      // });
+      const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance',{
+        user_id:user.id,
+        lab_id:lab.lab_id,
+      })
+
+
+      const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+        os_name:lab.os,
+        instance_id: cloudInstanceDetails.data.data.instance_id,
+        hostname: cloudInstanceDetails.data.data.instance_id.public_ip,
+        password: cloudInstanceDetails.data.data.instance_id.password,
+        buttonState: isStop ? 'Start' : 'Stop'
       });
 
       if (response.data.success) {
         setLabControls(prev => ({
           ...prev,
-          [labId]: {
-            ...prev[labId],
+          [lab.lab_id]: {
+            ...prev[lab.lab_id],
             isProcessing: false,
             buttonLabel: isStop ? 'Start Lab' : 'Stop Lab',
             notification: {
@@ -351,14 +377,19 @@ export const MyLabs: React.FC = () => {
             }
           }
         }));
+
+        if (isStop ? 'Start' : 'Stop' === 'Stop' && response.data.jwtToken) {
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+          window.open(guacUrl, '_blank');
+        }
       } else {
         throw new Error(response.data.message || `Failed to ${isStop ? 'stop' : 'start'} lab`);
       }
     } catch (error: any) {
       setLabControls(prev => ({
         ...prev,
-        [labId]: {
-          ...prev[labId],
+        [lab.lab_id]: {
+          ...prev[lab.lab_id],
           isProcessing: false,
           notification: {
             type: 'error',
@@ -583,7 +614,7 @@ export const MyLabs: React.FC = () => {
 
                         {labControls[lab.lab_id]?.isLaunched && (
                           <button
-                            onClick={() => handleStartStopLab(lab.lab_id)}
+                            onClick={() => handleStartStopLab(lab)}
                             disabled={labControls[lab.lab_id]?.isProcessing}
                             className={`w-full px-4 py-2 rounded-lg text-sm font-medium
                                       flex items-center justify-center
