@@ -268,22 +268,24 @@ export const MyLabs: React.FC = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-  const handleLaunchLab = async (labId: string) => {
+  const handleLaunchLab = async (lab) => {
     setLabControls(prev => ({
       ...prev,
-      [labId]: {
-        ...prev[labId],
+      [lab.lab_id]: {
+        ...prev[lab.lab_id],
         isLaunching: true,
         notification: null
       }
     }));
-
+    
     try {
-      const ami = await axios.post('http://localhost:3000/api/v1/amiinformation',{lab_id:labId})
-      const labConfig = await axios.post('http://localhost:3000/api/v1/getAssignLabOnId',{labId:labId})
+      const ami = await axios.post('http://localhost:3000/api/v1/amiinformation',{lab_id:lab.lab_id})
+      const labConfig = await axios.post('http://localhost:3000/api/v1/getAssignLabOnId',{labId:lab.lab_id})
+
       const response = await axios.post('http://localhost:3000/api/v1/launchInstance', {
         ami_id:ami.data.result.ami_id,
         user_id:user.id,
+        instance_type:lab.instance,
         start_date:formatDate(new Date()),
         end_date:formatDate(labConfig.data.data.completion_date),
       });
@@ -291,8 +293,8 @@ export const MyLabs: React.FC = () => {
       if (response.data.success) {
         setLabControls(prev => ({
           ...prev,
-          [labId]: {
-            ...prev[labId],
+          [lab.lab_id]: {
+            ...prev[lab.lab_id],
             isLaunched: true,
             isLaunching: false,
             notification: {
@@ -307,8 +309,8 @@ export const MyLabs: React.FC = () => {
     } catch (error: any) {
       setLabControls(prev => ({
         ...prev,
-        [labId]: {
-          ...prev[labId],
+        [lab.lab_id]: {
+          ...prev[lab.lab_id],
           isLaunching: false,
           notification: {
             type: 'error',
@@ -560,7 +562,7 @@ export const MyLabs: React.FC = () => {
                       <div className="mt-auto pt-3 border-t border-primary-500/10 space-y-2">
                         {!labControls[lab.lab_id]?.isLaunched && (
                           <button
-                            onClick={() => handleLaunchLab(lab.lab_id)}
+                            onClick={() => handleLaunchLab(lab)}
                             disabled={labControls[lab.lab_id]?.isLaunching}
                             className="w-full px-4 py-2 rounded-lg text-sm font-medium
                                       bg-gradient-to-r from-primary-500 to-secondary-500
