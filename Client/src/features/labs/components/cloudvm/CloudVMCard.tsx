@@ -273,8 +273,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     try {
       const response = await axios.post('http://localhost:3000/api/v1/deletesupervm', {
         id: vm.lab_id,
-        instance_id : instanceDetails?.instance_id,
-        ami_id: amiData.ami_id,
+        instance_id: instanceDetails?.instance_id,
+        ami_id: amiId, // Use amiId state instead of undefined amiData
       });
       
       if (response.data.success) {
