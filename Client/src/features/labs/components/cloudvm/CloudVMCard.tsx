@@ -79,7 +79,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
-
   const admin = JSON.parse(localStorage.getItem('auth')).result || {};
 
   useEffect(() => {
@@ -244,37 +243,13 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     }
   };
 
-  const handleEdit = async (storageChange: { increase: number; decrease: number }) => {
-    try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateVM/${vm.lab_id}`, {
-        // new_volume_size:sto
-        instance_id:instanceDetails?.instance_id
-      });
-
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Storage updated successfully' });
-        window.location.reload();
-        // setTimeout(() => setNotification(null), 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to update storage');
-      }
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to update storage'
-      });
-      setTimeout(() => setNotification(null), 3000);
-      throw error;
-    }
-  };
-
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/deletesupervm', {
         id: vm.lab_id,
         instance_id: instanceDetails?.instance_id,
-        ami_id: amiId, // Use amiId state instead of undefined amiData
+        ami_id: amiId,
       });
       
       if (response.data.success) {
@@ -463,7 +438,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => {handleDelete}}
+        onConfirm={handleDelete}
         isDeleting={isDeleting}
       />
     </>

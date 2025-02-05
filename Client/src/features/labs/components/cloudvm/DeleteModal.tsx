@@ -2,7 +2,6 @@ import React from 'react';
 import { X, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 
-// In DeleteModal.tsx
 interface DeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -49,7 +48,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
               Cancel
             </button>
             <button
-              onClick={onConfirm} // Call onConfirm directly
+              onClick={onConfirm}
               disabled={isDeleting}
               className="btn-primary bg-red-500 hover:bg-red-600"
             >
