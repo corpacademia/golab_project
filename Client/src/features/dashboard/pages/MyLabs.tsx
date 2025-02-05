@@ -30,9 +30,10 @@ interface DeleteModalProps {
   onClose: () => void;
   labId: string;
   labTitle: string;
+  userId:string;
 }
 
-const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTitle }) => {
+const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTitle ,userId}) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
@@ -41,7 +42,17 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
     setNotification(null);
 
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/deleteLab/${labId}`);
+      const instance_details = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{
+        lab_id:labId,
+      })
+      console.log(userId)
+      const ami = await axios.post('http://localhost:3000/api/v1/amiinformation',{lab_id:labId})
+      const response = await axios.post(`http://localhost:3000/api/v1/deletevm`,{
+        id:labId,
+        instance_id:instance_details.data.result.instance_id,
+        ami_id:ami.data.result.ami_id,
+        user_id:userId
+      });
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Lab deleted successfully' });
@@ -148,12 +159,14 @@ export const MyLabs: React.FC = () => {
     isOpen: boolean;
     labId: string;
     labTitle: string;
+    userId:string;
   }>({
     isOpen: false,
     labId: '',
-    labTitle: ''
+    labTitle: '',
+    userId:'',
   });
-
+  const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
   useEffect(() => {
     const fetchLabs = async () => {
       try {
@@ -164,7 +177,6 @@ export const MyLabs: React.FC = () => {
         });
         const cats = catalogues.data.data;
         const labss = labs.data.data;
-        
         const filteredCatalogues = cats.filter((cat) => {
           return labss.some((lab) => lab.lab_id === cat.lab_id);
         });
@@ -172,7 +184,6 @@ export const MyLabs: React.FC = () => {
         setLabs(filteredCatalogues);
         setFilteredLabs(filteredCatalogues);
         setLabStatus(labss);
-
         // Initialize lab controls
         const controls: Record<string, LabControl> = {};
         filteredCatalogues.forEach((lab) => {
@@ -222,27 +233,40 @@ export const MyLabs: React.FC = () => {
 
     setFilteredLabs(result);
   }, [filters, labs, labStatus]);
+  // const checkLabStatus = async (labId: string) => {
+  //   try {
+  //     const response = await axios.post('http://localhost:3000/api/v1/checkLabStatus', {
+  //       lab_id: labId
+  //     });
 
-  const checkLabStatus = async (labId: string) => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/checkLabStatus', {
-        lab_id: labId
-      });
+  //     if (response.data.success) {
+  //       setLabControls(prev => ({
+  //         ...prev,
+  //         [labId]: {
+  //           ...prev[labId],
+  //           isLaunched: response.data.isLaunched,
+  //           buttonLabel: response.data.isRunning ? 'Stop Lab' : 'Start Lab'
+  //         }
+  //       }));
+  //     }
+  //   } catch (error) {
+  //     console.error('Error checking lab status:', error);
+  //   }
+  // };
 
-      if (response.data.success) {
-        setLabControls(prev => ({
-          ...prev,
-          [labId]: {
-            ...prev[labId],
-            isLaunched: response.data.isLaunched,
-            buttonLabel: response.data.isRunning ? 'Stop Lab' : 'Start Lab'
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error checking lab status:', error);
-    }
-  };
+ //to format date
+ function formatDate(inputDate) {
+  const date = new Date(inputDate);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
 
   const handleLaunchLab = async (labId: string) => {
     setLabControls(prev => ({
@@ -255,10 +279,15 @@ export const MyLabs: React.FC = () => {
     }));
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/launchLab', {
-        lab_id: labId
+      const ami = await axios.post('http://localhost:3000/api/v1/amiinformation',{lab_id:labId})
+      const labConfig = await axios.post('http://localhost:3000/api/v1/getAssignLabOnId',{labId:labId})
+      const response = await axios.post('http://localhost:3000/api/v1/launchInstance', {
+        ami_id:ami.data.result.ami_id,
+        user_id:user.id,
+        start_date:formatDate(new Date()),
+        end_date:formatDate(labConfig.data.data.completion_date),
       });
-
+      console.log(response)
       if (response.data.success) {
         setLabControls(prev => ({
           ...prev,
@@ -337,7 +366,7 @@ export const MyLabs: React.FC = () => {
       }));
     }
   };
-
+ 
   return (
     <div className="space-y-6">
       {/* Header and Filters */}
@@ -446,7 +475,6 @@ export const MyLabs: React.FC = () => {
                     }));
                   }, 3000);
                 }
-
                 return (
                   <div key={lab.lab_id} 
                       className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -481,7 +509,8 @@ export const MyLabs: React.FC = () => {
                             onClick={() => setDeleteModal({
                               isOpen: true,
                               labId: lab.lab_id,
-                              labTitle: lab.title
+                              labTitle: lab.title,
+                              userId:lab.user_id
                             })}
                             className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
                           >
@@ -586,9 +615,10 @@ export const MyLabs: React.FC = () => {
 
       <DeleteModal 
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, labId: '', labTitle: '' })}
+        onClose={() => setDeleteModal({ isOpen: false, labId: '', labTitle: '' ,userId:''})}
         labId={deleteModal.labId}
         labTitle={deleteModal.labTitle}
+        userId={deleteModal.userId}
       />
     </div>
   );

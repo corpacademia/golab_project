@@ -142,6 +142,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         );
         if (response.data.success) {
           setLabDetails(response.data.data);
+          
         }
       } catch (error) {
         console.error("Error fetching lab details:", error);
@@ -171,7 +172,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         userId: selectedUsers,
         assign_admin_id: admin.id
       });
-
+      console.log(response)
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Lab assigned successfully' });
         setTimeout(() => {
@@ -194,7 +195,10 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/deleteAssessment/${assessment.assessment_id}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/deleteAssessment`,{
+        lab_id:assessment.lab_id,
+        admin_id:admin.id,
+      });
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Assessment deleted successfully' });

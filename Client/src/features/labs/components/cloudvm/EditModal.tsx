@@ -35,10 +35,12 @@ export const EditModal: React.FC<EditModalProps> = ({
 
     setIsSubmitting(true);
     setNotification(null);
-
+ console.log(assessmentId)
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateAssessmentStorage/${assessmentId}`, {
-        storageChange
+      const response = await axios.post(`http://localhost:3000/api/v1/updateAssessmentStorage/`, {
+        new_volume_size:currentStorage + storageChange,
+        instance_id:assessmentId
+
       });
 
       if (response.data.success) {
