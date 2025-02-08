@@ -155,11 +155,13 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     setIsLaunchProcessing(true);
     if (buttonLabel === 'Stop') {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/instancestop', {
+        const response = await axios.post('http://localhost:3000/api/v1/stopInstance', {
           instance_id: instanceDetails?.instance_id,
         });
 
-        if (response.data.success) {
+        if (response.data.success) {                        
+        
+
           setButtonLabel('Launch Software');
           setNotification({ 
             type: 'success', 
@@ -432,6 +434,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         onClose={() => setIsEditModalOpen(false)}
         currentStorage={Number(labDetails?.storage) || 0}
         assessmentId={instanceDetails?.instance_id}
+        lab_id={vm.lab_id}
         onSuccess={handleEditSuccess}
       />
 

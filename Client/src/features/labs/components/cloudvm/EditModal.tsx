@@ -8,6 +8,7 @@ interface EditModalProps {
   onClose: () => void;
   currentStorage: number;
   assessmentId: string;
+  lab_id:string;
   onSuccess: () => void;
 }
 
@@ -16,6 +17,7 @@ export const EditModal: React.FC<EditModalProps> = ({
   onClose,
   currentStorage,
   assessmentId,
+  lab_id,
   onSuccess
 }) => {
   const [storageChange, setStorageChange] = useState(0);
@@ -35,11 +37,11 @@ export const EditModal: React.FC<EditModalProps> = ({
 
     setIsSubmitting(true);
     setNotification(null);
- console.log(assessmentId)
     try {
       const response = await axios.post(`http://localhost:3000/api/v1/updateAssessmentStorage/`, {
         new_volume_size:currentStorage + storageChange,
-        instance_id:assessmentId
+        instance_id:assessmentId,
+        lab_id:lab_id,
 
       });
 

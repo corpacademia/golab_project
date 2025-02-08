@@ -16,7 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
-import { EditStorageModal } from '../EditStorageModal';
+// import { EditStorageModal } from '../EditStorageModal';
 import axios from 'axios';
 
 interface CloudVMAssessmentProps {
@@ -56,7 +56,7 @@ interface LabDetails {
 
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -249,12 +249,12 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
               <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description}</p>
             </div>
             <div className="flex items-center space-x-2">
-              <button
+              {/* <button
                 onClick={() => setIsEditModalOpen(true)}
                 className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
               >
                 <Pencil className="h-4 w-4 text-primary-400" />
-              </button>
+              </button> */}
               <button
                 onClick={() => setIsDeleteModalOpen(true)}
                 className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
@@ -482,13 +482,14 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         </div>
       )}
 
-      <EditStorageModal
+      {/* <EditStorageModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         currentStorage={Number(labDetails?.storage) || 0}
         assessmentId={assessment.assessment_id}
+        lab_id={assessment.lab_id}
         onSuccess={handleEditSuccess}
-      />
+      /> */}
     </>
   );
 };

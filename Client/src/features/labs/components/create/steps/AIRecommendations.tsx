@@ -79,6 +79,17 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
     const data = JSON.parse(localStorage.getItem("formData")) || {};
     const user = JSON.parse(localStorage.getItem("auth")).result || {};
 
+    const deleteLabData = async (lab_id) => {
+      try {
+        await axios.delete("http://localhost:3000/api/v1/deleteLab", {
+          lab_id: lab_id,
+        });
+        console.log(`Deleted lab data for lab_id: ${lab_id}`);
+      } catch (error) {
+        console.error(`Failed to delete lab data for lab_id: ${lab_id}`, error);
+      }
+    };
+
     try {
       const response = await axios.post("http://localhost:3000/api/v1/labconfig", {
         data: data,
@@ -100,7 +111,29 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
       });
       
       if (tf.data.success) {
-        const decrypt_password = await axios.get("http://localhost:3000/api/v1/decryptPassword");
+        try {
+          const instancedetails = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{
+            lab_id:response.data.output.lab_id
+          })
+          const decrypt_password = await axios.post("http://localhost:3000/api/v1/decryptPassword",{
+            lab_id:response.data.output.lab_id,
+            public_ip:instancedetails.data.result.public_ip,
+            instance_id:instancedetails.data.result.instance_id,
+          });
+        } catch (error) {
+          console.error("Error in handleData:", error);
+        }
+        // const instancedetails = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{
+        //   lab_id:response.data.output.lab_id
+        // })
+        // const decrypt_password = await axios.post("http://localhost:3000/api/v1/decryptPassword",{
+        //   lab_id:response.data.output.lab_id,
+        //   public_ip:instancedetails.data.result.public_ip,
+        //   instance_id:instancedetails.data.result.instance_id,
+        // });
+      }
+      if(!tf.data.success){
+        await deleteLabData(response.data.output.lab_id)
       }
 
       try {
@@ -110,91 +143,12 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
       } catch (error) {
         console.error("Error in handleData:", error);
       }
-      
-
-   
-      localStorage.removeItem("formData");
-
-     
+       localStorage.removeItem("formData");
     } catch (error) {
       console.error("Error in handleData:", error);
     }
   };
-//  console.log('response',responsedata)
-//   // Function to call the first API
-//   const callFirstApi = async () => {
-//     try {
-//       const tf = await axios.post("http://localhost:3000/api/v1/pythontf", {
-//         lab_id: responsedata.data.output.lab_id, // Use response from handleData
-//       });
-//       const { success } = tf.data; // Assuming the response contains a success field
-//       setIsSuccess(success); // Set the success status
-//     } catch (error) {
-//       console.error("Error in first API call:", error);
-//     }
-//   };
-
-//   // Function to call the second API
-//   const callSecondApi = async () => {
-//     try {
-//       setIsLoading(true);
-//       const instance = await axios.post("http://localhost:3000/api/v1/instancetodata", {
-//         lab_id: responsedata.data.output.lab_id, // Use response from handleData
-//       });
-//       console.log("Second API response:", instance.data);
-//     } catch (error) {
-//       console.error("Error in second API call:", error);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   // Effect to execute API calls after handleData is complete
-//   useEffect(() => {
-//     if (isHandleDataComplete) {
-//       console.log('not calling')
-//       callFirstApi();
-//     }
-//   }, [isHandleDataComplete]);
-
-//   // Effect to poll for the first API's response
-//   useEffect(() => {
-//     let interval;
   
-//     if (isSuccess === null) {
-//       console.log(isSuccess)
-//       interval = setInterval(() => {
-//         console.log("Waiting for the first API response...");
-//         // Polling continues until `isSuccess` is updated
-//         if (isSuccess !== null) {
-//           console.log('clear')
-//           clearInterval(interval); // Clear the interval once we have a response
-//         }
-//       }, 1000); // Check every second
-//     }
-  
-//     return () => clearInterval(interval); // Cleanup interval on component unmount or dependency change
-//   }, [isSuccess]);
-  
-  
-
-//   // Effect to call the second API if the first API response is success
-//   useEffect(() => {
-//     if (isSuccess === true) {
-//       callSecondApi();
-//     } else if (isSuccess === false) {
-//       console.log("First API returned false, not executing second API.");
-//     }
-//   }, [isSuccess]);
-
- 
-
-
-
-
-  
-
-
   // Function to get price based on OS
   const getPriceByOS = (instance) => {
     if(config.cloudProvider === 'aws'){
