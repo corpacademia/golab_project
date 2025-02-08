@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { CloudVMCard } from '../../components/cloudvm/CloudVMCard';
 import { Plus, Search, Filter, AlertCircle, FolderX } from 'lucide-react';
@@ -19,6 +20,7 @@ interface CloudVM {
 }
 
 export const AdminCloudVMsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [vms, setVMs] = useState<CloudVM[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,10 @@ export const AdminCloudVMsPage: React.FC = () => {
             Manage and configure cloud-based virtual machines
           </p>
         </div>
-        <button className="btn-primary">
+        <button 
+          onClick={() => navigate('/dashboard/labs/create')}
+          className="btn-primary"
+        >
           <Plus className="h-4 w-4 mr-2" />
           New VM Instance
         </button>
