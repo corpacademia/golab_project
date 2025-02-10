@@ -121,6 +121,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
             instance_id:instancedetails.data.result.instance_id,
           });
         } catch (error) {
+          await deleteLabData(response.data.output.lab_id)
           console.error("Error in handleData:", error);
         }
         // const instancedetails = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{
