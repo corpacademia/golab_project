@@ -27,8 +27,28 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
   const [isLabStarted, setIsLabStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [software, setSoftware] = useState<string[]>([]);
 
   const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
+
+  // Fetch software details
+  useEffect(() => {
+    const fetchSoftware = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/getSoftwareDetails');
+        if (response.data.success) {
+          const labSoftware = response.data.data.find((s: any) => s.lab_id === lab.lab_id);
+          if (labSoftware) {
+            setSoftware(labSoftware.software.split(',').map((s: string) => s.trim()));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching software details:', error);
+      }
+    };
+
+    fetchSoftware();
+  }, [lab.lab_id]);
 
   // Check initial lab status
   useEffect(() => {
@@ -173,6 +193,18 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
           <div className="flex items-center text-sm text-gray-400">
             <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
             <span className="truncate">Storage: {lab.storage}GB</span>
+          </div>
+        </div>
+
+        {/* Software Details Section */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-400 mb-2">Software Installed:</h4>
+          <div className="flex flex-wrap gap-2">
+            {software.map((sw, index) => (
+              <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                {sw}
+              </span>
+            ))}
           </div>
         </div>
 
