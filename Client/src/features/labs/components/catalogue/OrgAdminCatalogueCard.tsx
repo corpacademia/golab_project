@@ -65,19 +65,19 @@ useEffect(() => {
         <div className="grid grid-cols-2 gap-4 mb-3">
           <div className="flex items-center text-sm text-gray-400">
             <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">4 vCPU</span>
+            <span className="truncate">{lab.cpu} vCPU</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">8GB RAM</span>
+            <span className="truncate">{lab.ram}GB RAM</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">t2.large</span>
+            <span className="truncate">{lab.instance}</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">100GB Storage</span>
+            <span className="truncate">{lab.storage}GB Storage</span>
           </div>
         </div>
 
@@ -85,6 +85,7 @@ useEffect(() => {
         <div className="flex-1 min-h-0 mb-3">
           <h4 className="text-sm font-medium text-gray-400 mb-2">Technologies:</h4>
           <div className="flex flex-wrap gap-2 max-h-[80px] overflow-y-auto scrollbar-thin">
+
             {software.map((tech, index) => (
               <span 
                 key={index} 
