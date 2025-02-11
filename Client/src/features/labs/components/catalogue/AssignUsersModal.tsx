@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect } from 'react';
 import { 
   X, 
   Search, 
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
+import { json } from 'stream/consumers';
+import axios from 'axios';
 
 interface AssignUsersModalProps {
   isOpen: boolean;
@@ -22,7 +24,23 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [users,setUsers] = useState<string[]>([])
+  
+  const admin = JSON.parse(localStorage.getItem('auth')).result || {}
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
+          admin_id: admin.id
+        });
+        setUsers(response.data.data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    fetchUsers();
+  }, [admin.id]);
   // Mock users data - In real implementation, this would come from your user store or API
   const mockUsers = [
     { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user' },
@@ -30,7 +48,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
     { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'user' },
   ];
 
-  const filteredUsers = mockUsers.filter(user => 
+  const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );

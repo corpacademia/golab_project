@@ -35,9 +35,6 @@ export const useLabs = () => {
   useEffect(() => {
     const fetchLabs = async () => {
       try {
-        // Simulate API call
-        // await new Promise(resolve => setTimeout(resolve, 500));
-        // setLabs(mockLabs);
         const catalogues = await axios.get("http://localhost:3000/api/v1/getPublicCatalogues")
         setLabs(catalogues.data.data)
 

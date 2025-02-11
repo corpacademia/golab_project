@@ -1,45 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CatalogueLayout } from '../components/catalogue/CatalogueLayout';
 import { LabCatalogueFilters } from '../components/catalogue/LabCatalogueFilters';
 import { OrgAdminCatalogueCard } from '../components/catalogue/OrgAdminCatalogueCard';
 import { AssignUsersModal } from '../components/catalogue/AssignUsersModal';
 import { Lab } from '../types';
+import { useLabs } from '../hooks/useLabs';
 
 export const OrgAdminCataloguePage: React.FC = () => {
-  // Mock data - In real implementation, this would come from your API
-  const mockLabs: Lab[] = [
-    {
-      id: '1',
-      title: 'AWS Solutions Architect Lab',
-      description: 'Learn to design scalable cloud architectures',
-      type: 'catalogue',
-      duration: 120,
-      price: 49.99,
-      technologies: ['AWS', 'Cloud Architecture'],
-      status: 'available',
-      rating: 4.8,
-      prerequisites: ['Basic AWS knowledge', 'Cloud fundamentals']
-    },
-    {
-      id: '2',
-      title: 'Kubernetes Mastery',
-      description: 'Master container orchestration with Kubernetes',
-      type: 'catalogue',
-      duration: 180,
-      price: 79.99,
-      technologies: ['Kubernetes', 'Docker', 'Container Orchestration'],
-      status: 'available',
-      rating: 4.9,
-      prerequisites: ['Docker basics', 'Linux fundamentals']
-    }
-  ];
-
-  const [filteredLabs, setFilteredLabs] = useState(mockLabs);
+  const { labs, isLoading } = useLabs(); // Assuming useLabs() provides `isLoading`
+  const [filteredLabs, setFilteredLabs] = useState<Lab[]>([]);
   const [filters, setFilters] = useState({
     search: '',
     technology: '',
     level: ''
   });
+
+  // Sync `filteredLabs` with `labs` when data is available
+  useEffect(() => {
+    if (labs.length > 0) {
+      setFilteredLabs(labs);
+    }
+  }, [labs]);
+
+
   const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
@@ -47,17 +30,19 @@ export const OrgAdminCataloguePage: React.FC = () => {
     const updatedFilters = { ...filters, [update.key]: update.value };
     setFilters(updatedFilters);
 
-    // Apply filters
-    const filtered = mockLabs.filter(lab => {
-      const matchesSearch = !updatedFilters.search || 
+    // Apply filters dynamically
+    const filtered = labs.filter(lab => {
+      const matchesSearch =
+        !updatedFilters.search ||
         lab.title.toLowerCase().includes(updatedFilters.search.toLowerCase()) ||
         lab.description.toLowerCase().includes(updatedFilters.search.toLowerCase());
-      
-      const matchesTech = !updatedFilters.technology || 
-        lab.technologies.some(tech => 
+
+      const matchesTech =
+        !updatedFilters.technology ||
+        (lab.config_details?.software || []).some(tech =>
           tech.toLowerCase().includes(updatedFilters.technology.toLowerCase())
         );
-      
+
       return matchesSearch && matchesTech;
     });
 
@@ -77,16 +62,23 @@ export const OrgAdminCataloguePage: React.FC = () => {
           filters={filters}
           setFilters={setFilters}
         />
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          {filteredLabs.map(lab => (
-            <OrgAdminCatalogueCard 
-              key={lab.id} 
-              lab={lab}
-              onAssignUsers={handleAssignUsers}
-            />
-          ))}
-        </div>
+
+        {/* Show loading state if data is still fetching */}
+        {isLoading ? (
+          <p className="text-center text-gray-500">Loading labs...</p>
+        ) : filteredLabs.length === 0 ? (
+          <p className="text-center text-gray-500">No labs available.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            {filteredLabs.map(lab => (
+              <OrgAdminCatalogueCard 
+                key={lab.id} 
+                lab={lab}
+                onAssignUsers={handleAssignUsers}
+              />
+            ))}
+          </div>
+        )}
 
         <AssignUsersModal
           isOpen={isAssignModalOpen}
