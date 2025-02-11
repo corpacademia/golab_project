@@ -1,13 +1,13 @@
-import React, { useState , useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Search, 
   AlertCircle, 
-  Check 
+  Check,
+  Loader
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
-import { json } from 'stream/consumers';
 import axios from 'axios';
 
 interface AssignUsersModalProps {
@@ -24,9 +24,10 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [users,setUsers] = useState<string[]>([])
+  const [users, setUsers] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  const admin = JSON.parse(localStorage.getItem('auth')).result || {}
+  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -41,31 +42,49 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
     };
     fetchUsers();
   }, [admin.id]);
-  // Mock users data - In real implementation, this would come from your user store or API
-  const mockUsers = [
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user' },
-    { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'user' },
-  ];
 
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAssignUsers = () => {
+  const handleAssignUsers = async () => {
     if (selectedUsers.length === 0) {
       setNotification({ type: 'error', message: 'Please select at least one user' });
       return;
     }
 
-    // Here you would typically make an API call to assign the lab to selected users
-    setNotification({ type: 'success', message: 'Lab assigned successfully' });
-    setTimeout(() => {
-      setNotification(null);
-      onClose();
-      setSelectedUsers([]);
-    }, 1500);
+    setIsLoading(true);
+    setNotification(null);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
+        lab: lab?.id,
+        userId: selectedUsers,
+        assign_admin_id: admin.id
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Lab assigned successfully' });
+        setTimeout(() => {
+          setNotification(null);
+          onClose();
+          setSelectedUsers([]);
+        }, 3000);
+      } else {
+        throw new Error(response.data.message || 'Failed to assign lab');
+      }
+    } catch (err: any) {
+      setNotification({ 
+        type: 'error', 
+        message: err.response?.data?.message || 'Failed to assign lab'
+      });
+      setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen || !lab) return null;
@@ -159,14 +178,23 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
                 setNotification(null);
               }}
               className="btn-secondary"
+              disabled={isLoading}
             >
               Cancel
             </button>
             <button
               onClick={handleAssignUsers}
-              className="btn-primary"
+              disabled={isLoading}
+              className="btn-primary min-w-[100px]"
             >
-              Assign Lab
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Assigning...
+                </span>
+              ) : (
+                'Assign Lab'
+              )}
             </button>
           </div>
         </div>
