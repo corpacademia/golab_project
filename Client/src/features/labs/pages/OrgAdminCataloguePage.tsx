@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CatalogueLayout } from '../components/catalogue/CatalogueLayout';
 import { LabCatalogueFilters } from '../components/catalogue/LabCatalogueFilters';
 import { OrgAdminCatalogueCard } from '../components/catalogue/OrgAdminCatalogueCard';
+import { AssignUsersModal } from '../components/catalogue/AssignUsersModal';
 import { Lab } from '../types';
 
 export const OrgAdminCataloguePage: React.FC = () => {
@@ -39,6 +40,8 @@ export const OrgAdminCataloguePage: React.FC = () => {
     technology: '',
     level: ''
   });
+  const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
   const handleFilterChange = (update: { key: string; value: string }) => {
     const updatedFilters = { ...filters, [update.key]: update.value };
@@ -61,6 +64,11 @@ export const OrgAdminCataloguePage: React.FC = () => {
     setFilteredLabs(filtered);
   };
 
+  const handleAssignUsers = (lab: Lab) => {
+    setSelectedLab(lab);
+    setIsAssignModalOpen(true);
+  };
+
   return (
     <CatalogueLayout>
       <div className="space-y-6">
@@ -72,9 +80,22 @@ export const OrgAdminCataloguePage: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredLabs.map(lab => (
-            <OrgAdminCatalogueCard key={lab.id} lab={lab} />
+            <OrgAdminCatalogueCard 
+              key={lab.id} 
+              lab={lab}
+              onAssignUsers={handleAssignUsers}
+            />
           ))}
         </div>
+
+        <AssignUsersModal
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setSelectedLab(null);
+          }}
+          lab={selectedLab}
+        />
       </div>
     </CatalogueLayout>
   );
