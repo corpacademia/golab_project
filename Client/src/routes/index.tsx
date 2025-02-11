@@ -11,6 +11,7 @@ import { UsersPage } from '../features/users/pages/UsersPage';
 import { UserProfilePage } from '../features/users/pages/UserProfilePage';
 import { LabsPage } from '../features/labs/pages/LabsPage';
 import { CataloguePage } from '../features/labs/pages/CataloguePage';
+import { OrgAdminCataloguePage } from '../features/labs/pages/OrgAdminCataloguePage';
 import { AdminCloudVMsPage } from '../features/labs/pages/admin/CloudVMsPage';
 import { OrgAdminCloudVMsPage } from '../features/labs/pages/orgadmin/CloudVMsPage';
 import { CreateLabEnvironment } from '../features/labs/pages/CreateLabEnvironment';
@@ -52,7 +53,10 @@ export const AppRoutes: React.FC = () => {
         <Route path="organization-user/:userId" element={<UserProfilePage />} />
         <Route path="organization-users/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
-        <Route path="labs/catalogue" element={<CataloguePage />} />
+        <Route 
+          path="labs/catalogue" 
+          element={user?.role === 'orgadmin' ? <OrgAdminCataloguePage /> : <CataloguePage />} 
+        />
         <Route 
           path="labs/cloud-vms" 
           element={user?.role === 'superadmin' ? <AdminCloudVMsPage /> : <OrgAdminCloudVMsPage />} 
