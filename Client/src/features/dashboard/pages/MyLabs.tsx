@@ -187,7 +187,6 @@ export const MyLabs: React.FC = () => {
           axios.post('http://localhost:3000/api/v1/getAssignedLabs', { userId: user.id }),
           axios.get('http://localhost:3000/api/v1/getSoftwareDetails')
         ]);
-
         const cats = cataloguesRes.data.data;
         const labss = labsRes.data.data;
         const softwareData = softwareRes.data.data;
@@ -285,20 +284,16 @@ export const MyLabs: React.FC = () => {
     }));
   
     try {
-      const [ami, labConfig, cloudInstanceDetails] = await Promise.all([
+      const [ami, labConfig] = await Promise.all([
         axios.post('http://localhost:3000/api/v1/amiinformation', { lab_id: lab.lab_id }),
         axios.post('http://localhost:3000/api/v1/getAssignLabOnId', { labId: lab.lab_id }),
-        axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
-          user_id: user.id,
-          lab_id: lab.lab_id,
-        })
+        
       ]);
-  
-      if (!cloudInstanceDetails.data.success) {
+      if (!ami.data.success) {
         throw new Error('Failed to retrieve instance details');
       }
   
-      setCloudInstanceDetails(cloudInstanceDetails.data.data);
+      // setCloudInstanceDetails(cloudInstanceDetails.data.data);
   
       // First API: Launch instance (Keep loading active)
       const response = await axios.post('http://localhost:3000/api/v1/launchInstance', {
@@ -310,9 +305,12 @@ export const MyLabs: React.FC = () => {
         start_date: formatDate(new Date()),
         end_date: formatDate(labConfig.data.data.completion_date),
       });
-  
       // Only proceed if launchInstance is successful
       if (response.data.success) {
+        const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
+          user_id: user.id,
+          lab_id: lab.lab_id,
+        })
         // Second API: Decrypt password (Keep loading active)
         const decryptResponse = await axios.post("http://localhost:3000/api/v1/userDecryptPassword", {
           user_id: user.id,
@@ -321,6 +319,7 @@ export const MyLabs: React.FC = () => {
         });
   
         // Update state only after decryption completes
+        console.log(decryptResponse)
         setLabControls(prev => ({
           ...prev,
           [lab.lab_id]: {
@@ -333,6 +332,16 @@ export const MyLabs: React.FC = () => {
             }
           }
         }));
+        // Remove notification after 3 seconds
+setTimeout(() => {
+  setLabControls(prev => ({
+    ...prev,
+    [lab.lab_id]: {
+      ...prev[lab.lab_id],
+      notification: null // Clear notification
+    }
+  }));
+}, 3000);
       } else {
         throw new Error(response.data.message || 'Failed to launch lab');
       }
@@ -349,6 +358,16 @@ export const MyLabs: React.FC = () => {
           }
         }
       }));
+      // Remove notification after 3 seconds
+setTimeout(() => {
+  setLabControls(prev => ({
+    ...prev,
+    [lab.lab_id]: {
+      ...prev[lab.lab_id],
+      notification: null // Clear notification
+    }
+  }));
+}, 3000);
     }
   };
   

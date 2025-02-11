@@ -23,7 +23,7 @@ interface UserCatalogueCardProps {
 
 export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => {
   const [isLabPurchased, setIsLabPurchased] = useState(false);
-  const [isVMLaunched, setIsVMLaunched] = useState(false);
+  const [isVMLaunched, setIsVMLaunched] = useState(false); 
   const [isLabStarted, setIsLabStarted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -39,7 +39,8 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
         if (response.data.success) {
           const labSoftware = response.data.data.find((s: any) => s.lab_id === lab.lab_id);
           if (labSoftware) {
-            setSoftware(labSoftware.software.split(',').map((s: string) => s.trim()));
+            const softwareList = labSoftware.software; 
+            setSoftware(softwareList)
           }
         }
       } catch (error) {
@@ -49,7 +50,6 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
 
     fetchSoftware();
   }, [lab.lab_id]);
-
   // Check initial lab status
   useEffect(() => {
     const checkLabStatus = async () => {
