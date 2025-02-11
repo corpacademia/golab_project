@@ -74,7 +74,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
     } catch (error: any) {
       setNotification({
         type: 'error',
-        message: error.response?.data?.message || 'Failed to delete lab'
+        message: error?.data?.message || 'Failed to delete lab'
       });
     } finally {
       setIsDeleting(false);

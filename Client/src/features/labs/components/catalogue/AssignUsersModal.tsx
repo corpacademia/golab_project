@@ -59,7 +59,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
 
     try {
       const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
-        lab: lab?.id,
+        lab: lab?.lab_id,
         userId: selectedUsers,
         assign_admin_id: admin.id
       });

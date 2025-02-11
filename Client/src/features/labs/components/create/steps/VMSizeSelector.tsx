@@ -19,25 +19,6 @@ interface OSVersion {
   version: string;
 }
 
-// const osCategories = {
-//   Ubuntu: [
-//     { name: 'Ubuntu', version: 'ubuntu' },
-//     { name: 'Ubuntu Pro', version: 'ubuntu-pro' }
-//   ],
-//   Windows: [
-//     { name: 'Windows Server 2022', version: 'windows' },
-//     { name: 'Windows Server 2019', version: 'windows-2019' }
-//   ],
-//   RedHat: [
-//     { name: 'RHEL 9', version: 'rhel' },
-//     { name: 'RHEL 8', version: 'rhel-8' }
-//   ],
-//   Linux: [
-//     { name: 'Amazon Linux 2', version: 'linux' },
-//     { name: 'CentOS 7', version: 'linux-centos' }
-//   ]
-// };
-
 function convertToOSCategories(data) {
   const osCategories = {};
   
