@@ -84,10 +84,10 @@ export const OrgAdminCatalogueCard: React.FC<OrgAdminCatalogueCardProps> = ({
                      hover:from-primary-400 hover:to-secondary-400
                      transform hover:scale-105 transition-all duration-300
                      text-white shadow-lg shadow-primary-500/20
-                     flex items-center justify-center"
+                     flex items-center justify-center gap-1.5 sm:gap-2"
           >
-            <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-            Assign Users
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="whitespace-nowrap">Assign Users</span>
           </button>
         </div>
       </div>
