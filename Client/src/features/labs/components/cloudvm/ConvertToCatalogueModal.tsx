@@ -250,7 +250,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
           configured_by: admin.id,
           software: software.filter(s => s.trim() !== ''),
         });
-
         if (batch.data.success) {
           const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
             lab_id: vmId,
