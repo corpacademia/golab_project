@@ -319,7 +319,6 @@ export const MyLabs: React.FC = () => {
         });
   
         // Update state only after decryption completes
-        console.log(decryptResponse)
         setLabControls(prev => ({
           ...prev,
           [lab.lab_id]: {
