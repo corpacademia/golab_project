@@ -13,10 +13,11 @@ import {
   Server,
   Users,
   Pencil, 
-  Trash2
+  Trash2,
+  CreditCard,
+  Loader
 } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
-// import { EditStorageModal } from '../EditStorageModal';
 import axios from 'axios';
 
 interface CloudVMAssessmentProps {
@@ -56,7 +57,6 @@ interface LabDetails {
 
 export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assessment }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -68,8 +68,11 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string; email: string; }[]>([]);
   const [load, setLoad] = useState(true);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+
   useEffect(() => {
     const fetchOrg = async () => {
       if (assessment.config_details?.organizationId) {
@@ -131,35 +134,51 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     }
   }, [assessment.lab_id]);
 
-  const handleEditSuccess = () => {
-    const fetchLabDetails = async () => {
-      try {
-        const response = await axios.post(
-          "http://localhost:3000/api/v1/getLabOnId",
-          {
-            labId: assessment.lab_id,
-          }
-        );
-        if (response.data.success) {
-          setLabDetails(response.data.data);
-          
-        }
-      } catch (error) {
-        console.error("Error fetching lab details:", error);
+  const handlePayment = async () => {
+    if (!selectedUsers.length && !email) {
+      setNotification({ type: 'error', message: 'Please select users or enter an email address' });
+      return;
+    }
+
+    setIsPaying(true);
+    setNotification(null);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/initiate-payment', {
+        lab_id: assessment.lab_id,
+        user_id: admin.id,
+        amount: 1000 // Amount in smallest currency unit (e.g., paise)
+      });
+
+      if (response.data.success) {
+        setPaymentSuccess(true);
+        setNotification({ type: 'success', message: 'Payment successful! You can now assign the lab.' });
+        setTimeout(() => setNotification(null), 3000);
+      } else {
+        throw new Error('Payment failed');
       }
-    };
-    fetchLabDetails();
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Payment failed. Please try again.' });
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   const clearForm = () => {
     setEmail('');
     setSelectedUsers([]);
     setNotification(null);
+    setPaymentSuccess(false);
   };
 
   const handleAssignLab = async () => {
     if (!selectedUsers.length && !email) {
       setNotification({ type: 'error', message: 'Please select users or enter an email address' });
+      return;
+    }
+
+    if (!paymentSuccess) {
+      setNotification({ type: 'error', message: 'Please complete payment first' });
       return;
     }
 
@@ -172,7 +191,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         userId: selectedUsers,
         assign_admin_id: admin.id
       });
-      console.log(response)
+
       if (response.data.success) {
         setNotification({ type: 'success', message: 'Lab assigned successfully' });
         setTimeout(() => {
@@ -227,8 +246,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                     hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group relative">
-        {notification && !isModalOpen && (
-          <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+        {notification && (
+          <div className={`absolute top-2 right-16 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
             notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
           }`}>
             {notification.type === 'success' ? (
@@ -240,6 +259,22 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         )}
         
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+            assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+            'bg-amber-500/20 text-amber-300'
+          }`}>
+            {assessment.status}
+          </span>
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+          >
+            <Trash2 className="h-4 w-4 text-red-400" />
+          </button>
+        </div>
+        
         <div className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
@@ -247,27 +282,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                 <GradientText>{assessment.config_details?.catalogueName || assessment.title}</GradientText>
               </h3>
               <p className="text-sm text-gray-400 line-clamp-2">{labDetails?.description}</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              {/* <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Pencil className="h-4 w-4 text-primary-400" />
-              </button> */}
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4 text-red-400" />
-              </button>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                assessment.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-                assessment.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-                'bg-amber-500/20 text-amber-300'
-              }`}>
-                {assessment.status}
-              </span>
             </div>
           </div>
 
@@ -318,7 +332,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         </div>
       </div>
 
-      {/* Assign Lab Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
@@ -338,7 +351,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
             </div>
 
             <div className="space-y-4">
-              {/* User Selection Dropdown */}
               <div className="relative dropdown-container">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Select Users
@@ -402,6 +414,24 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
                 />
               </div>
 
+              <button
+                onClick={handlePayment}
+                disabled={isPaying || (!selectedUsers.length && !email) || paymentSuccess}
+                className="w-full btn-primary bg-emerald-500 hover:bg-emerald-600"
+              >
+                {isPaying ? (
+                  <span className="flex items-center justify-center">
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Processing Payment...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    {paymentSuccess ? 'Payment Completed' : 'Pay Now'}
+                  </span>
+                )}
+              </button>
+
               {notification && (
                 <div className={`p-4 rounded-lg flex items-center space-x-2 ${
                   notification.type === 'success' 
@@ -423,15 +453,12 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
 
               <button
                 onClick={handleAssignLab}
-                disabled={isLoading}
+                disabled={isLoading || !paymentSuccess}
                 className="w-full btn-primary"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
                     Assigning...
                   </span>
                 ) : (
@@ -443,7 +470,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
@@ -481,15 +507,8 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
           </div>
         </div>
       )}
-
-      {/* <EditStorageModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        currentStorage={Number(labDetails?.storage) || 0}
-        assessmentId={assessment.assessment_id}
-        lab_id={assessment.lab_id}
-        onSuccess={handleEditSuccess}
-      /> */}
     </>
   );
 };
+
+export { CloudVMAssessmentCard }
