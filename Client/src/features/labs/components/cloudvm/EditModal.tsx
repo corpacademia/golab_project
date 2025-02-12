@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, Check, Loader, HardDrive, Plus, Minus } from 'lucide-react';
+import { X, AlertCircle, Check, Loader, HardDrive, Plus } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
@@ -8,7 +8,7 @@ interface EditModalProps {
   onClose: () => void;
   currentStorage: number;
   assessmentId: string;
-  lab_id:string;
+  lab_id: string;
   onSuccess: () => void;
 }
 
@@ -30,19 +30,13 @@ export const EditModal: React.FC<EditModalProps> = ({
       return;
     }
 
-    if (storageChange < 0 && Math.abs(storageChange) > currentStorage) {
-      setNotification({ type: 'error', message: 'Cannot reduce storage below 0' });
-      return;
-    }
-
     setIsSubmitting(true);
     setNotification(null);
     try {
       const response = await axios.post(`http://localhost:3000/api/v1/updateAssessmentStorage/`, {
-        new_volume_size:currentStorage + storageChange,
-        instance_id:assessmentId,
-        lab_id:lab_id,
-
+        new_volume_size: currentStorage + storageChange,
+        instance_id: assessmentId,
+        lab_id: lab_id,
       });
 
       if (response.data.success) {
@@ -94,18 +88,12 @@ export const EditModal: React.FC<EditModalProps> = ({
           {/* Storage Change Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-300">
-              Storage Change (GB)
+              Additional Storage (GB)
             </label>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setStorageChange(prev => prev - 1)}
-                className="p-2 rounded-lg bg-dark-300/50 hover:bg-dark-300 text-red-400 transition-colors"
-                disabled={storageChange <= -currentStorage}
-              >
-                <Minus className="h-5 w-5" />
-              </button>
               <input
                 type="number"
+                min="0"
                 value={storageChange}
                 onChange={(e) => setStorageChange(Number(e.target.value))}
                 className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -153,17 +141,13 @@ export const EditModal: React.FC<EditModalProps> = ({
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || storageChange === 0}
-              className={`btn-primary ${
-                storageChange < 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'
-              }`}
+              className="btn-primary bg-emerald-500 hover:bg-emerald-600"
             >
               {isSubmitting ? (
                 <span className="flex items-center">
                   <Loader className="animate-spin h-4 w-4 mr-2" />
                   Updating...
                 </span>
-              ) : storageChange < 0 ? (
-                'Reduce Storage'
               ) : (
                 'Add Storage'
               )}
