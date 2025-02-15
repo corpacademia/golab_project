@@ -6,7 +6,7 @@ import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { DashboardLayout } from '../features/dashboard/components/DashboardLayout';
 import { SuperAdminDashboard } from '../features/dashboard/pages/SuperAdminDashboard';
 import { Overview } from '../features/dashboard/pages/Overview';
-import { Organizations } from '../features/dashboard/pages/Organizations';
+import { Organizations } from '../features/organizations/pages/Organizations';
 import { UsersPage } from '../features/users/pages/UsersPage';
 import { UserProfilePage } from '../features/users/pages/UserProfilePage';
 import { LabsPage } from '../features/labs/pages/LabsPage';
