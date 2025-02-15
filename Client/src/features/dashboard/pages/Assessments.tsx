@@ -19,7 +19,7 @@ export const Assessments: React.FC = () => {
   const fetchAssessments = async () => {
     try {
       const response = await axios.get('/api/assessments');
-      setAssessments(response.data);
+      setAssessments([]);
     } catch (error) {
       console.error('Failed to fetch assessments:', error);
     } finally {
