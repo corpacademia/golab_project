@@ -3,9 +3,9 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { OrganizationList } from '../components/OrganizationList';
 import { OrganizationFilters } from '../components/OrganizationFilters';
 import { OrganizationStats } from '../components/OrganizationStats';
-import { AddOrganizationModal } from '../components/AddOrganizationModal';
 import { Organization } from '../types';
 import { useOrganizationFilters } from '../hooks/useOrganizationFilters';
+import { AddOrganizationModal } from '../components/AddOrganizationModal';
 import axios from 'axios';
 
 export const Organizations: React.FC = () => {
@@ -13,7 +13,7 @@ export const Organizations: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { filters, filterOrganizations, handleFilterChange } = useOrganizationFilters(organizations);
-
+  
   const [stats, setStats] = useState({
     totalOrganizations: 0,
     activeUsers: 0,
@@ -21,18 +21,26 @@ export const Organizations: React.FC = () => {
     monthlyRevenue: 0
   });
 
+  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+
   const fetchOrganizations = async () => {
     try {
-      const response = await axios.get('/api/organizations');
-      setOrganizations(response.data);
-      
-      // Update stats
-      setStats({
-        totalOrganizations: response.data.length,
-        activeUsers: response.data.reduce((acc, org) => acc + org.usersCount, 0),
-        totalLabs: response.data.reduce((acc, org) => acc + org.labsCount, 0),
-        monthlyRevenue: response.data.reduce((acc, org) => acc + org.revenue, 0)
+      const response = await axios.post('http://localhost:3000/api/v1/getOrganizations', {
+        admin_id: admin.id
       });
+
+      if (response.data.success) {
+        setOrganizations(response.data.data || []);
+        
+        // Update stats
+        const orgData = response.data.data || [];
+        setStats({
+          totalOrganizations: orgData.length,
+          activeUsers: orgData.reduce((acc: number, org: any) => acc + (org.usersCount || 0), 0),
+          totalLabs: orgData.reduce((acc: number, org: any) => acc + (org.labsCount || 0), 0),
+          monthlyRevenue: orgData.reduce((acc: number, org: any) => acc + (org.revenue || 0), 0)
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch organizations:', error);
     } finally {
@@ -42,7 +50,7 @@ export const Organizations: React.FC = () => {
 
   useEffect(() => {
     fetchOrganizations();
-  }, []);
+  }, [admin.id]);
 
   const filteredOrganizations = filterOrganizations(organizations);
 
