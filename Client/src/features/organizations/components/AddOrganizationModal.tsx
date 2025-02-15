@@ -17,7 +17,6 @@ interface FormData {
   address: string;
   website: string;
   type: 'training' | 'enterprise' | 'education';
-  logo?: File;
 }
 
 export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
@@ -35,7 +34,6 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     type: 'enterprise'
   });
 
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -43,23 +41,6 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setError(null);
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Logo file size must be less than 5MB');
-      return;
-    }
-
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setLogoPreview(previewUrl);
-    setFormData(prev => ({ ...prev, logo: file }));
     setError(null);
   };
 
@@ -89,18 +70,23 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     setSuccess(null);
 
     try {
-      const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== undefined) {
-          formDataToSend.append(key, value);
-        }
-      });
+      // Get admin user from localStorage
+      const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
-      const response = await axios.post('/api/organizations', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Create organization data object
+      const organizationData = {
+        organization_name: formData.name,
+        admin_name: formData.adminName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        website: formData.website,
+        org_type: formData.type,
+        admin_id: admin.id
+      };
+
+      // Make API call to create organization
+      const response = await axios.post('http://localhost:3000/api/v1/createOrganization', organizationData);
 
       if (response.data.success) {
         setSuccess('Organization added successfully');
@@ -122,7 +108,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>Add Organization</GradientText>
@@ -135,7 +121,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-6 pr-2">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -252,50 +238,6 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 <option value="training">Training</option>
               </select>
             </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Organization Logo
-              </label>
-              <div className="flex items-center space-x-4">
-                <div className="flex-1">
-                  <label className="flex items-center justify-center w-full h-32 px-4 transition bg-dark-400/50 border-2 border-primary-500/20 border-dashed rounded-lg appearance-none cursor-pointer hover:border-primary-500/40 focus:outline-none">
-                    <div className="flex flex-col items-center space-y-2">
-                      <Upload className="w-6 h-6 text-primary-400" />
-                      <span className="text-sm text-gray-400">
-                        Drop your logo here or click to browse
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      name="logo"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                {logoPreview && (
-                  <div className="relative w-32 h-32">
-                    <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLogoPreview(null);
-                        setFormData(prev => ({ ...prev, logo: undefined }));
-                      }}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {error && (
@@ -315,33 +257,32 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
               </div>
             </div>
           )}
-        </form>
 
-        <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-primary-500/10">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn-secondary"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="btn-primary"
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin h-4 w-4 mr-2" />
-                Adding...
-              </span>
-            ) : (
-              'Add Organization'
-            )}
-          </button>
-        </div>
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Adding...
+                </span>
+              ) : (
+                'Add Organization'
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
