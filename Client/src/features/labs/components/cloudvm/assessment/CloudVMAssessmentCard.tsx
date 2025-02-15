@@ -69,7 +69,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [users, setUsers] = useState<{ id: string; name: string; email: string; }[]>([]);
   const [load, setLoad] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(true);
 
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 

@@ -80,19 +80,43 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
   const admin = JSON.parse(localStorage.getItem('auth')).result || {};
-
-  useEffect(() => {
-    const checkVmCreated = async () => {
-      const data = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-        lab_id: vm.lab_id
+  
+useEffect(() => {
+  const checkVmCreated = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+        lab_id: vm.lab_id,
       });
-      if (data.data.success) {
-        setAmiId(data.data.data.ami_id);
+      if (response.data.success) {
+        setAmiId(response.data.data.ami_id);
         setIsConvertEnabled(true);
       }
-    };
-    checkVmCreated();
-  }, [vm.lab_id]);
+    } catch (error) {
+      console.error('Error checking VM status:', error);
+    } 
+  };
+
+  checkVmCreated();
+}, []);
+
+ const checkLabLaunched= async ()=>{
+      try {
+        const check = await axios.post('http://localhost:3000/api/v1/checkIsLabInstanceLaunched',{
+          lab_id:vm.lab_id
+        })
+        console.log(check)
+        if(check.data.success){
+          // Set button label based on instance state
+        if (check.data.data.isrunning) {
+          setButtonLabel('Stop'); // If running, set to "Stop Instance"
+        } else {
+          setButtonLabel('Launch Software'); // If not running, set to "Launch Instance"
+        }
+        }
+      } catch (error) {
+        console.error('Error checking lab status:', error);
+      }
+ }
 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -102,7 +126,8 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
         });
 
         if (instance.data.success) {
-          setInstance(instance.data.result);
+          checkLabLaunched();
+        setInstance(instance.data.result);
           setIsInstance(true);
         }
       } catch (error) {
@@ -153,64 +178,73 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
 
   const handleLaunchSoftware = async () => {
     setIsLaunchProcessing(true);
-    if (buttonLabel === 'Stop') {
-      try {
-        const response = await axios.post('http://localhost:3000/api/v1/stopInstance', {
+  
+    try {
+      if (buttonLabel === 'Stop') {
+        // Stop the Instance
+        const stopResponse = await axios.post('http://localhost:3000/api/v1/stopInstance', {
           instance_id: instanceDetails?.instance_id,
         });
-
-        if (response.data.success) {                        
-        
-
-          setButtonLabel('Launch Software');
-          setNotification({ 
-            type: 'success', 
-            message: 'Software stopped successfully' 
+  
+        if (stopResponse.data.success) {
+          await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+            lab_id: vm.lab_id,
+            state: false,
           });
+  
+          setButtonLabel('Launch Software');
+          setNotification({
+            type: 'success',
+            message: 'Software stopped successfully',
+          });
+  
+          setIsLaunchProcessing(false);
+          return; // Exit early since we don't need to continue
+        } else {
+          throw new Error(stopResponse.data.message || 'Failed to stop Instance');
         }
-      } catch (error) {
-        setIsLaunchProcessing(false);
-        setNotification({ 
-          type: 'error', 
-          message: error.response?.data?.message || 'Failed to stop Instance'
-        });
       }
-    }
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+  
+      // Launch the Instance
+      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
         os_name: vm.os,
         instance_id: instanceDetails?.instance_id,
         hostname: instanceDetails?.public_ip,
         password: instanceDetails?.password,
-        buttonState: buttonLabel
+        buttonState: buttonLabel,
       });
-
-      if (response.data.success) {
-        const newState = buttonLabel === 'Launch Software' ? 'Stop' : 'Launch Software';
-        setButtonLabel(newState);
-        setNotification({ 
-          type: 'success', 
-          message: newState === 'Stop' ? 'Software launched successfully' : 'Software stopped successfully' 
+  
+      if (launchResponse.data.success) {
+        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+          lab_id: vm.lab_id,
+          state: true,
         });
-
-        if (newState === 'Stop' && response.data.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+  
+        setButtonLabel('Stop');
+        setNotification({
+          type: 'success',
+          message: 'Software launched successfully',
+        });
+  
+        // Open Guacamole if the VM is running and JWT token is available
+        if (launchResponse.data.jwtToken) {
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
           window.open(guacUrl, '_blank');
         }
       } else {
-        throw new Error(response.data.message || 'Failed to launch software');
+        throw new Error(launchResponse.data.message || 'Failed to launch software');
       }
     } catch (error) {
-      setIsLaunchProcessing(false);
-      setNotification({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to launch software'
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Operation failed',
       });
     } finally {
       setIsLaunchProcessing(false);
       setTimeout(() => setNotification(null), 3000);
     }
   };
+  
 
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
@@ -283,7 +317,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
       </div>
     );
   }
-
+ 
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -387,7 +421,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
                   ) : (
                     <>
                       <Play className="h-4 w-4 mr-2" />
-                      Launch Software
+                      Launch VM
                     </>
                   )}
                 </button>

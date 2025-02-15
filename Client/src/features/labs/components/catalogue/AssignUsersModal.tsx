@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
+  Upload, 
   X, 
-  Search, 
-  AlertCircle, 
+  FileText, 
+  AlertCircle,
   Check,
-  Loader
+  Loader,
+  CreditCard,
+  Users
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Lab } from '../../types';
@@ -26,10 +29,12 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [users, setUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   
   const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
@@ -43,14 +48,44 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
     fetchUsers();
   }, [admin.id]);
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handlePayment = async () => {
+    if (selectedUsers.length === 0) {
+      setNotification({ type: 'error', message: 'Please select at least one user' });
+      return;
+    }
+
+    setIsPaying(true);
+    setNotification(null);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/initiate-payment', {
+        lab_id: lab?.lab_id,
+        user_id: admin.id,
+        amount: 1000 // Amount in smallest currency unit
+      });
+
+      if (response.data.success) {
+        setPaymentSuccess(true);
+        setNotification({ type: 'success', message: 'Payment successful! You can now assign users.' });
+        setTimeout(() => setNotification(null), 3000);
+      } else {
+        throw new Error('Payment failed');
+      }
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Payment failed. Please try again.' });
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   const handleAssignUsers = async () => {
     if (selectedUsers.length === 0) {
       setNotification({ type: 'error', message: 'Please select at least one user' });
+      return;
+    }
+
+    if (!paymentSuccess) {
+      setNotification({ type: 'error', message: 'Please complete payment first' });
       return;
     }
 
@@ -79,13 +114,16 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
         type: 'error', 
         message: err.response?.data?.message || 'Failed to assign lab'
       });
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
+      setTimeout(() => setNotification(null), 3000);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!isOpen || !lab) return null;
 
@@ -121,7 +159,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
               className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                        text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none"
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+            <Users className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
           </div>
 
           <div className="max-h-60 overflow-y-auto space-y-2">
@@ -170,22 +208,29 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex flex-col space-y-3">
             <button
-              onClick={() => {
-                onClose();
-                setSelectedUsers([]);
-                setNotification(null);
-              }}
-              className="btn-secondary"
-              disabled={isLoading}
+              onClick={handlePayment}
+              disabled={isPaying || selectedUsers.length === 0 || paymentSuccess}
+              className="btn-primary bg-emerald-500 hover:bg-emerald-600 w-full"
             >
-              Cancel
+              {isPaying ? (
+                <span className="flex items-center justify-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Processing Payment...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {paymentSuccess ? 'Payment Completed' : 'Pay Now'}
+                </span>
+              )}
             </button>
+
             <button
               onClick={handleAssignUsers}
-              disabled={isLoading}
-              className="btn-primary min-w-[100px]"
+              disabled={isLoading || !paymentSuccess}
+              className="btn-primary w-full"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">

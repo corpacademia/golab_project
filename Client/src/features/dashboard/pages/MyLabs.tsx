@@ -51,8 +51,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
     setNotification(null);
 
     try {
-      const instance_details = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+
+      const instance_details = await axios.post('http://localhost:3000/api/v1/awsInstanceOfUsers', {
         lab_id: labId,
+        user_id:userId,
       });
       const ami = await axios.post('http://localhost:3000/api/v1/amiinformation', { lab_id: labId });
       const response = await axios.post('http://localhost:3000/api/v1/deletevm', {
@@ -257,14 +259,13 @@ export const MyLabs: React.FC = () => {
         lab_id: labId,
         user_id: user.id
       });
-
       if (response.data.success) {
         setLabControls(prev => ({
           ...prev,
           [labId]: {
             ...prev[labId],
             isLaunched: response.data.success,
-            buttonLabel: response.data.isRunning ? 'Stop Lab' : 'Start Lab'
+            buttonLabel: response.data.data.isrunning ? 'Stop Lab' : 'Start Lab'
           }
         }));
       }
@@ -286,7 +287,7 @@ export const MyLabs: React.FC = () => {
     try {
       const [ami, labConfig] = await Promise.all([
         axios.post('http://localhost:3000/api/v1/amiinformation', { lab_id: lab.lab_id }),
-        axios.post('http://localhost:3000/api/v1/getAssignLabOnId', { labId: lab.lab_id }),
+        axios.post('http://localhost:3000/api/v1/getAssignLabOnId', { labId: lab.lab_id ,userId:user.id}),
         
       ]);
       if (!ami.data.success) {
@@ -307,16 +308,16 @@ export const MyLabs: React.FC = () => {
       });
       // Only proceed if launchInstance is successful
       if (response.data.success) {
-        const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
-          user_id: user.id,
-          lab_id: lab.lab_id,
-        })
-        // Second API: Decrypt password (Keep loading active)
-        const decryptResponse = await axios.post("http://localhost:3000/api/v1/userDecryptPassword", {
-          user_id: user.id,
-          public_ip: cloudInstanceDetails.data.data.public_ip,
-          instance_id: cloudInstanceDetails.data.data.instance_id,
-        });
+        // const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
+        //   user_id: user.id,
+        //   lab_id: lab.lab_id,
+        // })
+        // // Second API: Decrypt password (Keep loading active)
+        // const decryptResponse = await axios.post("http://localhost:3000/api/v1/userDecryptPassword", {
+        //   user_id: user.id,
+        //   public_ip: cloudInstanceDetails.data.data.public_ip,
+        //   instance_id: cloudInstanceDetails.data.data.instance_id,
+        // });
   
         // Update state only after decryption completes
         setLabControls(prev => ({
@@ -396,9 +397,16 @@ setTimeout(() => {
       const instanceId = cloudInstanceDetails?.instance_id;
 
       if (isStop) {
-        await axios.post('http://localhost:3000/api/v1/stopInstance', {
+        const stop =await axios.post('http://localhost:3000/api/v1/stopInstance', {
           instance_id: instanceId
         });
+        if(stop.data.success){
+          await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+            lab_id:lab.lab_id,
+            user_id:user.id,
+            state:false
+          })
+        }
 
         setLabControls(prev => ({
           ...prev,
@@ -434,10 +442,16 @@ setTimeout(() => {
         instance_id: cloudinstanceDetails?.data.data.instance_id,
         hostname: cloudinstanceDetails?.data.data.public_ip,
         password: cloudinstanceDetails?.data.data.password,
-        buttonState: 'Start'
+        buttonState: 'Start Lab'
       });
 
       if (response.data.success && response.data.jwtToken) {
+        await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+          lab_id:lab.lab_id,
+          user_id:user.id,
+          state:true
+        })
+
         const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
         window.open(guacUrl, '_blank');
       }
