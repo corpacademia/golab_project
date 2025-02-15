@@ -35,7 +35,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
         <div className="space-y-6">
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
             <p className="text-sm text-red-400">
-              Are you sure you want to delete this VM? This action cannot be undone.
+              Are you sure you want to delete this lab? This action cannot be undone.
             </p>
           </div>
 
@@ -58,7 +58,7 @@ export const DeleteModal: React.FC<DeleteModalProps> = ({
                   Deleting...
                 </span>
               ) : (
-                'Delete VM'
+                'Delete Lab'
               )}
             </button>
           </div>

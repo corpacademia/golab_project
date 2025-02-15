@@ -21,7 +21,7 @@ import {
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import { EditModal } from './EditModal';
-import { EditStorageModal } from './EditStorageModal';
+// import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
 
