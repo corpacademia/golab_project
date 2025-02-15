@@ -216,3 +216,5 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     </>
   );
 };
+
+export { CatalogueCard }
