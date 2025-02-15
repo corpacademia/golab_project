@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, Check, Loader, Calendar, Upload, Users, Brain } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Upload, AlertCircle, Check, Loader, Users } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
@@ -16,8 +16,8 @@ interface FormData {
   endDate: string;
   passingMarks: number;
   instructions: string;
-  attachments: File[];
   assignedUsers: string[];
+  attachments?: File[];
 }
 
 export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
@@ -32,34 +32,15 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
     endDate: '',
     passingMarks: 60,
     instructions: '',
-    attachments: [],
     assignedUsers: []
   });
 
-  const [users, setUsers] = useState<{ id: string; name: string; email: string; }[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
-
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
-          admin_id: admin.id
-        });
-        setUsers(response.data.data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    };
-
-    if (isOpen) {
-      fetchUsers();
-    }
-  }, [isOpen, admin.id]);
+  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,44 +50,37 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => file.size <= 10 * 1024 * 1024); // 10MB limit
-
-    if (validFiles.length !== files.length) {
-      setError('Some files exceeded the 10MB size limit');
+    
+    // Validate file sizes (5MB limit per file)
+    const invalidFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    if (invalidFiles.length > 0) {
+      setError('Some files exceed the 5MB size limit');
+      return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, ...validFiles]
-    }));
+    setAttachments(prev => [...prev, ...files]);
+    setError(null);
   };
 
-  const removeFile = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
-    }));
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     if (!formData.title.trim()) {
       setError('Title is required');
       return false;
     }
-    if (!formData.startDate) {
-      setError('Start date is required');
+    if (!formData.startDate || !formData.endDate) {
+      setError('Start and end dates are required');
       return false;
     }
-    if (!formData.endDate) {
-      setError('End date is required');
-      return false;
-    }
-    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
       setError('End date must be after start date');
       return false;
     }
-    if (formData.assignedUsers.length === 0) {
-      setError('Please assign at least one user');
+    if (formData.passingMarks < 0 || formData.passingMarks > 100) {
+      setError('Passing marks must be between 0 and 100');
       return false;
     }
     return true;
@@ -116,22 +90,36 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
     e.preventDefault();
     
     if (!validateForm()) return;
-
+    
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/createAssessment', {
-        ...formData,
-        admin_id: admin.id
+      const formDataToSend = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(v => formDataToSend.append(key + '[]', v));
+        } else {
+          formDataToSend.append(key, value);
+        }
+      });
+
+      attachments.forEach(file => {
+        formDataToSend.append('attachments[]', file);
+      });
+
+      const response = await axios.post('/api/assessments', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       if (response.data.success) {
         setSuccess('Assessment created successfully');
         setTimeout(() => {
-          onClose();
           onSuccess?.();
+          onClose();
         }, 1500);
       } else {
         throw new Error(response.data.message || 'Failed to create assessment');
@@ -143,44 +131,26 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      passingMarks: 60,
-      instructions: '',
-      attachments: [],
-      assignedUsers: []
-    });
-    setError(null);
-    setSuccess(null);
-  };
-
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-3xl p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="bg-dark-200 rounded-lg w-full max-w-4xl p-6 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">
-            <GradientText>Create New Assessment</GradientText>
+            <GradientText>Create Assessment</GradientText>
           </h2>
           <button 
-            onClick={() => {
-              resetForm();
-              onClose();
-            }}
+            onClick={onClose}
             className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
           >
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="col-span-2">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto mt-6 pr-2">
+          <div className="space-y-6">
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Title
               </label>
@@ -191,11 +161,11 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                 onChange={handleChange}
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                placeholder="Enter assessment title"
+                required
               />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Description
               </label>
@@ -203,42 +173,40 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
+                rows={3}
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none resize-none h-20"
-                placeholder="Enter assessment description"
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Start Date
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Start Date
+                </label>
                 <input
                   type="datetime-local"
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Date
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  End Date
+                </label>
                 <input
                   type="datetime-local"
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
                 />
               </div>
             </div>
@@ -247,71 +215,20 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Passing Marks (%)
               </label>
-              <div className="relative">
-                <Brain className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                <input
-                  type="number"
-                  name="passingMarks"
-                  min="0"
-                  max="100"
-                  value={formData.passingMarks}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Assign Users
-              </label>
-              <div 
-                onClick={() => setIsUsersDropdownOpen(!isUsersDropdownOpen)}
+              <input
+                type="number"
+                name="passingMarks"
+                value={formData.passingMarks}
+                onChange={handleChange}
+                min="0"
+                max="100"
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 cursor-pointer flex justify-between items-center"
-              >
-                <span>
-                  {formData.assignedUsers.length 
-                    ? `${formData.assignedUsers.length} user${formData.assignedUsers.length > 1 ? 's' : ''} selected` 
-                    : 'Select users'}
-                </span>
-                <Users className="h-5 w-5 text-gray-500" />
-              </div>
-              
-              {isUsersDropdownOpen && (
-                <div className="absolute z-50 w-full mt-1 bg-dark-200 border border-primary-500/20 rounded-lg shadow-lg">
-                  <div className="max-h-48 overflow-y-auto py-1">
-                    {users.map(user => (
-                      <label 
-                        key={user.id} 
-                        className="flex items-center space-x-3 px-4 py-2 hover:bg-dark-300/50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.assignedUsers.includes(user.id)}
-                          onChange={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              assignedUsers: prev.assignedUsers.includes(user.id)
-                                ? prev.assignedUsers.filter(id => id !== user.id)
-                                : [...prev.assignedUsers, user.id]
-                            }));
-                          }}
-                          className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
-                        />
-                        <div>
-                          <p className="text-gray-300">{user.name}</p>
-                          <p className="text-gray-400 text-sm">{user.email}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Instructions
               </label>
@@ -319,13 +236,61 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                 name="instructions"
                 value={formData.instructions}
                 onChange={handleChange}
+                rows={4}
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none resize-none h-32"
-                placeholder="Enter assessment instructions"
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
             </div>
 
-            <div className="col-span-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Assign Users
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none
+                           flex items-center justify-between"
+                >
+                  <span>
+                    {formData.assignedUsers.length 
+                      ? `${formData.assignedUsers.length} users selected` 
+                      : 'Select users'}
+                  </span>
+                  <Users className="h-5 w-5 text-gray-400" />
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-dark-200 border border-primary-500/20 rounded-lg shadow-lg">
+                    <div className="max-h-48 overflow-y-auto p-2">
+                      {users.map(user => (
+                        <label 
+                          key={user.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-dark-300/50 rounded-lg cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.assignedUsers.includes(user.id)}
+                            onChange={(e) => {
+                              const newUsers = e.target.checked
+                                ? [...formData.assignedUsers, user.id]
+                                : formData.assignedUsers.filter(id => id !== user.id);
+                              setFormData(prev => ({ ...prev, assignedUsers: newUsers }));
+                            }}
+                            className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
+                          />
+                          <span className="text-gray-300">{user.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Attachments
               </label>
@@ -333,21 +298,23 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                 <label className="flex items-center justify-center w-full h-32 px-4 transition bg-dark-400/50 border-2 border-primary-500/20 border-dashed rounded-lg appearance-none cursor-pointer hover:border-primary-500/40 focus:outline-none">
                   <div className="flex flex-col items-center space-y-2">
                     <Upload className="w-6 h-6 text-primary-400" />
-                    <span className="text-sm text-gray-400">
-                      Click to upload files (Max 10MB each)
+                    <span className="text-sm text- Continuing with the AddAssessmentModal.tsx file content exactly where we left off:
+
+gray-400">
+                      Drop files here or click to browse
                     </span>
                   </div>
                   <input
                     type="file"
-                    className="hidden"
                     multiple
                     onChange={handleFileChange}
+                    className="hidden"
                   />
                 </label>
 
-                {formData.attachments.length > 0 && (
+                {attachments.length > 0 && (
                   <div className="space-y-2">
-                    {formData.attachments.map((file, index) => (
+                    {attachments.map((file, index) => (
                       <div 
                         key={index}
                         className="flex items-center justify-between p-2 bg-dark-300/50 rounded-lg"
@@ -357,10 +324,10 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => removeFile(index)}
-                          className="p-1 hover:bg-dark-300 rounded-lg text-red-400"
+                          onClick={() => removeAttachment(index)}
+                          className="p-1 hover:bg-red-500/20 rounded-lg"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-4 w-4 text-red-400" />
                         </button>
                       </div>
                     ))}
@@ -368,54 +335,52 @@ export const AddAssessmentModal: React.FC<AddAssessmentModalProps> = ({
                 )}
               </div>
             </div>
-          </div>
 
-          {error && (
-            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-200">{error}</span>
+            {error && (
+              <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <span className="text-red-200">{error}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {success && (
-            <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-emerald-400" />
-                <span className="text-emerald-200">{success}</span>
+            {success && (
+              <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Check className="h-5 w-5 text-emerald-400" />
+                  <span className="text-emerald-200">{success}</span>
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => {
-                resetForm();
-                onClose();
-              }}
-              className="btn-secondary"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Creating...
-                </span>
-              ) : (
-                'Create Assessment'
-              )}
-            </button>
+            )}
           </div>
         </form>
+
+        <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-primary-500/10">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary"
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="btn-primary"
+            onClick={handleSubmit}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+                Creating...
+              </span>
+            ) : (
+              'Create Assessment'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
