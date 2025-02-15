@@ -32,7 +32,7 @@ export const Organizations: React.FC = () => {
       if (response.data.success) {
         setOrganizations(response.data.data || []);
         
-        // Update stats
+        // Update stats based on fetched data
         const orgData = response.data.data || [];
         setStats({
           totalOrganizations: orgData.length,
