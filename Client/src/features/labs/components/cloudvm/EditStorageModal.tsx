@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertCircle, Check, Loader, HardDrive, Plus, Minus } from 'lucide-react';
+import { X, AlertCircle, Check, Loader, HardDrive, Plus } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
@@ -8,7 +8,7 @@ interface EditStorageModalProps {
   onClose: () => void;
   currentStorage: number;
   assessmentId: string;
-  lab_id:string;
+  lab_id: string;
   onSuccess: () => void;
 }
 
@@ -20,7 +20,6 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
   lab_id,
   onSuccess
 }) => {
-  console.log(assessmentId)
   const [storageChange, setStorageChange] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -31,17 +30,13 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
       return;
     }
 
-    if (storageChange < 0 && Math.abs(storageChange) > currentStorage) {
-      setNotification({ type: 'error', message: 'Cannot reduce storage below 0' });
-      return;
-    }
-
     setIsSubmitting(true);
     setNotification(null);
-    console.log(currentStorage+storageChange)
+
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateAssessmentStorage/${assessmentId}`, {
-        new_volume_size:currentStorage+storageChange,
+      const response = await axios.post(`http://localhost:3000/api/v1/updateLabStorage`, {
+        new_volume_size: currentStorage + storageChange,
+        lab_id: lab_id,
       });
 
       if (response.data.success) {
@@ -53,10 +48,10 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
       } else {
         throw new Error(response.data.message || 'Failed to update storage');
       }
-    } catch (error: any) {
+    } catch (err: any) {
       setNotification({
         type: 'error',
-        message: error.response?.data?.message || 'Failed to update storage'
+        message: err.response?.data?.message || 'Failed to update storage'
       });
     } finally {
       setIsSubmitting(false);
@@ -81,7 +76,6 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
         </div>
 
         <div className="space-y-6">
-          {/* Current Storage Display */}
           <div className="p-4 bg-dark-300/50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Current Storage</span>
@@ -90,21 +84,14 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
             <p className="text-2xl font-semibold text-gray-200">{currentStorage} GB</p>
           </div>
 
-          {/* Storage Change Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-300">
-              Storage Change (GB)
+              Additional Storage (GB)
             </label>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setStorageChange(prev => prev - 1)}
-                className="p-2 rounded-lg bg-dark-300/50 hover:bg-dark-300 text-red-400 transition-colors"
-                disabled={storageChange <= -currentStorage}
-              >
-                <Minus className="h-5 w-5" />
-              </button>
               <input
                 type="number"
+                min="0"
                 value={storageChange}
                 onChange={(e) => setStorageChange(Number(e.target.value))}
                 className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -152,17 +139,13 @@ export const EditStorageModal: React.FC<EditStorageModalProps> = ({
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || storageChange === 0}
-              className={`btn-primary ${
-                storageChange < 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'
-              }`}
+              className="btn-primary bg-emerald-500 hover:bg-emerald-600"
             >
               {isSubmitting ? (
                 <span className="flex items-center">
                   <Loader className="animate-spin h-4 w-4 mr-2" />
                   Updating...
                 </span>
-              ) : storageChange < 0 ? (
-                'Reduce Storage'
               ) : (
                 'Add Storage'
               )}
