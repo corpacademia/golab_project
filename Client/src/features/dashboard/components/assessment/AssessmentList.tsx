@@ -226,14 +226,6 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 </td>
                 <td className="py-4">
                   <div className="flex items-center space-x-2">
-                    <button Continuing with the AssessmentList.tsx file exactly where we left off:
-            )
-            )
-            }
-  )
-}
-
-```tsx
                     <button
                       className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                     >
