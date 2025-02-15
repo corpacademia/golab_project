@@ -3,8 +3,10 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { OrganizationList } from '../components/OrganizationList';
 import { OrganizationFilters } from '../components/OrganizationFilters';
 import { OrganizationStats } from '../components/OrganizationStats';
+import { AddOrganizationModal } from '../components/AddOrganizationModal';
 import { Organization } from '../types';
 import { useOrganizationFilters } from '../hooks/useOrganizationFilters';
+import { Plus } from 'lucide-react';
 
 // Mock data - Replace with API calls
 const mockOrganizations: Organization[] = [
@@ -56,6 +58,7 @@ const mockStats = {
 export const Organizations: React.FC = () => {
   const [organizations] = useState(mockOrganizations);
   const { filters, filterOrganizations, handleFilterChange } = useOrganizationFilters(organizations);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const filteredOrganizations = filterOrganizations(organizations);
 
@@ -64,24 +67,43 @@ export const Organizations: React.FC = () => {
     // TODO: Implement organization details view
   };
 
+  const handleAddSuccess = () => {
+    // TODO: Refresh organizations list
+    console.log('Organization added successfully');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-display font-bold">
           <GradientText>Organizations</GradientText>
         </h1>
-        <button className="btn-primary">
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="btn-primary"
+        >
+          <Plus className="h-4 w-4 mr-2" />
           Add Organization
         </button>
       </div>
 
       <OrganizationStats stats={mockStats} />
       
-      <OrganizationFilters onFilterChange={handleFilterChange} />
+      <OrganizationFilters 
+        onFilterChange={handleFilterChange} 
+        filters={filters} 
+        setFilters={setFilters}
+      />
       
       <OrganizationList 
         organizations={filteredOrganizations}
         onViewDetails={handleViewDetails}
+      />
+
+      <AddOrganizationModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={handleAddSuccess}
       />
     </div>
   );
