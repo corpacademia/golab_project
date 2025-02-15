@@ -200,8 +200,8 @@ export const AssessmentList: React.FC<AssessmentListProps> = ({
                 <td className="py-4">
                   <div className="flex items-center text-gray-400">
                     <Users className="h-4 w-4 mr-2" />
-                    {assessment.assignedUsers.length} users
-                  </div>
+                    {/* {assessment.assignedUsers.length} users */}
+                    10 users                  </div>
                 </td>
                 <td className="py-4">
                   <div className="flex items-center text-gray-400">
