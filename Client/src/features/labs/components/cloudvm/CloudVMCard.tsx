@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Cloud, 
   Plus, 
@@ -16,12 +16,12 @@ import {
   Trash2,
   Tag,
   Play,
-  Square
+  Square,
+  Moon // Added Moon icon for hibernate
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 import { EditModal } from './EditModal';
-// import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
 
@@ -33,7 +33,7 @@ interface CloudVM {
   instance: string;
   instance_id?: string;
   ami_id?: string;
-  status: 'running' | 'stopped' | 'pending';
+  status: 'running' | 'stopped' | 'pending' | 'hibernated';
   cpu: number;
   ram: number;
   storage: number;
@@ -69,6 +69,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLaunchProcessing, setIsLaunchProcessing] = useState(false);
+  const [isHibernating, setIsHibernating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConvertEnabled, setIsConvertEnabled] = useState(false);
   const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
@@ -79,44 +80,42 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
-  const admin = JSON.parse(localStorage.getItem('auth')).result || {};
-  
-useEffect(() => {
-  const checkVmCreated = async () => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
-        lab_id: vm.lab_id,
-      });
-      if (response.data.success) {
-        setAmiId(response.data.data.ami_id);
-        setIsConvertEnabled(true);
-      }
-    } catch (error) {
-      console.error('Error checking VM status:', error);
-    } 
-  };
+  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
 
-  checkVmCreated();
-}, []);
-
- const checkLabLaunched= async ()=>{
+  useEffect(() => {
+    const checkVmCreated = async () => {
       try {
-        const check = await axios.post('http://localhost:3000/api/v1/checkIsLabInstanceLaunched',{
-          lab_id:vm.lab_id
-        })
-        console.log(check)
-        if(check.data.success){
-          // Set button label based on instance state
-        if (check.data.data.isrunning) {
-          setButtonLabel('Stop'); // If running, set to "Stop Instance"
-        } else {
-          setButtonLabel('Launch Software'); // If not running, set to "Launch Instance"
-        }
+        const response = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+          lab_id: vm.lab_id,
+        });
+        if (response.data.success) {
+          setAmiId(response.data.data.ami_id);
+          setIsConvertEnabled(true);
         }
       } catch (error) {
-        console.error('Error checking lab status:', error);
+        console.error('Error checking VM status:', error);
+      } 
+    };
+
+    checkVmCreated();
+  }, []);
+
+  const checkLabLaunched = async () => {
+    try {
+      const check = await axios.post('http://localhost:3000/api/v1/checkIsLabInstanceLaunched', {
+        lab_id: vm.lab_id
+      });
+      if (check.data.success) {
+        if (check.data.data.isrunning) {
+          setButtonLabel('Stop');
+        } else {
+          setButtonLabel('Launch Software');
+        }
       }
- }
+    } catch (error) {
+      console.error('Error checking lab status:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchInstanceDetails = async () => {
@@ -127,7 +126,7 @@ useEffect(() => {
 
         if (instance.data.success) {
           checkLabLaunched();
-        setInstance(instance.data.result);
+          setInstance(instance.data.result);
           setIsInstance(true);
         }
       } catch (error) {
@@ -174,14 +173,51 @@ useEffect(() => {
       }
     };
     fetchLabDetails();
-  }
+  };
+
+  const handleHibernate = async () => {
+    if (!instanceDetails?.instance_id) {
+      setNotification({
+        type: 'error',
+        message: 'No instance ID available'
+      });
+      return;
+    }
+
+    setIsHibernating(true);
+    setNotification(null);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/hibernateInstance', {
+        instance_id: instanceDetails.instance_id,
+        lab_id: vm.lab_id
+      });
+
+      if (response.data.success) {
+        setNotification({
+          type: 'success',
+          message: 'Instance hibernated successfully'
+        });
+        await checkLabLaunched();
+      } else {
+        throw new Error(response.data.message || 'Failed to hibernate instance');
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to hibernate instance'
+      });
+    } finally {
+      setIsHibernating(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
 
   const handleLaunchSoftware = async () => {
     setIsLaunchProcessing(true);
   
     try {
       if (buttonLabel === 'Stop') {
-        // Stop the Instance
         const stopResponse = await axios.post('http://localhost:3000/api/v1/stopInstance', {
           instance_id: instanceDetails?.instance_id,
         });
@@ -199,96 +235,83 @@ useEffect(() => {
           });
   
           setIsLaunchProcessing(false);
-          return; // Exit early since we don't need to continue
+          return;
         } else {
           throw new Error(stopResponse.data.message || 'Failed to stop Instance');
         }
       }
       
-      //check the instance is already started once
-      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted',{
-        type:'lab',
-        id:instanceDetails?.instance_id,
-      })
-      if(checkInstanceAlreadyStarted.data.isstarted ===false){
-
-        // Launch the Instance
-      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
-        os_name: vm.os,
-        instance_id: instanceDetails?.instance_id,
-        hostname: instanceDetails?.public_ip,
-        password: instanceDetails?.password,
-        buttonState: buttonLabel,
+      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted', {
+        type: 'lab',
+        id: instanceDetails?.instance_id,
       });
-  
-      if (launchResponse.data.success) {
-        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
-          lab_id: vm.lab_id,
-          state: true,
+
+      if (checkInstanceAlreadyStarted.data.isstarted === false) {
+        const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+          os_name: vm.os,
+          instance_id: instanceDetails?.instance_id,
+          hostname: instanceDetails?.public_ip,
+          password: instanceDetails?.password,
+          buttonState: buttonLabel,
         });
   
-        setButtonLabel('Stop');
-        setNotification({
-          type: 'success',
-          message: 'Software launched successfully',
-        });
+        if (launchResponse.data.success) {
+          await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+            lab_id: vm.lab_id,
+            state: true,
+          });
   
-        // Open Guacamole if the VM is running and JWT token is available
-        if (launchResponse.data.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
-          window.open(guacUrl, '_blank');
+          setButtonLabel('Stop');
+          setNotification({
+            type: 'success',
+            message: 'Software launched successfully',
+          });
+  
+          if (launchResponse.data.jwtToken) {
+            const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
+            window.open(guacUrl, '_blank');
+          }
+        } else {
+          throw new Error(launchResponse.data.message || 'Failed to launch software');
         }
       } else {
-        throw new Error(launchResponse.data.message || 'Failed to launch software');
-      }
-      }
-      else{
         const restart = await axios.post('http://localhost:3000/api/v1/restart_instance', {
-          instance_id:  instanceDetails?.instance_id,
-          user_type:'lab'
+          instance_id: instanceDetails?.instance_id,
+          user_type: 'lab'
         });
 
-        //get the public from the database which is updated public_ip after stop
         const instance = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
           lab_id: vm.lab_id,
         });
 
-        if(instance.data.success){
-          console.log(instance.data)
-              // Launch the Instance
-      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
-        os_name: vm.os,
-        instance_id: instanceDetails?.instance_id,
-        hostname: instance?.data.result.public_ip,
-        password: instanceDetails?.password,
-        buttonState: buttonLabel,
-      });
+        if (instance.data.success) {
+          const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+            os_name: vm.os,
+            instance_id: instanceDetails?.instance_id,
+            hostname: instance?.data.result.public_ip,
+            password: instanceDetails?.password,
+            buttonState: buttonLabel,
+          });
   
-      if (launchResponse.data.success) {
-        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
-          lab_id: vm.lab_id,
-          state: true,
-        });
+          if (launchResponse.data.success) {
+            await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+              lab_id: vm.lab_id,
+              state: true,
+            });
   
-        setButtonLabel('Stop');
-        setNotification({
-          type: 'success',
-          message: 'Software launched successfully',
-        });
+            setButtonLabel('Stop');
+            setNotification({
+              type: 'success',
+              message: 'Software launched successfully',
+            });
   
-        // Open Guacamole if the VM is running and JWT token is available
-        if (launchResponse.data.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
-          window.open(guacUrl, '_blank');
+            if (launchResponse.data.jwtToken) {
+              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
+              window.open(guacUrl, '_blank');
+            }
+          }
         }
-      } else {
-        throw new Error(launchResponse.data.message || 'Failed to launch software');
       }
-        }
-      
-      }
-
-      
     } catch (error) {
       setNotification({
         type: 'error',
@@ -299,7 +322,6 @@ useEffect(() => {
       setTimeout(() => setNotification(null), 3000);
     }
   };
-  
 
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
@@ -350,7 +372,7 @@ useEffect(() => {
         throw new Error(response.data.message || 'Failed to delete VM');
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
       setNotification({
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete VM'
@@ -380,7 +402,7 @@ useEffect(() => {
                     transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                     hover:translate-y-[-2px] group relative">
         {notification && (
-          <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+          <div className={`absolute top-2 right-16 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
             notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
           }`}>
             {notification.type === 'success' ? (
@@ -392,6 +414,35 @@ useEffect(() => {
           </div>
         )}
         
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
+            vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
+            vm.status === 'hibernated' ? 'bg-purple-500/20 text-purple-300' :
+            'bg-amber-500/20 text-amber-300'
+          }`}>
+            {vm.status}
+          </span>
+          <button
+            onClick={handleHibernate}
+            disabled={isHibernating || vm.status === 'hibernated'}
+            className="p-2 hover:bg-purple-500/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Hibernate VM"
+          >
+            {isHibernating ? (
+              <Loader className="h-4 w-4 animate-spin text-purple-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-purple-400" />
+            )}
+          </button>
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+          >
+            <Trash2 className="h-4 w-4 text-red-400" />
+          </button>
+        </div>
+        
         <div className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
@@ -400,45 +451,24 @@ useEffect(() => {
               </h3>
               <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Pencil className="h-4 w-4 text-primary-400" />
-              </button>
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4 text-red-400" />
-              </button>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                vm.status === 'running' ? 'bg-emerald-500/20 text-emerald-300' :
-                vm.status === 'stopped' ? 'bg-red-500/20 text-red-300' :
-                'bg-amber-500/20 text-amber-300'
-              }`}>
-                {vm.status}
-              </span>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex items-center text-sm text-gray-400">
               <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{vm.cpu} vCPU</span>
+              <span className="truncate">{labDetails?.cpu} vCPU</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">{vm.ram}GB RAM</span>
+              <span className="truncate">{labDetails?.ram}GB RAM</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">Instance: {vm.instance}</span>
+              <span className="truncate">Instance: {labDetails?.instance}</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-              <span className="truncate">Storage: {vm.storage}GB</span>
+              <span className="truncate">Storage: {labDetails?.storage}GB</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Hash className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
