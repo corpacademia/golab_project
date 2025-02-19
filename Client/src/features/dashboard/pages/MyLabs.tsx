@@ -433,28 +433,78 @@ setTimeout(() => {
 
         return;
       }
-      // const publicIp = await axios.post('http://:3000/api/v1/getPublicIp',{
-      //   instance_id:cloudinstanceDetails?.data.data.instance_id,
-      // })
 
-      const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
-        os_name: lab.os,
-        instance_id: cloudinstanceDetails?.data.data.instance_id,
-        hostname: cloudinstanceDetails?.data.data.public_ip,
-        password: cloudinstanceDetails?.data.data.password,
-        buttonState: 'Start Lab'
-      });
+    
+      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted',{
+        type:'user',
+        id:cloudinstanceDetails?.data.data.instance_id,
+      })
 
-      if (response.data.success && response.data.jwtToken) {
-        await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
-          lab_id:lab.lab_id,
-          user_id:user.id,
-          state:true
-        })
-
-        const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
-        window.open(guacUrl, '_blank');
+      if(checkInstanceAlreadyStarted.data.isstarted ===false){
+       
+          console.log('stop')
+          const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+            os_name: lab.os,
+            instance_id: cloudinstanceDetails?.data.data.instance_id,
+            hostname: cloudinstanceDetails?.data.data.public_ip,
+            password: cloudinstanceDetails?.data.data.password,
+            buttonState: 'Start Lab'
+          });
+    
+        if (response.data.success && response.data.jwtToken) {
+          await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+            lab_id:lab.lab_id,
+            user_id:user.id,
+            state:true
+          })
+  
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+          window.open(guacUrl, '_blank');
+        }
       }
+      else{
+        console.log('run')
+        
+        const restart = await axios.post('http://localhost:3000/api/v1/restart_instance', {
+          instance_id: cloudinstanceDetails?.data.data.instance_id,
+          user_type:'user'
+        });
+
+
+  
+        if (restart.data.success ) {
+          const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
+            user_id: user.id,
+            lab_id: lab.lab_id,
+          })
+          if(cloudInstanceDetails.data.success){
+            const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+              os_name: lab.os,
+              instance_id: cloudinstanceDetails?.data.data.instance_id,
+              hostname: cloudInstanceDetails?.data.data.public_ip,
+              password: cloudinstanceDetails?.data.data.password,
+              buttonState: 'Start Lab'
+            });
+            
+            if(response.data.success){
+              //update database that the instance is started
+              await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+                lab_id:lab.lab_id,
+                user_id:user.id,
+                state:true
+              })
+  
+              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+            window.open(guacUrl, '_blank');
+            }
+          }
+          
+       
+          
+        }
+      }
+      
+  
 
       setLabControls(prev => ({
         ...prev,

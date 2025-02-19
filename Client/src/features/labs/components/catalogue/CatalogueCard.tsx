@@ -137,21 +137,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           </div>
         )}
         
-        <div className="absolute top-2 right-2 flex items-center space-x-2">
-          <button
-            onClick={() => setIsEditModalOpen(true)}
-            className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-          >
-            <Pencil className="h-4 w-4 text-primary-400" />
-          </button>
-          <button
-            onClick={() => setIsDeleteModalOpen(true)}
-            className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-          >
-            <Trash2 className="h-4 w-4 text-red-400" />
-          </button>
-        </div>
-        
         <div className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-start gap-4 mb-3">
             <div className="flex-1">
@@ -160,9 +145,25 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
               </h3>
               <p className="text-sm text-gray-400 line-clamp-2">{labDetails.description}</p>
             </div>
-            <div className="flex items-center text-amber-400">
-              <Star className="h-4 w-4 mr-1 fill-current" />
-              <span className="text-sm">{lab.rating || 4.5}</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-4 w-4 text-primary-400" />
+                </button>
+                <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 text-red-400" />
+                </button>
+              </div>
+              <div className="flex items-center text-amber-400">
+                <Star className="h-4 w-4 mr-1 fill-current" />
+                <span className="text-sm">{lab.rating || 4.5}</span>
+              </div>
             </div>
           </div>
 

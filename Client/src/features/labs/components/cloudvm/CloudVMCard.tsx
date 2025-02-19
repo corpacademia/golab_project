@@ -204,8 +204,15 @@ useEffect(() => {
           throw new Error(stopResponse.data.message || 'Failed to stop Instance');
         }
       }
-  
-      // Launch the Instance
+      
+      //check the instance is already started once
+      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted',{
+        type:'lab',
+        id:instanceDetails?.instance_id,
+      })
+      if(checkInstanceAlreadyStarted.data.isstarted ===false){
+
+        // Launch the Instance
       const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
         os_name: vm.os,
         instance_id: instanceDetails?.instance_id,
@@ -234,6 +241,54 @@ useEffect(() => {
       } else {
         throw new Error(launchResponse.data.message || 'Failed to launch software');
       }
+      }
+      else{
+        const restart = await axios.post('http://localhost:3000/api/v1/restart_instance', {
+          instance_id:  instanceDetails?.instance_id,
+          user_type:'lab'
+        });
+
+        //get the public from the database which is updated public_ip after stop
+        const instance = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+          lab_id: vm.lab_id,
+        });
+
+        if(instance.data.success){
+          console.log(instance.data)
+              // Launch the Instance
+      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+        os_name: vm.os,
+        instance_id: instanceDetails?.instance_id,
+        hostname: instance?.data.result.public_ip,
+        password: instanceDetails?.password,
+        buttonState: buttonLabel,
+      });
+  
+      if (launchResponse.data.success) {
+        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+          lab_id: vm.lab_id,
+          state: true,
+        });
+  
+        setButtonLabel('Stop');
+        setNotification({
+          type: 'success',
+          message: 'Software launched successfully',
+        });
+  
+        // Open Guacamole if the VM is running and JWT token is available
+        if (launchResponse.data.jwtToken) {
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
+          window.open(guacUrl, '_blank');
+        }
+      } else {
+        throw new Error(launchResponse.data.message || 'Failed to launch software');
+      }
+        }
+      
+      }
+
+      
     } catch (error) {
       setNotification({
         type: 'error',
