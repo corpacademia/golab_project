@@ -8,6 +8,7 @@ interface VMSizeConfig {
   ram: number;
   storage: number;
   os?: string;
+  snapshotType?: 'snapshot' | 'hibernate';
 }
 
 interface VMSizeSelectorProps {
@@ -31,8 +32,6 @@ function convertToOSCategories(data) {
   
   return osCategories;
 }
-
-
 
 const recommendedInstances = [
   {
@@ -63,26 +62,26 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
     cpu: 2,
     ram: 2,
     storage: 50,
-    os: ''
+    os: '',
+    snapshotType: undefined
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedVersion, setSelectedVersion] = useState<string>('');
   const [showError, setShowError] = useState(false);
-  const [osCategories,setOsCategories] = useState<undefined>(undefined)
-  const [isProcess,setIsprocess] = useState(false)
+  const [osCategories, setOsCategories] = useState<undefined>(undefined);
+  const [isProcess, setIsprocess] = useState(false);
 
-  useEffect(()=>{
-    const osList = async()=>{
-      const getOs = await axios.get('http://localhost:3000/api/v1/getOs')
-
-      if(getOs.data.success){
-        setOsCategories(convertToOSCategories(getOs.data.data))
-        setIsprocess(true)
+  useEffect(() => {
+    const osList = async () => {
+      const getOs = await axios.get('http://localhost:3000/api/v1/getOs');
+      if(getOs.data.success) {
+        setOsCategories(convertToOSCategories(getOs.data.data));
+        setIsprocess(true);
       }
-    }
+    };
     osList();
-  },[])
+  }, []);
 
   const handleSubmit = () => {
     if (!selectedVersion) {
@@ -118,9 +117,17 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
     }));
   };
 
-if(!isProcess){
-  return <>Loading...</>
-}
+  const handleSnapshotTypeChange = (type: 'snapshot' | 'hibernate') => {
+    setConfig(prev => ({
+      ...prev,
+      snapshotType: type
+    }));
+  };
+
+  if(!isProcess) {
+    return <>Loading...</>;
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-display font-semibold">
@@ -170,6 +177,36 @@ if(!isProcess){
                 </select>
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Snapshot Type
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="snapshotType"
+                    value="snapshot"
+                    checked={config.snapshotType === 'snapshot'}
+                    onChange={() => handleSnapshotTypeChange('snapshot')}
+                    className="form-radio h-4 w-4 text-primary-500 border-gray-300 focus:ring-primary-500"
+                  />
+                  <span className="text-gray-300">Snapshot</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="snapshotType"
+                    value="hibernate"
+                    checked={config.snapshotType === 'hibernate'}
+                    onChange={() => handleSnapshotTypeChange('hibernate')}
+                    className="form-radio h-4 w-4 text-primary-500 border-gray-300 focus:ring-primary-500"
+                  />
+                  <span className="text-gray-300">Hibernate</span>
+                </label>
+              </div>
+            </div>
 
             <div>
               <label className="flex items-center text-gray-300 mb-2">
