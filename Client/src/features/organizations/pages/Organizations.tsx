@@ -21,15 +21,25 @@ export const Organizations: React.FC = () => {
     monthlyRevenue: 0
   });
 
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  const [admin,setAdmin] = useState({});
+
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   const fetchOrganizations = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/getOrganizations', {
-        admin_id: admin.id
-      });
+      //get the user data
+      const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
 
+      const response = await axios.get('http://localhost:3000/api/v1/organizations');
       if (response.data.success) {
+        console.log('working')
         setOrganizations(response.data.data || []);
         
         // Update stats based on fetched data

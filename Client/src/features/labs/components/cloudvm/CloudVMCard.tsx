@@ -79,7 +79,15 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
 
-  const admin = JSON.parse(localStorage.getItem('auth')).result || {};
+  const [admin,setAdmin] = useState({});
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
   
 useEffect(() => {
   const checkVmCreated = async () => {
@@ -104,7 +112,6 @@ useEffect(() => {
         const check = await axios.post('http://localhost:3000/api/v1/checkIsLabInstanceLaunched',{
           lab_id:vm.lab_id
         })
-        console.log(check)
         if(check.data.success){
           // Set button label based on instance state
         if (check.data.data.isrunning) {
@@ -136,7 +143,7 @@ useEffect(() => {
     };
 
     fetchInstanceDetails();
-  }, [vm.lab_id]);
+  }, [vm.lab_id,isLaunchProcessing]);
 
   useEffect(() => {
     const fetchLabDetails = async () => {
@@ -304,7 +311,8 @@ useEffect(() => {
   const handleVMGoldenImage = async () => {
     setIsProcessing(true);
     try {
-      const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+
+       const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
         lab_id: vm.lab_id
       });
       

@@ -29,8 +29,16 @@ export const AdminCloudVMsPage: React.FC = () => {
     provider: '',
     status: ''
   });
+  const [admin,setAdmin] = useState({});
 
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   useEffect(() => {
     const fetchVMs = async () => {
@@ -63,7 +71,6 @@ export const AdminCloudVMsPage: React.FC = () => {
     const matchesStatus = !filters.status || vm.status === filters.status;
     return matchesSearch && matchesProvider && matchesStatus;
   });
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">

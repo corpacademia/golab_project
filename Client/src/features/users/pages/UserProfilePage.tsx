@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { UserProfileHeader } from '../components/profile/UserProfileHeader';
 import { UserLabsSection } from '../components/profile/UserLabsSection';
@@ -12,12 +12,24 @@ import { OrganizationAssignment } from '../components/profile/OrganizationAssign
 import { EditProfileModal } from '../components/EditProfileModal';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { Pencil } from 'lucide-react';
+import axios from 'axios';
 
 export const UserProfilePage: React.FC = () => {
+
+  const [user_cred,setUser] = useState({});  
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setUser(response.data.user);
+    };
+    getUserDetails();
+  }, []);
+
   const { userId } = useParams();
   const { user, isLoading, error } = useUserProfile(userId);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const currentUser = JSON.parse(localStorage.getItem('auth') ?? '{}').result;
+  const currentUser = user_cred;
   const isOrgAdmin = currentUser?.role === 'orgadmin';
   const isSuperAdmin = currentUser?.role === 'superadmin';
  
@@ -70,7 +82,7 @@ export const UserProfilePage: React.FC = () => {
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        user={user.user.name}
+        user={user.user}
       />
     </div>
   );

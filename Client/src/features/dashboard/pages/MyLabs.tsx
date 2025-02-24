@@ -178,8 +178,16 @@ export const MyLabs: React.FC = () => {
     status: ''
   });
 
-  const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
+  const [user,setUser] = useState({});
 
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setUser(response.data.user);
+    };
+    getUserDetails();
+  }, []);
   // Combine all fetch calls into a single useEffect
   useEffect(() => {
     const fetchData = async () => {

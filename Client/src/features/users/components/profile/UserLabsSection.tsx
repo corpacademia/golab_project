@@ -17,7 +17,7 @@ export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">
           <GradientText>Assigned Labs</GradientText>
-        </h2>
+        </h2> 
         <button 
           onClick={() => setIsAssignModalOpen(true)}
           className="btn-secondary"

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface FormData {
   name: string;
@@ -29,6 +29,15 @@ export const useUserForm = (
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user_cred,setUser] = useState({});
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setUser(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -68,10 +77,10 @@ export const useUserForm = (
     setIsSubmitting(true);
     try {
       await onSubmit(formData);
-      const user = JSON.parse(localStorage.getItem('auth')).result || {}
+      const user = user_cred;
       const result = await axios.post('http://localhost:3000/api/v1/addUser',{
            formData:formData,
-           user:user
+           user:user.id
       })
       if(!result.data.success){
         setErrors(prev => ({

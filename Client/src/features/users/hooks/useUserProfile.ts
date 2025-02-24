@@ -121,7 +121,6 @@ export const useUserProfile = (userId: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  console.log(userId)
   useEffect(() => {
     const fetchUser = async () => {
       try {

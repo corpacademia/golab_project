@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { X, AlertCircle, Check, Loader } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -24,6 +24,7 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [admin,setAdmin] = useState({});        
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -74,11 +75,15 @@ export const AddTeamMemberModal: React.FC<AddTeamMemberModalProps> = ({
     setSuccess(null);
     setIsSubmitting(true);
 
-    try {
-      const admin = JSON.parse(localStorage.getItem('auth') || '{}').result;
+    try {  
+
+    // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+    
+        const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
+        setAdmin(user_cred.data.user);
       const response = await axios.post('http://localhost:3000/api/v1/addOrganizationUser', {
         ...formData,
-        admin_id: admin.id,
+        admin_id: user_cred.data.user.id,
       });
 
       if (response.data.success) {

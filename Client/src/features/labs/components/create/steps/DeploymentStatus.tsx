@@ -11,10 +11,9 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
   const [error, setError] = useState<string | null>(null);
 
   const steps = [
-    { id: 'terraform', label: 'Initializing Terraform' },
-    { id: 'infrastructure', label: 'Provisioning Infrastructure' },
-    { id: 'software', label: 'Installing Software' },
-    { id: 'template', label: 'Creating Lab Template' },
+    { id: 'EC2', label: 'Terraform Setup'},
+    { id: 'Terraform ', label: 'Terraform Initialization' },
+    { id: 'Terrafrom Apply', label: 'Terrafrom Applying' },
     { id: 'complete', label: 'Setup Complete' }
   ];
 

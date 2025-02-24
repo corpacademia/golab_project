@@ -29,7 +29,15 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [software, setSoftware] = useState<string[]>([]);
 
-  const user = JSON.parse(localStorage.getItem('auth') || '{}').result;
+  const [user,setUser] = useState({});
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setUser(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   // Fetch software details
   useEffect(() => {

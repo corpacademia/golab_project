@@ -60,7 +60,17 @@ export const AssessmentCard: React.FC<AssessmentCardProps> = ({ assessment }) =>
   
   const [load, setLoad] = useState(true);  // Loading state
 
-  const admin = JSON.parse(localStorage.getItem('auth')).result || {};
+  const [admin,setAdmin] = useState({});
+
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
+  
   //Get the organization details
   useEffect(()=>{
     const fetchOrg=async()=>{

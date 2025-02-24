@@ -14,13 +14,20 @@ export const UsersPage: React.FC = () => {
   const [users, setUsers] = useState([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [admin,setAdmin] = useState({});  
   const [mockStats, setMockStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
     trainers: 0,
     organizations: 0
   });
-
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
   useEffect(() => {
     const getUsers = async () => {
       try {
@@ -91,7 +98,7 @@ export const UsersPage: React.FC = () => {
     try {
       const result = await axios.post('http://localhost:3000/api/v1/addUser', {
         formData: userData,
-        user: JSON.parse(localStorage.getItem('auth') || '{}').result
+        user: admin
       });
 
       if (result.data.success) {
@@ -110,7 +117,7 @@ export const UsersPage: React.FC = () => {
     try {
       const result = await axios.post('http://localhost:3000/api/v1/bulkUploadUsers', {
         users: uploadedUsers,
-        admin: JSON.parse(localStorage.getItem('auth') || '{}').result
+        admin: admin
       });
 
       if (result.data.success) {

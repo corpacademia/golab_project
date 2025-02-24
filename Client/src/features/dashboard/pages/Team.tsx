@@ -19,12 +19,22 @@ export const Team: React.FC = () => {
     organizations: 0
   });
 
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  const [admin,setAdmin] = useState({});
 
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  // useEffect(() => {
+  //   const getUserDetails = async () => {
+  //     const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+  //     setAdmin(response.data.user);
+  //   };
+  //   getUserDetails();
+  // }, []);
   const fetchTeamMembers = async () => {
     try {
+      const user_list = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(user_list.data.user);
       const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
-        admin_id: admin.id
+        admin_id: user_list.data.user.id
       });
       setOriginalUsers(response.data.data);
       setUsers(response.data.data);

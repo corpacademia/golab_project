@@ -24,7 +24,14 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
 
-  const admin = JSON.parse(localStorage.getItem('auth')).result || {};
+  const [admin,setAdmin] = useState({});
+   useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   useEffect(() => {
     const fetch = async () => {

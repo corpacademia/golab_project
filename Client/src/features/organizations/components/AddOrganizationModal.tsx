@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { X, Building2, Mail, Phone, Globe, Upload, AlertCircle, Check, Loader } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -69,9 +69,17 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     setError(null);
     setSuccess(null);
 
-    try {
-      // Get admin user from localStorage
-      const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+    try {  
+    const [admin,setAdmin] = useState({});
+
+    // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+    useEffect(() => {
+      const getUserDetails = async () => {
+        const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+        setAdmin(response.data.user);
+      };
+      getUserDetails();
+    }, []);
 
       // Create organization data object
       const organizationData = {

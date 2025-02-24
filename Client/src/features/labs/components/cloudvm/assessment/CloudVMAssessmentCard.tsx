@@ -71,7 +71,15 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [isPaying, setIsPaying] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(true);
 
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  const [admin,setAdmin] = useState({});
+
+  // useEffect(() => {
+  //   const getUserDetails = async () => {
+  //     const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+  //     setAdmin(response.data.user);
+  //   };
+  //   getUserDetails();
+  // }, []);
 
   useEffect(() => {
     const fetchOrg = async () => {
@@ -88,8 +96,10 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(user_cred.data.user);
         const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
-          admin_id: admin.id
+          admin_id: user_cred.data.user.id
         });
         setUsers(response.data.data);
       } catch (error) {

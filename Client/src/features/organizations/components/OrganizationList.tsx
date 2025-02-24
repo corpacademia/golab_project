@@ -38,13 +38,13 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
                   <div className="flex items-center space-x-3">
                     <Building2 className="h-5 w-5 text-primary-400" />
                     <div>
-                      <p className="text-gray-200 font-medium">{org.name}</p>
+                      <p className="text-gray-200 font-medium">{org.organization_name}</p>
                       <p className="text-sm text-gray-400">{org.contactEmail}</p>
                     </div>
                   </div>
                 </td>
                 <td className="py-4">
-                  <span className="capitalize text-gray-300">{org.type}</span>
+                  <span className="capitalize text-gray-300">{org.org_type}</span>
                 </td>
                 <td className="py-4 text-gray-300">{org.usersCount}</td>
                 <td className="py-4 text-gray-300">{org.labsCount}</td>
@@ -63,7 +63,8 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
                   </span>
                 </td>
                 <td className="py-4 text-gray-400">
-                  {formatDate(org.lastActive)}
+                  {/* {formatDate(org.lastActive)} */}
+                  {org.lastActive}
                 </td>
                 <td className="py-4">
                   <div className="flex items-center space-x-2">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
 import { authApi } from '../api/authApi';
@@ -26,6 +26,17 @@ export const useLoginForm = () => {
   
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+
+  // const [admin,setAdmin] = useState({});
+
+  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  // useEffect(() => {
+  //   const getUserDetails = async () => {
+  //     const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+  //     setAdmin(response.data.user);
+  //   };
+  //   getUserDetails();
+  // }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -67,9 +78,10 @@ export const useLoginForm = () => {
         }
       )
       if(response.data.success) {
-        console.log('working')
-        localStorage.setItem('auth',JSON.stringify(response.data))
-        login((JSON.parse(localStorage.getItem('auth') ?? {})).result);
+        console.log('working')              
+        // localStorage.setItem('auth',JSON.stringify(response.data))
+       
+        login(response.data.result);
         navigate('/dashboard');
       }
       else{

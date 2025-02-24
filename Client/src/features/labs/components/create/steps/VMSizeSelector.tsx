@@ -197,7 +197,7 @@ export const VMSizeSelector: React.FC<VMSizeSelectorProps> = ({ onSelect }) => {
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="snapshotType"
+                    name="snapshot"
                     value="hibernate"
                     checked={config.snapshotType === 'hibernate'}
                     onChange={() => handleSnapshotTypeChange('hibernate')}

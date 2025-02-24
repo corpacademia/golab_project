@@ -57,6 +57,17 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
   const [responsedata,setResponseData] = useState()
   // const [selectedOS, setSelectedOS] = useState(''); 
   // setSelectedOS(config.vmSize.os)
+  const [user_cred,setUser] = useState({});
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setUser(response.data.user);
+    };
+    getUserDetails();
+  }, []);
+
+ 
   useEffect(()=>{
       const fetch = async()=>{
         const result = await axios.post('http://localhost:3000/api/v1/getInstances',{
@@ -77,7 +88,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
     const updatedData = { ...storedData, instance };
     localStorage.setItem("formData", JSON.stringify(updatedData));
     const data = JSON.parse(localStorage.getItem("formData")) || {};
-    const user = JSON.parse(localStorage.getItem("auth")).result || {};
+    const user = user_cred;
 
     const deleteLabData = async (lab_id) => {
       try {

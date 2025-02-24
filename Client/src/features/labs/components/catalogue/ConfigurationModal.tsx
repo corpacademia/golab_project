@@ -31,6 +31,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [showConfigColumn, setShowConfigColumn] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [cost,setCost] = useState();
+  const [user,setUser] = useState({});
   const [configDetails, setConfigDetails] = useState({
     numberOfUsers: 1,
     numberOfDays: 1
@@ -70,7 +71,16 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   
 
   const handleConfigurations = async () => {
-    const user = JSON.parse(localStorage.getItem('auth')).result || {};
+    
+
+    // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+    useEffect(() => {
+      const getUserDetails = async () => {
+        const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+        setUser(response.data.user);
+      };
+      getUserDetails();
+    }, []);
     try {
       const configs = {
         'instance': lab.instance,
