@@ -7,6 +7,7 @@ import { DashboardLayout } from '../features/dashboard/components/DashboardLayou
 import { SuperAdminDashboard } from '../features/dashboard/pages/SuperAdminDashboard';
 import { Overview } from '../features/dashboard/pages/Overview';
 import { Organizations } from '../features/organizations/pages/Organizations';
+import { OrganizationOverview } from '../features/organizations/pages/OrganizationOverview';
 import { UsersPage } from '../features/users/pages/UsersPage';
 import { UserProfilePage } from '../features/users/pages/UserProfilePage';
 import { LabsPage } from '../features/labs/pages/LabsPage';
@@ -42,6 +43,7 @@ export const AppRoutes: React.FC = () => {
       >
         <Route index element={<Overview />} />
         <Route path="organizations" element={<Organizations />} />
+        <Route path="organizations/:orgId" element={<OrganizationOverview />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:userId" element={<UserProfilePage />} />
         <Route path="user/:userId" element={<UserProfilePage />} />
