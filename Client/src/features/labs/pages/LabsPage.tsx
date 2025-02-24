@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Plus, BookOpen, FolderOpen } from 'lucide-react';
+import { Plus, BookOpen } from 'lucide-react';
 import { LabTypeCard } from '../components/LabTypeCard';
 import { LabTypeOverview } from '../components/admin/LabTypeOverview';
 import { LabManagementTabs } from '../components/admin/LabManagementTabs';
 import { LabType } from '../types';
-import axios from 'axios';
 
 export const LabsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -93,7 +92,6 @@ export const LabsPage: React.FC = () => {
             onClick={() => navigate('/dashboard/labs/workspace')}
             className="btn-secondary"
           >
-            <FolderOpen className="h-4 w-4 mr-2" />
             Workspaces
           </button>
           <button 
