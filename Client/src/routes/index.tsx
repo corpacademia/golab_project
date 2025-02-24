@@ -21,6 +21,7 @@ import { ReportsPage } from '../features/reports/pages/ReportsPage';
 import { MyLabs } from '../features/dashboard/pages/MyLabs';
 import { Assessments } from '../features/dashboard/pages/Assessments';
 import { Team } from '../features/dashboard/pages/Team';
+import { WorkspacePage } from '../features/labs/pages/WorkspacePage';
 import { useAuthStore } from '../store/authStore';
 
 export const AppRoutes: React.FC = () => {
@@ -46,13 +47,12 @@ export const AppRoutes: React.FC = () => {
         <Route path="user/:userId" element={<UserProfilePage />} />
         <Route path="team" element={<Team />} />
         <Route path="team/:userId" element={<UserProfilePage />} />
-        {/* Add trainer routes */}
         <Route path="trainer/:userId" element={<UserProfilePage />} />
         <Route path="trainers/:userId" element={<UserProfilePage />} />
-        {/* Add organization user routes */}
         <Route path="organization-user/:userId" element={<UserProfilePage />} />
         <Route path="organization-users/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
+        <Route path="labs/workspace" element={<WorkspacePage />} />
         <Route 
           path="labs/catalogue" 
           element={user?.role === 'orgadmin' ? <OrgAdminCataloguePage /> : <CataloguePage />} 

@@ -11,7 +11,8 @@ import {
   Building2,
   GraduationCap,
   Brain,
-  FileText
+  FileText,
+  FolderOpen
 } from 'lucide-react';
 
 export const DashboardSidebar: React.FC = () => {
@@ -23,6 +24,7 @@ export const DashboardSidebar: React.FC = () => {
       { icon: Building2, label: 'Organizations', path: '/dashboard/organizations' },
       { icon: Users, label: 'Users', path: '/dashboard/users' },
       { icon: BookOpen, label: 'Labs', path: '/dashboard/labs' },
+      { icon: FolderOpen, label: 'Workspaces', path: '/dashboard/labs/workspace' },
       { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Cloud, label: 'Cloud Resources', path: '/dashboard/cloud' },
       { icon: FileText, label: 'Reports', path: '/dashboard/reports' },
@@ -32,6 +34,7 @@ export const DashboardSidebar: React.FC = () => {
       { icon: LayoutDashboard, label: 'Overview', path: '/dashboard' },
       { icon: Users, label: 'Team', path: '/dashboard/team' },
       { icon: BookOpen, label: 'Labs', path: '/dashboard/labs' },
+      { icon: FolderOpen, label: 'Workspaces', path: '/dashboard/labs/workspace' },
       { icon: BookOpen, label: 'Lab Catalogue', path: '/dashboard/labs/catalogue' },
       { icon: Award, label: 'Assessments', path: '/dashboard/assessments' },
       { icon: Brain, label: 'AI Lab Builder', path: '/dashboard/lab-builder' },
