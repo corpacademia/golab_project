@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Organization } from '../types';
 import { Building2, MoreVertical, ExternalLink } from 'lucide-react';
 import { formatDate } from '../../../utils/date';
@@ -12,6 +13,13 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
   organizations,
   onViewDetails,
 }) => {
+  const navigate = useNavigate();
+
+  const handleViewDetails = (org: Organization) => {
+    navigate(`/dashboard/organizations/${org.id}`);
+    onViewDetails(org);
+  };
+
   return (
     <div className="glass-panel">
       <div className="overflow-x-auto">
@@ -32,7 +40,8 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
             {organizations.map((org) => (
               <tr 
                 key={org.id} 
-                className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
+                className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
+                onClick={() => handleViewDetails(org)}
               >
                 <td className="py-4 pl-4">
                   <div className="flex items-center space-x-3">
@@ -63,18 +72,23 @@ export const OrganizationList: React.FC<OrganizationListProps> = ({
                   </span>
                 </td>
                 <td className="py-4 text-gray-400">
-                  {/* {formatDate(org.lastActive)} */}
                   {org.lastActive}
                 </td>
                 <td className="py-4">
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => onViewDetails(org)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(org);
+                      }}
                       className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                     >
                       <ExternalLink className="h-4 w-4 text-primary-400" />
                     </button>
-                    <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
+                    <button 
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                    >
                       <MoreVertical className="h-4 w-4 text-gray-400" />
                     </button>
                   </div>
