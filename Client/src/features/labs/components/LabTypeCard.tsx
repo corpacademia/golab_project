@@ -6,7 +6,8 @@ import {
   Server, 
   Network, 
   Database,
-  Terminal
+  Terminal,
+  FolderOpen
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 
@@ -22,6 +23,12 @@ const labTypeInfo: Record<LabType, {
   icon: React.FC; 
   gradient: string;
 }> = {
+  workspace: {
+    title: 'Workspaces',
+    description: 'Manage and organize your lab environments',
+    icon: FolderOpen,
+    gradient: 'from-primary-500 to-accent-500'
+  },
   catalogue: {
     title: 'Lab Catalogues',
     description: 'Pre-built labs with AI-recommended learning paths',

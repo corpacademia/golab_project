@@ -12,6 +12,13 @@ export const LabsPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<LabType | null>(null);
   const [activeTab, setActiveTab] = useState('settings');
   const [metrics, setMetrics] = useState({
+    workspace: {
+      activeUsers: 856,
+      averageUsage: 82,
+      uptime: 99.8,
+      incidents: 2,
+      costTrend: 8,
+    },
     catalogue: {
       activeUsers: 1245,
       averageUsage: 78,
@@ -56,6 +63,7 @@ export const LabsPage: React.FC = () => {
     },
   });
   const [labCounts, setLabCounts] = useState({
+    workspace: 156,
     catalogue: 245,
     'cloud-vm': 128,
     'dedicated-vm': 64,
@@ -65,7 +73,9 @@ export const LabsPage: React.FC = () => {
   });
 
   const handleTypeSelect = (type: LabType) => {
-    if (type === 'catalogue') {
+    if (type === 'workspace') {
+      navigate('/dashboard/labs/workspace');
+    } else if (type === 'catalogue') {
       navigate('/dashboard/labs/catalogue');
     } else if (type === 'cloud-vm') {
       navigate('/dashboard/labs/cloud-vms');
@@ -88,12 +98,6 @@ export const LabsPage: React.FC = () => {
         </div>
         
         <div className="flex space-x-4">
-          <button 
-            onClick={() => navigate('/dashboard/labs/workspace')}
-            className="btn-secondary"
-          >
-            Workspaces
-          </button>
           <button 
             onClick={() => navigate('/dashboard/labs/catalogue')}
             className="btn-secondary"

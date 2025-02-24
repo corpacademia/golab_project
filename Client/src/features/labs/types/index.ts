@@ -1,5 +1,6 @@
 // Lab Types
 export type LabType = 
+  | 'workspace'
   | 'catalogue' 
   | 'cloud-vm'
   | 'dedicated-vm'
