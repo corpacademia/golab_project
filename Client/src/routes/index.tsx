@@ -23,6 +23,8 @@ import { MyLabs } from '../features/dashboard/pages/MyLabs';
 import { Assessments } from '../features/dashboard/pages/Assessments';
 import { Team } from '../features/dashboard/pages/Team';
 import { WorkspacePage } from '../features/labs/pages/WorkspacePage';
+import { WorkspaceViewPage } from '../features/labs/pages/WorkspaceViewPage';
+import { WorkspaceEditPage } from '../features/labs/pages/WorkspaceEditPage';
 import { useAuthStore } from '../store/authStore';
 
 export const AppRoutes: React.FC = () => {
@@ -55,6 +57,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="organization-users/:userId" element={<UserProfilePage />} />
         <Route path="labs" element={<LabsPage />} />
         <Route path="labs/workspace" element={<WorkspacePage />} />
+        <Route path="labs/workspace/:workspaceId" element={<WorkspaceViewPage />} />
+        <Route path="labs/workspace/:workspaceId/edit" element={<WorkspaceEditPage />} />
         <Route 
           path="labs/catalogue" 
           element={user?.role === 'orgadmin' ? <OrgAdminCataloguePage /> : <CataloguePage />} 
