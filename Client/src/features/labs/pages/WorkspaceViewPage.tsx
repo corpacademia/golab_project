@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { FileText, Calendar, Tag, Activity, Download, Pencil } from 'lucide-react';
-import axios from 'axios';
 
 interface Workspace {
   id: string;
@@ -15,19 +14,41 @@ interface Workspace {
   updatedAt: Date;
 }
 
+// Mock data for development
+const mockWorkspace: Workspace = {
+  id: '1',
+  name: 'AWS Cloud Architecture Lab',
+  description: 'Hands-on lab for learning AWS cloud architecture patterns',
+  type: 'single-vm',
+  status: 'active',
+  documents: [
+    { name: 'Setup Guide.pdf', url: '#' },
+    { name: 'Architecture Diagram.png', url: '#' }
+  ],
+  createdAt: new Date('2024-03-01'),
+  updatedAt: new Date('2024-03-10')
+};
+
 export const WorkspaceViewPage: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
-        const response = await axios.get(`/api/workspaces/${workspaceId}`);
-        setWorkspace(response.data);
+        // TODO: Replace with actual API call when ready
+        // const response = await axios.get(`/api/workspaces/${workspaceId}`);
+        // setWorkspace(response.data);
+        
+        // Using mock data for now
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        setWorkspace(mockWorkspace);
       } catch (error) {
         console.error('Failed to fetch workspace:', error);
+        setError('Failed to load workspace');
       } finally {
         setIsLoading(false);
       }
@@ -44,10 +65,12 @@ export const WorkspaceViewPage: React.FC = () => {
     );
   }
 
-  if (!workspace) {
+  if (error || !workspace) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-300">Workspace not found</h2>
+        <h2 className="text-xl font-semibold text-gray-300">
+          {error || 'Workspace not found'}
+        </h2>
       </div>
     );
   }
@@ -121,7 +144,7 @@ export const WorkspaceViewPage: React.FC = () => {
           <h2 className="text-xl font-semibold mb-6">
             <GradientText>Documents</GradientText>
           </h2>
-          {workspace.documents.length > 0 ? (
+          {workspace.documents && workspace.documents.length > 0 ? (
             <div className="space-y-4">
               {workspace.documents.map((doc, index) => (
                 <div
