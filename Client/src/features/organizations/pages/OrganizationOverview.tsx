@@ -91,7 +91,9 @@ export const OrganizationOverview: React.FC = () => {
     const fetchOrganizationData = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get(`http://localhost:3000/api/v1/organization/${orgId}`);
+        const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`,{
+          org_id: orgId
+        });
         if (response.data) {
           setOrganization({
             ...defaultOrganization,
