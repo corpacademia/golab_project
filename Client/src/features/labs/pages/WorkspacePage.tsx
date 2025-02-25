@@ -24,13 +24,46 @@ export const WorkspacePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
 
+  // Mock data for development - remove this when API is ready
+  const mockWorkspaces: Workspace[] = [
+    {
+      id: '1',
+      name: 'AWS Cloud Architecture Lab',
+      description: 'Hands-on lab for learning AWS cloud architecture patterns',
+      type: 'single-vm',
+      status: 'active',
+      createdAt: new Date('2024-03-01'),
+    },
+    {
+      id: '2',
+      name: 'Kubernetes Cluster Lab',
+      description: 'Multi-node Kubernetes cluster setup and management',
+      type: 'vm-cluster',
+      status: 'pending',
+      createdAt: new Date('2024-03-05'),
+    },
+    {
+      id: '3',
+      name: 'Azure DevOps Environment',
+      description: 'Complete DevOps pipeline setup in Azure',
+      type: 'cloud-slice',
+      status: 'inactive',
+      createdAt: new Date('2024-03-10'),
+    }
+  ];
+
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
-        const response = await axios.get('/api/workspaces', {
-          params: { userId: user?.id }
-        });
-        setWorkspaces(response.data);
+        // TODO: Replace with actual API call when ready
+        // const response = await axios.get('/api/workspaces', {
+        //   params: { userId: user?.id }
+        // });
+        // setWorkspaces(response.data);
+        
+        // Using mock data for now
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        setWorkspaces(mockWorkspaces);
       } catch (error) {
         console.error('Failed to fetch workspaces:', error);
       } finally {
@@ -62,9 +95,11 @@ export const WorkspacePage: React.FC = () => {
 
   const handleDelete = async (ids: string[]) => {
     try {
-      await Promise.all(ids.map(id => 
-        axios.delete(`/api/workspaces/${id}`)
-      ));
+      // TODO: Replace with actual API calls when ready
+      // await Promise.all(ids.map(id => 
+      //   axios.delete(`/api/workspaces/${id}`)
+      // ));
+      
       setWorkspaces(prev =>
         prev.filter(workspace => !ids.includes(workspace.id))
       );
@@ -87,13 +122,24 @@ export const WorkspacePage: React.FC = () => {
         }
       });
 
-      const response = await axios.post('/api/workspaces', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // TODO: Replace with actual API call when ready
+      // const response = await axios.post('/api/workspaces', formData, {
+      //   headers: {
+      //     'Content-Type': 'multipart/form-data'
+      //   }
+      // });
 
-      setWorkspaces(prev => [...prev, response.data]);
+      // Mock response
+      const newWorkspace: Workspace = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: data.name,
+        description: data.description,
+        type: data.type,
+        status: 'pending',
+        createdAt: new Date(),
+      };
+
+      setWorkspaces(prev => [...prev, newWorkspace]);
       setIsCreating(false);
     } catch (error) {
       console.error('Failed to create workspace:', error);
@@ -102,7 +148,7 @@ export const WorkspacePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
