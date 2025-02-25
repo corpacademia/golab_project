@@ -4,6 +4,7 @@ export const validateUserData = (users: any[]): UserUploadError[] => {
   const errors: UserUploadError[] = [];
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const seenEmails = new Set<string>();
+
   users.forEach((user, index) => {
     const rowNumber = index + 2; // Add 2 to account for header row and 0-based index
 
@@ -23,7 +24,7 @@ export const validateUserData = (users: any[]): UserUploadError[] => {
     }
 
     // Role validation
-    const validRoles = ['user', 'trainer', 'orgadmin','admin'];
+    const validRoles = ['user', 'trainer', 'orgadmin'];
     if (user.role && !validRoles.includes(user.role.toLowerCase())) {
       errors.push({ row: rowNumber, message: 'Invalid role' });
     }
