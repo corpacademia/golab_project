@@ -16,7 +16,8 @@ import {
   UserPlus,
   AlertTriangle,
   FolderOpen,
-  Clock
+  Clock,
+  Loader
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -50,110 +51,84 @@ interface OrganizationDetails {
   };
 }
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  lastActive: string;
-}
-
-interface BillingRecord {
-  id: string;
-  transactionId: string;
-  amount: number;
-  status: 'paid' | 'pending' | 'failed';
-  date: string;
-  description: string;
-}
-
-interface Workspace {
-  id: string;
-  name: string;
-  description: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
-
-interface ActivityLog {
-  id: string;
-  userId: string;
-  userName: string;
-  action: string;
-  timestamp: string;
-  details?: string;
-}
-
-interface Document {
-  id: string;
-  name: string;
-  format: string;
-  uploadedAt: string;
-  size: number;
-  uploadedBy: string;
-}
+const defaultOrganization: OrganizationDetails = {
+  id: '',
+  name: '',
+  description: '',
+  createdAt: new Date().toISOString(),
+  status: 'pending',
+  contact: {
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  },
+  subscription: {
+    plan: 'Basic',
+    billingCycle: 'Monthly',
+    nextBilling: new Date().toISOString(),
+    usage: {
+      storage: 0,
+      workspaces: 0
+    }
+  },
+  stats: {
+    users: 0,
+    admins: 0,
+    activeWorkspaces: 0,
+    monthlyUsage: 0
+  }
+};
 
 export const OrganizationOverview: React.FC = () => {
-  const { orgId } = useParams<{ orgId: string }>();
+  const { orgId } = useParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'billing' | 'workspaces' | 'activity' | 'documents'>('overview');
-  const [organization, setOrganization] = useState<OrganizationDetails | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [organization, setOrganization] = useState<OrganizationDetails>(defaultOrganization);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
       try {
         setIsLoading(true);
-        // Fetch organization details
-        const orgResponse = await axios.get(`/api/organizations/${orgId}`);
-        setOrganization(orgResponse.data);
-
-        // Fetch users
-        const usersResponse = await axios.get(`/api/organizations/${orgId}/users`);
-        setUsers(usersResponse.data);
-
-        // Fetch billing records
-        const billingResponse = await axios.get(`/api/organizations/${orgId}/billing`);
-        setBillingRecords(billingResponse.data);
-
-        // Fetch workspaces
-        const workspacesResponse = await axios.get(`/api/organizations/${orgId}/workspaces`);
-        setWorkspaces(workspacesResponse.data);
-
-        // Fetch activities
-        const activitiesResponse = await axios.get(`/api/organizations/${orgId}/activities`);
-        setActivities(activitiesResponse.data);
-
-        // Fetch documents
-        const documentsResponse = await axios.get(`/api/organizations/${orgId}/documents`);
-        setDocuments(documentsResponse.data);
-      } catch (error) {
-        console.error('Failed to fetch organization data:', error);
+        const response = await axios.get(`http://localhost:3000/api/v1/organization/${orgId}`);
+        if (response.data) {
+          setOrganization({
+            ...defaultOrganization,
+            ...response.data
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch organization data:', err);
+        setError('Failed to load organization data');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchOrganizationData();
+    if (orgId) {
+      fetchOrganizationData();
+    }
   }, [orgId]);
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
       </div>
     );
   }
 
-  if (!organization) {
+  if (error) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-semibold text-gray-300">Organization not found</h2>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <AlertTriangle className="h-12 w-12 text-red-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-200 mb-2">
+          {error}
+        </h2>
+        <p className="text-gray-400">
+          Please try again later or contact support if the problem persists.
+        </p>
       </div>
     );
   }
@@ -166,8 +141,12 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Total Users</span>
             <Users className="h-5 w-5 text-primary-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.stats.users}</p>
-          <p className="text-sm text-gray-400 mt-1">{organization.stats.admins} admins</p>
+          <p className="text-2xl font-semibold text-gray-200">
+            {organization?.stats?.users || 0}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            {organization?.stats?.admins || 0} admins
+          </p>
         </div>
 
         <div className="glass-panel">
@@ -175,7 +154,9 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Active Workspaces</span>
             <Activity className="h-5 w-5 text-secondary-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.stats.activeWorkspaces}</p>
+          <p className="text-2xl font-semibold text-gray-200">
+            {organization?.stats?.activeWorkspaces || 0}
+          </p>
         </div>
 
         <div className="glass-panel">
@@ -184,7 +165,7 @@ export const OrganizationOverview: React.FC = () => {
             <CreditCard className="h-5 w-5 text-accent-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            ${organization.stats.monthlyUsage.toLocaleString()}
+            ${(organization?.stats?.monthlyUsage || 0).toLocaleString()}
           </p>
         </div>
 
@@ -193,8 +174,12 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Subscription</span>
             <Shield className="h-5 w-5 text-emerald-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.subscription.plan}</p>
-          <p className="text-sm text-gray-400 mt-1">Next billing: {new Date(organization.subscription.nextBilling).toLocaleDateString()}</p>
+          <p className="text-2xl font-semibold text-gray-200">
+            {organization?.subscription?.plan || 'Basic'}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            Next billing: {new Date(organization?.subscription?.nextBilling || '').toLocaleDateString()}
+          </p>
         </div>
       </div>
 
@@ -209,7 +194,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Email</p>
-              <p className="text-gray-200">{organization.contact.email}</p>
+              <p className="text-gray-200">{organization?.contact?.email || 'N/A'}</p>
             </div>
           </div>
           
@@ -219,7 +204,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Phone</p>
-              <p className="text-gray-200">{organization.contact.phone}</p>
+              <p className="text-gray-200">{organization?.contact?.phone || 'N/A'}</p>
             </div>
           </div>
           
@@ -229,216 +214,10 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Address</p>
-              <p className="text-gray-200">{organization.contact.address}</p>
+              <p className="text-gray-200">{organization?.contact?.address || 'N/A'}</p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-
-  const renderUsersTab = () => (
-    <div className="glass-panel">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-              <th className="pb-4">User</th>
-              <th className="pb-4">Role</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4">Last Active</th>
-              <th className="pb-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(user => (
-              <tr key={user.id} className="border-b border-primary-500/10">
-                <td className="py-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 rounded-full bg-primary-500/20 flex items-center justify-center">
-                      <span className="text-primary-400">{user.name[0]}</span>
-                    </div>
-                    <div>
-                      <p className="text-gray-200">{user.name}</p>
-                      <p className="text-sm text-gray-400">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-4">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                    {user.role}
-                  </span>
-                </td>
-                <td className="py-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    user.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {user.status}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-400">{user.lastActive}</td>
-                <td className="py-4">
-                  <button className="p-2 hover:bg-primary-500/10 rounded-lg">
-                    <Pencil className="h-4 w-4 text-primary-400" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderBillingTab = () => (
-    <div className="glass-panel">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-              <th className="pb-4">Transaction ID</th>
-              <th className="pb-4">Description</th>
-              <th className="pb-4">Amount</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {billingRecords.map(record => (
-              <tr key={record.id} className="border-b border-primary-500/10">
-                <td className="py-4 text-gray-300">{record.transactionId}</td>
-                <td className="py-4 text-gray-300">{record.description}</td>
-                <td className="py-4 text-gray-300">${record.amount.toFixed(2)}</td>
-                <td className="py-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    record.status === 'paid' ? 'bg-emerald-500/20 text-emerald-300' :
-                    record.status === 'pending' ? 'bg-amber-500/20 text-amber-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {record.status}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-400">{new Date(record.date).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderWorkspacesTab = () => (
-    <div className="glass-panel">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-              <th className="pb-4">Name</th>
-              <th className="pb-4">Description</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4">Created</th>
-              <th className="pb-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {workspaces.map(workspace => (
-              <tr key={workspace.id} className="border-b border-primary-500/10">
-                <td className="py-4">
-                  <div className="flex items-center space-x-3">
-                    <FolderOpen className="h-5 w-5 text-primary-400" />
-                    <span className="text-gray-200">{workspace.name}</span>
-                  </div>
-                </td>
-                <td className="py-4 text-gray-400">{workspace.description}</td>
-                <td className="py-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    workspace.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-                    'bg-red-500/20 text-red-300'
-                  }`}>
-                    {workspace.status}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-400">{new Date(workspace.createdAt).toLocaleDateString()}</td>
-                <td className="py-4">
-                  <button className="p-2 hover:bg-primary-500/10 rounded-lg">
-                    <Pencil className="h-4 w-4 text-primary-400" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-
-  const renderActivityTab = () => (
-    <div className="glass-panel">
-      <div className="space-y-4">
-        {activities.map(activity => (
-          <div key={activity.id} className="flex items-start space-x-3 p-4 bg-dark-300/50 rounded-lg">
-            <Activity className="h-5 w-5 text-primary-400 mt-1" />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-gray-200">
-                  <span className="font-medium">{activity.userName}</span>
-                  {' '}{activity.action}
-                </p>
-                <span className="text-sm text-gray-400">
-                  {new Date(activity.timestamp).toLocaleString()}
-                </span>
-              </div>
-              {activity.details && (
-                <p className="text-sm text-gray-400 mt-1">{activity.details}</p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderDocumentsTab = () => (
-    <div className="glass-panel">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-              <th className="pb-4">Name</th>
-              <th className="pb-4">Format</th>
-              <th className="pb-4">Size</th>
-              <th className="pb-4">Uploaded By</th>
-              <th className="pb-4">Upload Date</th>
-              <th className="pb-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {documents.map(doc => (
-              <tr key={doc.id} className="border-b border-primary-500/10">
-                <td className="py-4">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-5 w-5 text-primary-400" />
-                    <span className="text-gray-200">{doc.name}</span>
-                  </div>
-                </td>
-                <td className="py-4">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                    {doc.format}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-400">{(doc.size / 1024 / 1024).toFixed(2)} MB</td>
-                <td className="py-4 text-gray-400">{doc.uploadedBy}</td>
-                <td className="py-4 text-gray-400">{new Date(doc.uploadedAt).toLocaleDateString()}</td>
-                <td className="py-4">
-                  <button className="p-2 hover:bg-primary-500/10 rounded-lg">
-                    <FileText className="h-4 w-4 text-primary-400" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
@@ -462,7 +241,7 @@ export const OrganizationOverview: React.FC = () => {
             )}
             <div>
               <h1 className="text-2xl font-display font-bold">
-                <GradientText>{organization.name}</GradientText>
+                <GradientText>{organization.name || 'Unnamed Organization'}</GradientText>
               </h1>
               <div className="flex items-center mt-2 space-x-4">
                 <span className="text-sm text-gray-400">ID: {organization.id}</span>
@@ -519,11 +298,7 @@ export const OrganizationOverview: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && renderOverviewTab()}
-      {activeTab === 'users' && renderUsersTab()}
-      {activeTab === 'billing' && renderBillingTab()}
-      {activeTab === 'workspaces' && renderWorkspacesTab()}
-      {activeTab === 'activity' && renderActivityTab()}
-      {activeTab === 'documents' && renderDocumentsTab()}
+      {/* Add other tab content here */}
     </div>
   );
 };
