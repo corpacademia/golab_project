@@ -58,7 +58,13 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
       progress: 0,
       status: 'pending'
     }));
+    
     setFiles(prev => [...prev, ...fileProgress]);
+    
+    // Start upload simulation for each new file
+    fileProgress.forEach(file => {
+      simulateFileUpload(file);
+    });
   };
 
   const removeFile = (index: number) => {
@@ -94,13 +100,21 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
     return true;
   };
 
-  const simulateFileUpload = async (file: FileWithProgress) => {
-    const totalSteps = 10;
-    for (let i = 0; i <= totalSteps; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+  const simulateFileUpload = async (fileWithProgress: FileWithProgress) => {
+    const steps = 100; // More granular steps for smoother animation
+    const totalTime = 2000; // 2 seconds total
+    const stepTime = totalTime / steps;
+    
+    for (let i = 1; i <= steps; i++) {
+      await new Promise(resolve => setTimeout(resolve, stepTime));
+      
       setFiles(prev => prev.map(f => 
-        f.file === file.file 
-          ? { ...f, progress: (i / totalSteps) * 100, status: i === totalSteps ? 'completed' : 'uploading' }
+        f.file === fileWithProgress.file 
+          ? { 
+              ...f, 
+              progress: (i / steps) * 100,
+              status: i === steps ? 'completed' : 'uploading'
+            }
           : f
       ));
     }
@@ -115,8 +129,11 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
     setError(null);
 
     try {
-      // Simulate file uploads
-      await Promise.all(files.map(file => simulateFileUpload(file)));
+      // Wait for any remaining uploads to complete
+      const pendingFiles = files.filter(f => f.status !== 'completed');
+      if (pendingFiles.length > 0) {
+        await Promise.all(pendingFiles.map(file => simulateFileUpload(file)));
+      }
 
       const formPayload = {
         ...formData,
