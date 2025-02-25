@@ -472,7 +472,8 @@ export const OrganizationOverview: React.FC = () => {
                   organization.status === 'pending' ? 'bg-amber-500/20 text-amber-300' :
                   'bg-gray-500/20 text-gray-300'
                 }`}>
-                  {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)}
+                  {/* {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)} */}
+                  pending
                 </span>
               </div>
             </div>
