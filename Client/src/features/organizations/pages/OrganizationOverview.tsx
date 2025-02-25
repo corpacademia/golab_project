@@ -57,7 +57,9 @@ export const OrganizationOverview: React.FC = () => {
   useEffect(() => {
     const fetchOrganizationDetails = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/v1/organizations/${orgId}`);
+        const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`,{
+          org_id: orgId
+        });
         setOrganization(response.data.data);
       } catch (error) {
         console.error('Failed to fetch organization details:', error);
@@ -106,7 +108,8 @@ export const OrganizationOverview: React.FC = () => {
                   organization.status === 'pending' ? 'bg-amber-500/20 text-amber-300' :
                   'bg-gray-500/20 text-gray-300'
                 }`}>
-                  {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)}
+                  {/* {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)} */}
+                  active
                 </span>
               </div>
             </div>
@@ -131,8 +134,8 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Total Users</span>
             <Users className="h-5 w-5 text-primary-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.stats.users}</p>
-          <p className="text-sm text-gray-400 mt-1">{organization.stats.admins} admins</p>
+          <p className="text-2xl font-semibold text-gray-200">organization.stats.users</p>
+          <p className="text-sm text-gray-400 mt-1">organization.stats.admins admins</p>
         </div>
 
         <div className="glass-panel">
@@ -140,7 +143,7 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Active Workspaces</span>
             <Activity className="h-5 w-5 text-secondary-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.stats.activeWorkspaces}</p>
+          <p className="text-2xl font-semibold text-gray-200">organization.stats.activeWorkspaces</p>
         </div>
 
         <div className="glass-panel">
@@ -149,7 +152,7 @@ export const OrganizationOverview: React.FC = () => {
             <CreditCard className="h-5 w-5 text-accent-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            ${organization.stats.monthlyUsage.toLocaleString()}
+            $organization.stats.monthlyUsage.toLocaleString()
           </p>
         </div>
 
@@ -158,8 +161,8 @@ export const OrganizationOverview: React.FC = () => {
             <span className="text-sm text-gray-400">Subscription</span>
             <Shield className="h-5 w-5 text-emerald-400" />
           </div>
-          <p className="text-2xl font-semibold text-gray-200">{organization.subscription.plan}</p>
-          <p className="text-sm text-gray-400 mt-1">Next billing: {new Date(organization.subscription.nextBilling).toLocaleDateString()}</p>
+          <p className="text-2xl font-semibold text-gray-200">organization.subscription.plan</p>
+          <p className="text-sm text-gray-400 mt-1">Next billing: new Date(organization.subscription.nextBilling).toLocaleDateString()</p>
         </div>
       </div>
 
@@ -202,7 +205,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Email</p>
-              <p className="text-gray-200">{organization.contact.email}</p>
+              <p className="text-gray-200">organization.contact.email</p>
             </div>
           </div>
           
@@ -212,7 +215,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Phone</p>
-              <p className="text-gray-200">{organization.contact.phone}</p>
+              <p className="text-gray-200">rganization.contact.phone</p>
             </div>
           </div>
           
@@ -222,7 +225,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Address</p>
-              <p className="text-gray-200">{organization.contact.address}</p>
+              <p className="text-gray-200">organization.contact.address</p>
             </div>
           </div>
         </div>

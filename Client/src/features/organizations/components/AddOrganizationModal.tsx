@@ -37,6 +37,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [admin,setAdmin] = useState({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -62,25 +63,22 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-    
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
-
-    try {  
-    const [admin,setAdmin] = useState({});
-
+    
+    try { 
+    
+    
     // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
-    useEffect(() => {
-      const getUserDetails = async () => {
-        const response = await axios.get('http://localhost:3000/api/v1/user_profile');
-        setAdmin(response.data.user);
-      };
-      getUserDetails();
-    }, []);
-
+    // useEffect(() => {
+      // const getUserDetails = async () => {
+        const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
+        setAdmin(user_cred.data.user);
+      // };
+      // getUserDetails();
+    // }, []);
       // Create organization data object
       const organizationData = {
         organization_name: formData.name,
@@ -90,12 +88,11 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
         address: formData.address,
         website: formData.website,
         org_type: formData.type,
-        admin_id: admin.id
+        admin_id: user_cred.data.user.id
       };
 
       // Make API call to create organization
-      const response = await axios.post('http://localhost:3000/api/v1/createOrganization', organizationData);
-
+      const response = await axios.post('http://localhost:3000/api/v1/createOrganization', {organizationData:organizationData});
       if (response.data.success) {
         setSuccess('Organization added successfully');
         setTimeout(() => {
@@ -106,6 +103,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
         throw new Error(response.data.message || 'Failed to add organization');
       }
     } catch (err: any) {
+      console.error('Failed to add organization:', err);
       setError(err.response?.data?.message || 'Failed to add organization');
     } finally {
       setIsSubmitting(false);
