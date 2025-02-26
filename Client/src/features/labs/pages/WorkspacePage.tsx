@@ -23,7 +23,6 @@ export const WorkspacePage: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
-
   // Mock data for development - remove this when API is ready
   const mockWorkspaces: Workspace[] = [
     {
@@ -62,8 +61,15 @@ export const WorkspacePage: React.FC = () => {
         // setWorkspaces(response.data);
         
         // Using mock data for now
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        setWorkspaces(mockWorkspaces);
+
+
+        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnUserId/${user.id}`);
+        if(response.data.success){
+          setWorkspaces(response.data.data);
+        }
+
+        // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        // setWorkspaces(mockWorkspaces);
       } catch (error) {
         console.error('Failed to fetch workspaces:', error);
       } finally {
@@ -111,14 +117,29 @@ export const WorkspacePage: React.FC = () => {
 
   const handleCreateWorkspace = async (data: any) => {
     try {
+      console.log('Creating workspace:', data.values); 
       const formData = new FormData();
+
       Object.entries(data).forEach(([key, value]) => {
-        if (key === 'documents' && value instanceof FileList) {
-          Array.from(value).forEach(file => {
-            formData.append('documents', file);
+        if (key === "files" && Array.isArray(value)) {
+          // Ensure `files` contains actual `File` objects
+          value.forEach(fileObj => {
+            if (fileObj instanceof File) {
+              formData.append("files", fileObj); // Correct way to append files
+            } else if (fileObj.file instanceof File) {
+              formData.append("files", fileObj.file); // Handle cases where `fileObj.file` contains the `File`
+            } else {
+              console.warn("⚠️ Skipping non-File object in files array:", fileObj);
+            }
+          });
+        } else if (Array.isArray(value)) {
+          // Append other arrays (e.g., `urls`)
+          value.forEach(item => {
+            formData.append(key, item);
           });
         } else {
-          formData.append(key, value as string);
+          // Append normal key-value pairs
+          formData.append(key, String(value));
         }
       });
 
@@ -129,6 +150,10 @@ export const WorkspacePage: React.FC = () => {
       //   }
       // });
 
+      //api call to store the workspace
+      const response = await axios.post("http://localhost:3000/api/v1/createWorkspace", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
       // Mock response
       const newWorkspace: Workspace = {
         id: Math.random().toString(36).substr(2, 9),

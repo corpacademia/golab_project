@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Calendar, Upload, X, Link as LinkIcon, AlertCircle, Check, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface CreateWorkspaceFormProps {
   onSubmit: (data: any) => void;
@@ -58,7 +59,13 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
       progress: 0,
       status: 'pending'
     }));
+    
     setFiles(prev => [...prev, ...fileProgress]);
+    
+    // Start upload simulation for each new file
+    fileProgress.forEach(file => {
+      simulateFileUpload(file);
+    });
   };
 
   const removeFile = (index: number) => {
@@ -94,13 +101,21 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
     return true;
   };
 
-  const simulateFileUpload = async (file: FileWithProgress) => {
-    const totalSteps = 10;
-    for (let i = 0; i <= totalSteps; i++) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+  const simulateFileUpload = async (fileWithProgress: FileWithProgress) => {
+    const steps = 100; // More granular steps for smoother animation
+    const totalTime = 2000; // 2 seconds total
+    const stepTime = totalTime / steps;
+    
+    for (let i = 1; i <= steps; i++) {
+      await new Promise(resolve => setTimeout(resolve, stepTime));
+      
       setFiles(prev => prev.map(f => 
-        f.file === file.file 
-          ? { ...f, progress: (i / totalSteps) * 100, status: i === totalSteps ? 'completed' : 'uploading' }
+        f.file === fileWithProgress.file 
+          ? { 
+              ...f, 
+              progress: (i / steps) * 100,
+              status: i === steps ? 'completed' : 'uploading'
+            }
           : f
       ));
     }
@@ -108,33 +123,49 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
+   
     
     if (!validateForm()) return;
     
     setIsSubmitting(true);
     setError(null);
-
+  
     try {
-      // Simulate file uploads
-      await Promise.all(files.map(file => simulateFileUpload(file)));
-
-      const formPayload = {
-        ...formData,
-        files: files.map(f => ({
-          name: f.file.name,
-          size: f.file.size,
-          type: f.file.type
-        })),
-        urls: urls.filter(url => url.trim() !== '')
-      };
-
-      await onSubmit(formPayload);
+      // Wait for any remaining uploads to complete
+      const pendingFiles = files.filter(f => f.status !== 'completed');
+      if (pendingFiles.length > 0) {
+        await Promise.all(pendingFiles.map(file => simulateFileUpload(file)));
+      }
+  
+      // Create FormData object
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('description', formData.description);
+      formDataObj.append('type', formData.type);
+      formDataObj.append('createdAt', formData.createdAt);
+      formDataObj.append('user' , user_cred.data.user.id);
+      // Append files to FormData
+      files.forEach((fileWithProgress, index) => {
+        formDataObj.append(`files`, fileWithProgress.file);
+      });
+  
+      // Append URLs
+      urls.forEach((url, index) => {
+        if (url.trim() !== '') {
+          formDataObj.append(`urls[${index}]`, url);
+        }
+      });
+  
+      // Submit FormData
+      await onSubmit(formDataObj);
     } catch (err) {
       setError('Failed to create workspace. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

@@ -99,14 +99,14 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                   />
                 </td>
                 <td className="py-4">
-                  <span className="font-medium text-gray-200">{workspace.name}</span>
+                  <span className="font-medium text-gray-200">{workspace.lab_name}</span>
                 </td>
                 <td className="py-4">
                   <p className="text-sm text-gray-400 line-clamp-1">{workspace.description}</p>
                 </td>
                 <td className="py-4">
                   <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                    {workspace.type}
+                    {workspace.lab_type}
                   </span>
                 </td>
                 <td className="py-4">
@@ -119,7 +119,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                   </span>
                 </td>
                 <td className="py-4 text-sm text-gray-400">
-                  {new Date(workspace.createdAt).toLocaleDateString()}
+                  {new Date(workspace.date).toLocaleDateString()}
                 </td>
                 <td className="py-4">
                   <div className="flex items-center justify-end space-x-2">

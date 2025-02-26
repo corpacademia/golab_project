@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { FileText, Calendar, Tag, Activity, Download, Pencil } from 'lucide-react';
+import axios from 'axios';
 
 interface Workspace {
   id: string;
@@ -39,13 +40,10 @@ export const WorkspaceViewPage: React.FC = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
-        // TODO: Replace with actual API call when ready
-        // const response = await axios.get(`/api/workspaces/${workspaceId}`);
-        // setWorkspace(response.data);
-        
-        // Using mock data for now
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        setWorkspace(mockWorkspace);
+       const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnId/${workspaceId}`);
+       if(response.data.success){
+         setWorkspace(response.data.data);}
+
       } catch (error) {
         console.error('Failed to fetch workspace:', error);
         setError('Failed to load workspace');
@@ -56,6 +54,20 @@ export const WorkspaceViewPage: React.FC = () => {
 
     fetchWorkspace();
   }, [workspaceId]);
+
+  const  extractFileName=(filePath)=> {
+    const match = filePath.match(/[\w-]+(?=\.\w+$)/);
+    if (match) {
+        // Remove the timestamp part (digits before '-')
+        return match[0].replace(/^\d+-/, '');
+    }
+    return null;
+}
+
+function extractFile_Name(filePath) {
+  const match = filePath.match(/[^\\\/]+$/);
+  return match ? match[0] : null;
+}
 
   if (isLoading) {
     return (
@@ -104,7 +116,7 @@ export const WorkspaceViewPage: React.FC = () => {
                 <Tag className="h-4 w-4" />
                 <span>Type:</span>
               </div>
-              <span className="text-gray-200">{workspace.type}</span>
+              <span className="text-gray-200">{workspace.lab_type}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2 text-gray-400">
@@ -125,7 +137,7 @@ export const WorkspaceViewPage: React.FC = () => {
                 <span>Created:</span>
               </div>
               <span className="text-gray-200">
-                {new Date(workspace.createdAt).toLocaleDateString()}
+              {new Date(workspace.date).toLocaleDateString()}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -134,7 +146,7 @@ export const WorkspaceViewPage: React.FC = () => {
                 <span>Last Updated:</span>
               </div>
               <span className="text-gray-200">
-                {new Date(workspace.updatedAt).toLocaleDateString()}
+                {new Date(workspace.last_updated).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -153,10 +165,10 @@ export const WorkspaceViewPage: React.FC = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-primary-400" />
-                    <span className="text-gray-200">{doc.name}</span>
+                    <span className="text-gray-200">{extractFileName(doc)}</span>
                   </div>
                   <a
-                    href={doc.url}
+                    href={`http://localhost:3000/uploads/${extractFile_Name(doc)}`} 
                     download
                     className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                   >
