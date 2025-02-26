@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
-import { AlertCircle, Check, Loader, X } from 'lucide-react';
+import { AlertCircle, Check, Loader, X, Upload, Link as LinkIcon } from 'lucide-react';
 import axios from 'axios';
 
 interface Workspace {
@@ -11,6 +11,13 @@ interface Workspace {
   type: string;
   status: 'active' | 'inactive' | 'pending';
   documents: { name: string; url: string }[];
+}
+
+interface FileWithProgress {
+  file: File;
+  progress: number;
+  status: 'pending' | 'uploading' | 'completed' | 'error';
+  error?: string;
 }
 
 export const WorkspaceEditPage: React.FC = () => {
@@ -23,11 +30,15 @@ export const WorkspaceEditPage: React.FC = () => {
     type: '',
     status: ''
   });
-  const [newDocuments, setNewDocuments] = useState<File[]>([]);
+
+  const [files, setFiles] = useState<FileWithProgress[]>([]);
+  const [urls, setUrls] = useState<string[]>(['']);
+  const [currentUrl, setCurrentUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchWorkspace = async () => {
@@ -40,6 +51,10 @@ export const WorkspaceEditPage: React.FC = () => {
           type: response.data.type,
           status: response.data.status
         });
+        // Initialize URLs from existing documents
+        if (response.data.documents) {
+          setUrls(response.data.documents.map((doc: any) => doc.url).filter(Boolean));
+        }
       } catch (error) {
         console.error('Failed to fetch workspace:', error);
         setError('Failed to load workspace');
@@ -56,14 +71,80 @@ export const WorkspaceEditPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    addFiles(droppedFiles);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setNewDocuments(prev => [...prev, ...Array.from(e.target.files!)]);
+      const selectedFiles = Array.from(e.target.files);
+      addFiles(selectedFiles);
     }
   };
 
-  const removeDocument = (index: number) => {
-    setNewDocuments(prev => prev.filter((_, i) => i !== index));
+  const addFiles = (newFiles: File[]) => {
+    const fileProgress: FileWithProgress[] = newFiles.map(file => ({
+      file,
+      progress: 0,
+      status: 'pending'
+    }));
+    
+    setFiles(prev => [...prev, ...fileProgress]);
+    
+    // Start upload simulation for each new file
+    fileProgress.forEach(file => {
+      simulateFileUpload(file);
+    });
+  };
+
+  const simulateFileUpload = async (fileWithProgress: FileWithProgress) => {
+    const steps = 100;
+    const totalTime = 2000;
+    const stepTime = totalTime / steps;
+    
+    for (let i = 1; i <= steps; i++) {
+      await new Promise(resolve => setTimeout(resolve, stepTime));
+      
+      setFiles(prev => prev.map(f => 
+        f.file === fileWithProgress.file 
+          ? { 
+              ...f, 
+              progress: (i / steps) * 100,
+              status: i === steps ? 'completed' : 'uploading'
+            }
+          : f
+      ));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUrlAdd = () => {
+    if (currentUrl.trim()) {
+      try {
+        new URL(currentUrl); // Validate URL format
+        setUrls(prev => [...prev, currentUrl]);
+        setCurrentUrl('');
+        setError(null);
+      } catch (err) {
+        setError('Please enter a valid URL');
+      }
+    }
+  };
+
+  const removeUrl = (index: number) => {
+    setUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,8 +158,17 @@ export const WorkspaceEditPage: React.FC = () => {
       Object.entries(formData).forEach(([key, value]) => {
         formDataToSend.append(key, value);
       });
-      newDocuments.forEach(file => {
-        formDataToSend.append('documents', file);
+
+      // Add files
+      files.forEach(fileWithProgress => {
+        formDataToSend.append('documents', fileWithProgress.file);
+      });
+
+      // Add URLs
+      urls.forEach((url, index) => {
+        if (url.trim()) {
+          formDataToSend.append(`urls[${index}]`, url);
+        }
       });
 
       await axios.put(`/api/workspaces/${workspaceId}`, formDataToSend, {
@@ -197,33 +287,63 @@ export const WorkspaceEditPage: React.FC = () => {
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Upload Documents
             </label>
-            <input
-              type="file"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-              id="document-upload"
-            />
-            <label
-              htmlFor="document-upload"
-              className="block w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 cursor-pointer hover:bg-dark-300/50 transition-colors"
+            <div 
+              className="border-2 border-dashed border-primary-500/20 rounded-lg p-8"
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
             >
-              Click to upload documents
-            </label>
-            {newDocuments.length > 0 && (
+              <div className="flex flex-col items-center">
+                <Upload className="h-12 w-12 text-primary-400 mb-4" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="document-upload"
+                  multiple
+                />
+                <label
+                  htmlFor="document-upload"
+                  className="cursor-pointer text-primary-400 hover:text-primary-300"
+                >
+                  Upload files
+                </label>
+                <p className="mt-1 text-sm text-gray-400">
+                  or drag and drop
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum file size: 50MB
+                </p>
+              </div>
+            </div>
+
+            {/* File List with Progress */}
+            {files.length > 0 && (
               <div className="mt-4 space-y-2">
-                {newDocuments.map((file, index) => (
+                {files.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 bg-dark-300/50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-dark-300/50 rounded-lg"
                   >
-                    <span className="text-sm text-gray-300 truncate">
-                      {file.name}
-                    </span>
+                    <div className="flex-1 mr-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-300 truncate">
+                          {file.file.name}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {file.status === 'completed' ? '100%' : `${Math.round(file.progress)}%`}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-dark-400 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-primary-500 to-secondary-500 transition-all duration-300"
+                          style={{ width: `${file.progress}%` }}
+                        />
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => removeDocument(index)}
+                      onClick={() => removeFile(index)}
                       className="p-1 hover:bg-red-500/10 rounded-lg"
                     >
                       <X className="h-4 w-4 text-red-400" />
@@ -232,6 +352,59 @@ export const WorkspaceEditPage: React.FC = () => {
                 ))}
               </div>
             )}
+
+            {/* URL Input */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Add Document URLs
+              </label>
+              <div className="flex space-x-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={currentUrl}
+                    onChange={(e) => setCurrentUrl(e.target.value)}
+                    placeholder="Enter document URL"
+                    className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  />
+                  <LinkIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUrlAdd}
+                  className="px-4 py-2 bg-primary-500/20 text-primary-300 rounded-lg 
+                           hover:bg-primary-500/30 transition-colors"
+                >
+                  Add URL
+                </button>
+              </div>
+
+              {/* URL List */}
+              {urls.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {urls.map((url, index) => (
+                    url.trim() && (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-dark-300/50 rounded-lg"
+                      >
+                        <span className="text-sm text-gray-300 truncate flex-1 mr-2">
+                          {url}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeUrl(index)}
+                          className="p-1 hover:bg-red-500/10 rounded-lg"
+                        >
+                          <X className="h-4 w-4 text-red-400" />
+                        </button>
+                      </div>
+                    )
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
