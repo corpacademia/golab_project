@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useRef} from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { AlertCircle, Check, Loader, X, Upload, Link as LinkIcon } from 'lucide-react';
@@ -43,17 +43,17 @@ export const WorkspaceEditPage: React.FC = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
-        const response = await axios.get(`/api/workspaces/${workspaceId}`);
-        setWorkspace(response.data);
+        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnId/${workspaceId}`);        setWorkspace(response.data.data);
+        
         setFormData({
-          name: response.data.name,
-          description: response.data.description,
-          type: response.data.type,
-          status: response.data.status
+          name: response.data.data.lab_name,
+          description: response.data.data.description,
+          type: response.data.data.lab_type,
+          status: response.data.data.status
         });
         // Initialize URLs from existing documents
-        if (response.data.documents) {
-          setUrls(response.data.documents.map((doc: any) => doc.url).filter(Boolean));
+        if (response.data.data.url) {
+          setUrls(response.data.data.url.map((doc: any) => doc).filter(Boolean));
         }
       } catch (error) {
         console.error('Failed to fetch workspace:', error);
