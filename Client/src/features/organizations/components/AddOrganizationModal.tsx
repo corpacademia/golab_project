@@ -161,8 +161,8 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="bg-dark-200 rounded-lg w-full max-w-2xl mx-4 my-6">
+        <div className="flex justify-between items-center p-6 border-b border-primary-500/10">
           <h2 className="text-xl font-semibold">
             <GradientText>Add Organization</GradientText>
           </h2>
@@ -174,7 +174,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -301,7 +301,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                rows={3}
+                rows={2}
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
@@ -348,7 +348,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+            <div className="mt-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-5 w-5 text-red-400" />
                 <span className="text-red-200">{error}</span>
@@ -357,7 +357,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           )}
 
           {success && (
-            <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+            <div className="mt-6 p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
               <div className="flex items-center space-x-2">
                 <Check className="h-5 w-5 text-emerald-400" />
                 <span className="text-emerald-200">{success}</span>
@@ -365,7 +365,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-4 mt-6 pt-6 border-t border-primary-500/10">
             <button
               type="button"
               onClick={onClose}
