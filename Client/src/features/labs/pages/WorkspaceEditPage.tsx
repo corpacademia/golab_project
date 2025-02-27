@@ -1,4 +1,4 @@
-import React, { useState, useEffect ,useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { AlertCircle, Check, Loader, X, Upload, Link as LinkIcon } from 'lucide-react';
@@ -10,7 +10,7 @@ interface Workspace {
   description: string;
   type: string;
   status: 'active' | 'inactive' | 'pending';
-  documents: { name: string; url: string }[];
+  documents: string[];
 }
 
 interface FileWithProgress {
@@ -32,6 +32,7 @@ export const WorkspaceEditPage: React.FC = () => {
   });
 
   const [files, setFiles] = useState<FileWithProgress[]>([]);
+  const [existingDocuments, setExistingDocuments] = useState<string[]>([]);
   const [urls, setUrls] = useState<string[]>(['']);
   const [currentUrl, setCurrentUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +44,8 @@ export const WorkspaceEditPage: React.FC = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnId/${workspaceId}`);        setWorkspace(response.data.data);
+        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnId/${workspaceId}`);
+        setWorkspace(response.data.data);
         
         setFormData({
           name: response.data.data.lab_name,
@@ -51,6 +53,12 @@ export const WorkspaceEditPage: React.FC = () => {
           type: response.data.data.lab_type,
           status: response.data.data.status
         });
+
+        // Set existing documents from the documents array
+        if (response.data.data.documents) {
+          setExistingDocuments(response.data.data.documents);
+        }
+
         // Initialize URLs from existing documents
         if (response.data.data.url) {
           setUrls(response.data.data.url.map((doc: any) => doc).filter(Boolean));
@@ -128,6 +136,35 @@ export const WorkspaceEditPage: React.FC = () => {
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingDocument = async (documentPath: string) => {
+    try {
+      // Call API to remove document
+      await axios.post(`http://localhost:3000/api/v1/removeWorkspaceDocument`, {
+        workspaceId,
+        documentPath
+      });
+
+      // Update local state
+      setExistingDocuments(prev => prev.filter(doc => doc !== documentPath));
+    } catch (error) {
+      console.error('Failed to remove document:', error);
+      setError('Failed to remove document');
+    }
+  };
+
+  const extractFileName = (filePath: string) => {
+    const match = filePath.match(/[\w-]+(?=\.\w+$)/);
+    if (match) {
+      return match[0].replace(/^\d+-/, '');
+    }
+    return filePath;
+  };
+
+  const extractFile_Name = (filePath: string) => {
+    const match = filePath.match(/[^\\\/]+$/);
+    return match ? match[0] : filePath;
   };
 
   const handleUrlAdd = () => {
@@ -283,9 +320,46 @@ export const WorkspaceEditPage: React.FC = () => {
             </select>
           </div>
 
+          {/* Existing Documents Section */}
+          {existingDocuments.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Existing Documents
+              </label>
+              <div className="space-y-2">
+                {existingDocuments.map((doc, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-dark-300/50 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-300">{extractFileName(doc)}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <a
+                        href={`http://localhost:3000/uploads/${extractFile_Name(doc)}`}
+                        download
+                        className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                      >
+                        <LinkIcon className="h-4 w-4 text-primary-400" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => removeExistingDocument(doc)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        <X className="h-4 w-4 text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Upload Documents
+              Upload New Documents
             </label>
             <div 
               className="border-2 border-dashed border-primary-500/20 rounded-lg p-8"
