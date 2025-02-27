@@ -161,7 +161,7 @@ export const WorkspaceEditPage: React.FC = () => {
 
       // Add files
       files.forEach(fileWithProgress => {
-        formDataToSend.append('documents', fileWithProgress.file);
+        formDataToSend.append('files', fileWithProgress.file);
       });
 
       // Add URLs
@@ -171,7 +171,7 @@ export const WorkspaceEditPage: React.FC = () => {
         }
       });
 
-      await axios.put(`/api/workspaces/${workspaceId}`, formDataToSend, {
+      await axios.post(`http://localhost:3000/api/v1/editWorkspace/${workspaceId}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -204,7 +204,6 @@ export const WorkspaceEditPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
