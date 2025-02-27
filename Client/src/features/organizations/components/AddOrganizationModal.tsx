@@ -52,7 +52,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         setError('Logo file size must be less than 5MB');
         return;
       }
@@ -161,23 +161,23 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-2xl mx-4 my-6">
-        <div className="flex justify-between items-center p-6 border-b border-primary-500/10">
+      <div className="bg-dark-200 rounded-lg w-full max-w-2xl mx-4">
+        <div className="flex justify-between items-center p-4 border-b border-primary-500/10">
           <h2 className="text-xl font-semibold">
             <GradientText>Add Organization</GradientText>
           </h2>
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+            className="p-1.5 hover:bg-dark-300 rounded-lg transition-colors"
           >
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Organization Name
               </label>
               <div className="relative">
@@ -186,16 +186,16 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full pl-9 pr-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                   required
                 />
-                <Building2 className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                <Building2 className="absolute left-2.5 top-2 h-4 w-4 text-gray-500" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Organization ID
               </label>
               <input
@@ -203,14 +203,14 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 name="orgId"
                 value={formData.orgId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                className="w-full px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Admin Name
               </label>
               <input
@@ -218,14 +218,14 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 name="adminName"
                 value={formData.adminName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                className="w-full px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Email Address
               </label>
               <div className="relative">
@@ -234,16 +234,16 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full pl-9 pr-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                   required
                 />
-                <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                <Mail className="absolute left-2.5 top-2 h-4 w-4 text-gray-500" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Phone Number
               </label>
               <div className="relative">
@@ -252,15 +252,15 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full pl-9 pr-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
-                <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                <Phone className="absolute left-2.5 top-2 h-4 w-4 text-gray-500" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Website
               </label>
               <div className="relative">
@@ -269,22 +269,22 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                   name="website"
                   value={formData.website}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full pl-9 pr-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
-                <Globe className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                <Globe className="absolute left-2.5 top-2 h-4 w-4 text-gray-500" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Organization Type
               </label>
               <select
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                className="w-full px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               >
                 <option value="enterprise">Enterprise</option>
@@ -294,7 +294,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Address
               </label>
               <textarea
@@ -302,13 +302,13 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 value={formData.address}
                 onChange={handleChange}
                 rows={2}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                className="w-full px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none text-sm"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Organization Logo
               </label>
               <div className="flex items-center space-x-4">
@@ -317,11 +317,11 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                     <img
                       src={logoPreview}
                       alt="Logo preview"
-                      className="h-20 w-20 object-cover rounded-lg border border-primary-500/20"
+                      className="h-16 w-16 object-cover rounded-lg border border-primary-500/20"
                     />
                   ) : (
-                    <div className="h-20 w-20 rounded-lg bg-dark-400/50 border border-primary-500/20 flex items-center justify-center">
-                      <Upload className="h-8 w-8 text-gray-500" />
+                    <div className="h-16 w-16 rounded-lg bg-dark-400/50 border border-primary-500/20 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-500" />
                     </div>
                   )}
                 </div>
@@ -335,12 +335,12 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                   />
                   <label
                     htmlFor="logo-upload"
-                    className="btn-secondary inline-block cursor-pointer"
+                    className="btn-secondary inline-block cursor-pointer text-sm py-1.5"
                   >
                     Choose Logo
                   </label>
-                  <p className="mt-2 text-xs text-gray-400">
-                    Recommended size: 200x200px. Max file size: 5MB.
+                  <p className="mt-1 text-xs text-gray-400">
+                    Recommended: 200x200px. Max: 5MB
                   </p>
                 </div>
               </div>
@@ -348,28 +348,28 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           </div>
 
           {error && (
-            <div className="mt-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+            <div className="mt-4 p-3 bg-red-900/20 border border-red-500/20 rounded-lg">
               <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-200">{error}</span>
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <span className="text-red-200 text-sm">{error}</span>
               </div>
             </div>
           )}
 
           {success && (
-            <div className="mt-6 p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+            <div className="mt-4 p-3 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
               <div className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-emerald-400" />
-                <span className="text-emerald-200">{success}</span>
+                <Check className="h-4 w-4 text-emerald-400" />
+                <span className="text-emerald-200 text-sm">{success}</span>
               </div>
             </div>
           )}
 
-          <div className="flex justify-end space-x-4 mt-6 pt-6 border-t border-primary-500/10">
+          <div className="flex justify-end space-x-3 mt-4 pt-4 border-t border-primary-500/10">
             <button
               type="button"
               onClick={onClose}
-              className="btn-secondary"
+              className="btn-secondary py-1.5 px-4 text-sm"
               disabled={isSubmitting}
             >
               Cancel
@@ -377,7 +377,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn-primary"
+              className="btn-primary py-1.5 px-4 text-sm"
             >
               {isSubmitting ? (
                 <span className="flex items-center">
