@@ -17,9 +17,18 @@ import {
   AlertTriangle,
   FolderOpen,
   Clock,
-  Loader
+  Loader,
+  Check,
+  X
 } from 'lucide-react';
 import axios from 'axios';
+
+// Components for each tab
+import { OrgUsersTab } from '../components/tabs/OrgUsersTab';
+import { OrgBillingTab } from '../components/tabs/OrgBillingTab';
+import { OrgWorkspacesTab } from '../components/tabs/OrgWorkspacesTab';
+import { OrgActivityTab } from '../components/tabs/OrgActivityTab';
+import { OrgDocumentsTab } from '../components/tabs/OrgDocumentsTab';
 
 interface OrganizationDetails {
   id: string;
@@ -86,19 +95,26 @@ export const OrganizationOverview: React.FC = () => {
   const [organization, setOrganization] = useState<OrganizationDetails>(defaultOrganization);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`,{
+        const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
           org_id: orgId
         });
-        if (response.data) {
+        
+        if (response.data.success) {
           setOrganization({
             ...defaultOrganization,
-            ...response.data
+            ...response.data.data
           });
+        } else {
+          throw new Error('Failed to fetch organization data');
         }
       } catch (err) {
         console.error('Failed to fetch organization data:', err);
@@ -112,6 +128,26 @@ export const OrganizationOverview: React.FC = () => {
       fetchOrganizationData();
     }
   }, [orgId]);
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`http://localhost:3000/api/v1/deleteOrganization/${orgId}`);
+      if (response.data.success) {
+        setSuccess('Organization deleted successfully');
+        setTimeout(() => {
+          window.location.href = '/dashboard/organizations';
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete organization');
+      }
+    } catch (err) {
+      setError('Failed to delete organization');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -135,6 +171,23 @@ export const OrganizationOverview: React.FC = () => {
     );
   }
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'users':
+        return <OrgUsersTab orgId={orgId!} />;
+      case 'billing':
+        return <OrgBillingTab orgId={orgId!} />;
+      case 'workspaces':
+        return <OrgWorkspacesTab orgId={orgId!} />;
+      case 'activity':
+        return <OrgActivityTab orgId={orgId!} />;
+      case 'documents':
+        return <OrgDocumentsTab orgId={orgId!} />;
+      default:
+        return renderOverviewTab();
+    }
+  };
+
   const renderOverviewTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -144,10 +197,10 @@ export const OrganizationOverview: React.FC = () => {
             <Users className="h-5 w-5 text-primary-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            {organization?.stats?.users || 0}
+            {organization.stats.users}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            {organization?.stats?.admins || 0} admins
+            {organization.stats.admins} admins
           </p>
         </div>
 
@@ -157,7 +210,7 @@ export const OrganizationOverview: React.FC = () => {
             <Activity className="h-5 w-5 text-secondary-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            {organization?.stats?.activeWorkspaces || 0}
+            {organization.stats.activeWorkspaces}
           </p>
         </div>
 
@@ -167,7 +220,7 @@ export const OrganizationOverview: React.FC = () => {
             <CreditCard className="h-5 w-5 text-accent-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            ${(organization?.stats?.monthlyUsage || 0).toLocaleString()}
+            ${organization.stats.monthlyUsage.toLocaleString()}
           </p>
         </div>
 
@@ -177,10 +230,10 @@ export const OrganizationOverview: React.FC = () => {
             <Shield className="h-5 w-5 text-emerald-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            {organization?.subscription?.plan || 'Basic'}
+            {organization.subscription.plan}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            Next billing: {new Date(organization?.subscription?.nextBilling || '').toLocaleDateString()}
+            Next billing: {new Date(organization.subscription.nextBilling).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -196,7 +249,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Email</p>
-              <p className="text-gray-200">{organization?.contact?.email || 'N/A'}</p>
+              <p className="text-gray-200">{organization.contact.email}</p>
             </div>
           </div>
           
@@ -206,7 +259,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Phone</p>
-              <p className="text-gray-200">{organization?.contact?.phone || 'N/A'}</p>
+              <p className="text-gray-200">{organization.contact.phone}</p>
             </div>
           </div>
           
@@ -216,7 +269,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Address</p>
-              <p className="text-gray-200">{organization?.contact?.address || 'N/A'}</p>
+              <p className="text-gray-200">{organization.contact.address}</p>
             </div>
           </div>
         </div>
@@ -243,7 +296,7 @@ export const OrganizationOverview: React.FC = () => {
             )}
             <div>
               <h1 className="text-2xl font-display font-bold">
-                <GradientText>{organization.name || 'Unnamed Organization'}</GradientText>
+                <GradientText>{organization.name}</GradientText>
               </h1>
               <div className="flex items-center mt-2 space-x-4">
                 <span className="text-sm text-gray-400">ID: {organization.id}</span>
@@ -253,18 +306,23 @@ export const OrganizationOverview: React.FC = () => {
                   organization.status === 'pending' ? 'bg-amber-500/20 text-amber-300' :
                   'bg-gray-500/20 text-gray-300'
                 }`}>
-                  {/* {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)} */}
-                  pending
+                  {organization.status.charAt(0).toUpperCase() + organization.status.slice(1)}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex space-x-3">
-            <button className="btn-secondary">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="btn-secondary"
+            >
               <Pencil className="h-4 w-4 mr-2" />
               Edit
             </button>
-            <button className="btn-secondary text-red-400 hover:text-red-300">
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="btn-secondary text-red-400 hover:text-red-300"
+            >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
             </button>
@@ -300,8 +358,54 @@ export const OrganizationOverview: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && renderOverviewTab()}
-      {/* Add other tab content here */}
+      {renderTabContent()}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold mb-4">
+              <GradientText>Confirm Deletion</GradientText>
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this organization? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="btn-secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="btn-primary bg-red-500 hover:bg-red-600"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center">
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete Organization'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {success && (
+        <div className="fixed bottom-4 right-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg p-4 animate-fade-in">
+          <div className="flex items-center space-x-2">
+            <Check className="h-5 w-5 text-emerald-400" />
+            <span className="text-emerald-200">{success}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
