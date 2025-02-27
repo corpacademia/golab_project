@@ -6,11 +6,13 @@ import axios from 'axios';
 interface CreateWorkspaceFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  user: any;
 }
 
 export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
   onSubmit,
   onCancel,
+  user,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -18,7 +20,6 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
     type: 'single-vm',
     createdAt: new Date().toISOString().split('T')[0],
   });
-
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,7 +69,7 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
       files.forEach(file => {
         formDataToSend.append('files', file);
       });
-
+      formDataToSend.append('user', user.id); 
       await onSubmit(formDataToSend);
     } catch (error) {
       console.error('Failed to create workspace:', error);

@@ -200,7 +200,7 @@ export const WorkspaceEditPage: React.FC = () => {
 
       // Add existing documents that weren't removed
       existingDocuments.forEach(doc => {
-        formDataToSend.append('existingDocuments[]', doc);
+        formDataToSend.append('files', doc);
       });
 
       // Add new files
@@ -214,7 +214,7 @@ export const WorkspaceEditPage: React.FC = () => {
           formDataToSend.append(`urls[${index}]`, url);
         }
       });
-
+      console.log(formDataToSend)
       await axios.post(`http://localhost:3000/api/v1/editWorkspace/${workspaceId}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'

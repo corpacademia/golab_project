@@ -101,10 +101,10 @@ export const WorkspacePage: React.FC = () => {
 
   const handleDelete = async (ids: string[]) => {
     try {
-      // TODO: Replace with actual API calls when ready
-      // await Promise.all(ids.map(id => 
-      //   axios.delete(`/api/workspaces/${id}`)
-      // ));
+      const delete_workspace = await axios.post(`http://localhost:3000/api/v1/deleteWorkspace`,{
+        ids
+      });
+       
       
       setWorkspaces(prev =>
         prev.filter(workspace => !ids.includes(workspace.id))
@@ -129,7 +129,7 @@ export const WorkspacePage: React.FC = () => {
             } else if (fileObj.file instanceof File) {
               formData.append("files", fileObj.file); // Handle cases where `fileObj.file` contains the `File`
             } else {
-              console.warn("⚠️ Skipping non-File object in files array:", fileObj);
+              console.warn(" Skipping non-File object in files array:", fileObj);
             }
           });
         } else if (Array.isArray(value)) {
@@ -178,13 +178,13 @@ export const WorkspacePage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {isCreating ? (
         <CreateWorkspaceForm
           onSubmit={handleCreateWorkspace}
           onCancel={() => setIsCreating(false)}
+          user={user}
         />
       ) : (
         <>
