@@ -54,8 +54,8 @@ export const WorkspaceEditPage: React.FC = () => {
           status: response.data.data.status
         });
 
-        // Set existing documents from the documents array
-        if (response.data.data.documents) {
+        // Set existing documents
+        if (response.data.data.documents && response.data.data.documents.length > 0) {
           setExistingDocuments(response.data.data.documents);
         }
 
@@ -143,7 +143,7 @@ export const WorkspaceEditPage: React.FC = () => {
       // Call API to remove document
       await axios.post(`http://localhost:3000/api/v1/removeWorkspaceDocument`, {
         workspaceId,
-        filePath:documentPath
+        documentPath
       });
 
       // Update local state
@@ -198,7 +198,7 @@ export const WorkspaceEditPage: React.FC = () => {
 
       // Add files
       files.forEach(fileWithProgress => {
-        formDataToSend.append('files', fileWithProgress.file);
+        formDataToSend.append('documents', fileWithProgress.file);
       });
 
       // Add URLs
@@ -208,7 +208,7 @@ export const WorkspaceEditPage: React.FC = () => {
         }
       });
 
-      await axios.post(`http://localhost:3000/api/v1/editWorkspace/${workspaceId}`, formDataToSend, {
+      await axios.put(`/api/workspaces/${workspaceId}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -241,6 +241,7 @@ export const WorkspaceEditPage: React.FC = () => {
       </div>
     );
   }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
