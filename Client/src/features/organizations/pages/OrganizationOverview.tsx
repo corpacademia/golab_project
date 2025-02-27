@@ -187,7 +187,6 @@ export const OrganizationOverview: React.FC = () => {
         return renderOverviewTab();
     }
   };
-
   const renderOverviewTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -249,7 +248,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Email</p>
-              <p className="text-gray-200">{organization.contact.email}</p>
+              <p className="text-gray-200">{organization.org_email}</p>
             </div>
           </div>
           
@@ -259,7 +258,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Phone</p>
-              <p className="text-gray-200">{organization.contact.phone}</p>
+              <p className="text-gray-200">{organization.phone_number}</p>
             </div>
           </div>
           
@@ -269,7 +268,7 @@ export const OrganizationOverview: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-400">Address</p>
-              <p className="text-gray-200">{organization.contact.address}</p>
+              <p className="text-gray-200">{organization.address}</p>
             </div>
           </div>
         </div>
@@ -286,7 +285,7 @@ export const OrganizationOverview: React.FC = () => {
             {organization.logo ? (
               <img 
                 src={organization.logo} 
-                alt={organization.name} 
+                alt={organization.organization_name} 
                 className="h-16 w-16 rounded-lg object-cover"
               />
             ) : (
@@ -296,7 +295,7 @@ export const OrganizationOverview: React.FC = () => {
             )}
             <div>
               <h1 className="text-2xl font-display font-bold">
-                <GradientText>{organization.name}</GradientText>
+                <GradientText>{organization.organization_name}</GradientText>
               </h1>
               <div className="flex items-center mt-2 space-x-4">
                 <span className="text-sm text-gray-400">ID: {organization.id}</span>
