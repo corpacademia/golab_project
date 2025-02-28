@@ -23,6 +23,7 @@ export const WorkspacePage: React.FC = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
+
   // Mock data for development - remove this when API is ready
   const mockWorkspaces: Workspace[] = [
     {

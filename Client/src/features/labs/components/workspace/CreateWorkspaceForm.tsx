@@ -69,7 +69,8 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
       files.forEach(file => {
         formDataToSend.append('files', file);
       });
-      formDataToSend.append('user', user.id); 
+      formDataToSend.append('user', user.id);
+      formDataToSend.append('org_id', user.org_id); 
       await onSubmit(formDataToSend);
     } catch (error) {
       console.error('Failed to create workspace:', error);

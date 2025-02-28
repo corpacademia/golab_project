@@ -99,6 +99,18 @@ export const OrganizationOverview: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [orgUserCount, setOrgUserCount] = useState<number>(0);
+  const [worspacecount , setWorkspaceCount] = useState<number>(0);
+
+  //to extract the file path of logo
+  const getUploadedFilePath = (fullPath: string) => {
+    const normalizedPath = fullPath.replace(/\\/g, "/"); // Convert \ to /
+    const uploadIndex = normalizedPath.indexOf("uploads/");
+    
+    if (uploadIndex === -1) return null; // If "uploads/" not found, return null
+  
+    return normalizedPath.substring(uploadIndex + 8); // Extract everything after "uploads/"
+  };
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
@@ -107,12 +119,26 @@ export const OrganizationOverview: React.FC = () => {
         const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
           org_id: orgId
         });
+        const orgUsersCount = await axios.get(`http://localhost:3000/api/v1/getOrgUsersCount/${orgId}`); 
+        const workspaceCount = await axios.get(`http://localhost:3000/api/v1/workspaceCount/${response.data.data.id}`);
+        
         
         if (response.data.success) {
           setOrganization({
             ...defaultOrganization,
             ...response.data.data
           });
+       
+        if(workspaceCount.data.success){
+          setWorkspaceCount(workspaceCount.data.data.count)
+          setOrganization({ ...organization, stats: { ...organization.stats, activeWorkspaces: workspaceCount.data.data.count} });
+        }
+        if(orgUsersCount.data.success){
+          setOrgUserCount(orgUsersCount.data.data)
+          setOrganization({ ...organization, stats: { ...organization.stats, users: orgUsersCount.data.data.users, admins: orgUsersCount.data.data.admins } });
+        }
+       
+        
         } else {
           throw new Error('Failed to fetch organization data');
         }
@@ -148,7 +174,6 @@ export const OrganizationOverview: React.FC = () => {
       setIsDeleteModalOpen(false);
     }
   };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -156,7 +181,6 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
@@ -170,7 +194,6 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     );
   }
-
   const renderTabContent = () => {
     switch (activeTab) {
       case 'users':
@@ -196,10 +219,10 @@ export const OrganizationOverview: React.FC = () => {
             <Users className="h-5 w-5 text-primary-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            {organization.stats.users}
+            {orgUserCount.users}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            {organization.stats.admins} admins
+            {orgUserCount.admins} admins
           </p>
         </div>
 
@@ -209,7 +232,7 @@ export const OrganizationOverview: React.FC = () => {
             <Activity className="h-5 w-5 text-secondary-400" />
           </div>
           <p className="text-2xl font-semibold text-gray-200">
-            {organization.stats.activeWorkspaces}
+            {worspacecount}
           </p>
         </div>
 
@@ -275,7 +298,7 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     </div>
   );
-
+ 
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -284,7 +307,7 @@ export const OrganizationOverview: React.FC = () => {
           <div className="flex items-center space-x-4">
             {organization.logo ? (
               <img 
-                src={organization.logo} 
+                src={`http://localhost:3000/uploads/${getUploadedFilePath(organization.logo)}`} 
                 alt={organization.organization_name} 
                 className="h-16 w-16 rounded-lg object-cover"
               />
@@ -298,7 +321,7 @@ export const OrganizationOverview: React.FC = () => {
                 <GradientText>{organization.organization_name}</GradientText>
               </h1>
               <div className="flex items-center mt-2 space-x-4">
-                <span className="text-sm text-gray-400">ID: {organization.id}</span>
+                <span className="text-sm text-gray-400">ID: {organization.org_id}</span>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                   organization.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
                   organization.status === 'suspended' ? 'bg-red-500/20 text-red-300' :

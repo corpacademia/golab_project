@@ -42,12 +42,21 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [admin, setAdmin] = useState({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError(null);
   };
+
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,10 +96,8 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     }
     return true;
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
     
     setIsSubmitting(true);
@@ -98,15 +105,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     setSuccess(null);
 
     try {
-      const [admin, setAdmin] = useState({});
-
-      useEffect(() => {
-        const getUserDetails = async () => {
-          const response = await axios.get('http://localhost:3000/api/v1/user_profile');
-          setAdmin(response.data.user);
-        };
-        getUserDetails();
-      }, []);
+      
 
       const formDataToSend = new FormData();
       formDataToSend.append('organization_name', formData.name);
@@ -118,11 +117,9 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
       formDataToSend.append('org_type', formData.type);
       formDataToSend.append('org_id', formData.orgId);
       formDataToSend.append('admin_id', admin.id);
-      
       if (formData.logo) {
         formDataToSend.append('logo', formData.logo);
       }
-
       const response = await axios.post(
         'http://localhost:3000/api/v1/createOrganization', 
         formDataToSend,
