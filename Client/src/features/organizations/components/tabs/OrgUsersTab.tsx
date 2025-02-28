@@ -36,27 +36,27 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/v1/getUsersFromOrganization/${orgId}`);
-        if (response.data.success) {
-          setUsers(response.data.data);
-        } else {
-          throw new Error('Failed to fetch users');
-        }
-      } catch (err) {
-        setError('Failed to load users');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUsers();
   }, [orgId]);
 
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/organization/${orgId}/users`);
+      if (response.data.success) {
+        setUsers(response.data.data);
+      } else {
+        throw new Error('Failed to fetch users');
+      }
+    } catch (err) {
+      setError('Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(users.map(user => user.id));
+      setSelectedUsers(users.map(u => u.id));
     } else {
       setSelectedUsers([]);
     }
@@ -78,9 +78,8 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
     setSuccess(null);
 
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizationUsers`, {
-        orgId,
-        userIds: selectedUsers
+      const response = await axios.delete(`http://localhost:3000/api/v1/organization/${orgId}/users`, {
+        data: { userIds: selectedUsers }
       });
 
       if (response.data.success) {
@@ -94,6 +93,52 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
       setError('Failed to delete selected users');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleEditUser = async (userId: string) => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/organization/${orgId}/users/${userId}`);
+      if (response.data.success) {
+        // Open edit modal with user data
+        console.log('Edit user:', response.data.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch user details');
+    }
+  };
+
+  const handleViewUser = async (userId: string) => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/organization/${orgId}/users/${userId}`);
+      if (response.data.success) {
+        // Open view modal with user data
+        console.log('View user:', response.data.data);
+      }
+    } catch (err) {
+      setError('Failed to fetch user details');
+    }
+  };
+
+  const handleImportUsers = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/organization/${orgId}/users/import`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        setSuccess('Users imported successfully');
+        fetchUsers(); // Refresh user list
+      } else {
+        throw new Error(response.data.message || 'Failed to import users');
+      }
+    } catch (err) {
+      setError('Failed to import users');
     }
   };
 
@@ -122,10 +167,16 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
               Delete Selected
             </button>
           )}
-          <button className="btn-secondary">
+          <label className="btn-secondary cursor-pointer">
+            <input
+              type="file"
+              className="hidden"
+              accept=".csv"
+              onChange={(e) => e.target.files?.[0] && handleImportUsers(e.target.files[0])}
+            />
             <Upload className="h-4 w-4 mr-2" />
             Import Users
-          </button>
+          </label>
           <button className="btn-primary">
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
@@ -220,13 +271,22 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
                   </td>
                   <td className="py-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleViewUser(user.id)}
+                        className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                      >
                         <Eye className="h-4 w-4 text-primary-400" />
                       </button>
-                      <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
+                      <button
+                        onClick={() => handleEditUser(user.id)}
+                        className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                      >
                         <Pencil className="h-4 w-4 text-primary-400" />
                       </button>
-                      <button className="p-2 hover:bg-red-500/10 rounded-lg transition-colors">
+                      <button
+                        onClick={() => handleSelectUser(user.id)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
                         <Trash2 className="h-4 w-4 text-red-400" />
                       </button>
                       <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
