@@ -14,7 +14,8 @@ import {
   HardDrive,
   Server,
   Pencil,
-  Trash2
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { EditStorageModal } from './EditStorageModal';
@@ -29,6 +30,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [software, setSoftware] = useState<string[]>([]);
   const [labDetails, setLabDetails] = useState<any>(null);
@@ -114,6 +116,34 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
     }
   };
 
+  const handleCreateNewCatalogue = async () => {
+    setIsCreating(true);
+    setNotification(null);
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/createCatalogue', {
+        lab_id: lab.lab_id
+      });
+
+      if (response.data.success) {
+        setNotification({ 
+          type: 'success', 
+          message: 'New catalogue created successfully' 
+        });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to create catalogue');
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to create catalogue'
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   if (!labDetails) {
     return <div className="animate-pulse h-[320px] bg-dark-300/50 rounded-lg"></div>;
   }
@@ -195,6 +225,29 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="mt-auto pt-3 border-t border-primary-500/10">
+            <button
+              onClick={handleCreateNewCatalogue}
+              disabled={isCreating}
+              className="w-full h-9 px-4 rounded-lg text-sm font-medium
+                       bg-gradient-to-r from-primary-500 to-secondary-500
+                       hover:from-primary-400 hover:to-secondary-400
+                       transform hover:scale-105 transition-all duration-300
+                       text-white shadow-lg shadow-primary-500/20
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       flex items-center justify-center"
+            >
+              {isCreating ? (
+                <Loader className="animate-spin h-4 w-4" />
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Catalogue
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
