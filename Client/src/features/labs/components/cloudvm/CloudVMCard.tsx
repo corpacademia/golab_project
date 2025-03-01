@@ -321,7 +321,7 @@ useEffect(() => {
         lab_id: vm.lab_id
       });
 
-      if (response.data.success) {
+      if (response.data.success) { 
         const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
           lab_id: vm.lab_id
         });
