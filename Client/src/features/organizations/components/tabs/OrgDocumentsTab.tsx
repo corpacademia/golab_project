@@ -34,25 +34,26 @@ export const OrgDocumentsTab: React.FC<OrgDocumentsTabProps> = ({ orgId }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/v1/getOrganizationDocuments/${orgId}`);
-        if (response.data.success) {
-          setDocuments(response.data.data);
-        } else {
-          throw new Error('Failed to fetch documents');
-        }
-      } catch (err) {
-        setError('Failed to load documents');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDocuments();
   }, [orgId]);
+
+  const fetchDocuments = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/getOrganizationDocuments/${orgId}`);
+      if (response.data.success) {
+        setDocuments(response.data.data);
+      } else {
+        throw new Error('Failed to fetch documents');
+      }
+    } catch (err) {
+      setError('Failed to load documents');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -68,6 +69,37 @@ export const OrgDocumentsTab: React.FC<OrgDocumentsTabProps> = ({ orgId }) => {
         ? prev.filter(id => id !== documentId)
         : [...prev, documentId]
     );
+  };
+
+  const handleUploadDocument = async (files: FileList) => {
+    setIsUploading(true);
+    setError(null);
+    setSuccess(null);
+
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append('documents', file);
+    });
+    formData.append('orgId', orgId);
+
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/uploadOrganizationDocuments`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.success) {
+        setSuccess('Documents uploaded successfully');
+        fetchDocuments();
+      } else {
+        throw new Error(response.data.message || 'Failed to upload documents');
+      }
+    } catch (err) {
+      setError('Failed to upload documents');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteSelected = async () => {
@@ -130,10 +162,16 @@ export const OrgDocumentsTab: React.FC<OrgDocumentsTabProps> = ({ orgId }) => {
               Delete Selected
             </button>
           )}
-          <button className="btn-primary">
+          <label className="btn-primary cursor-pointer">
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && handleUploadDocument(e.target.files)}
+            />
             <Upload className="h-4 w-4 mr-2" />
             Upload Document
-          </button>
+          </label>
         </div>
       </div>
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { 
-  FolderPlus, 
   Trash2, 
   Eye, 
   Pencil, 
@@ -120,10 +119,6 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
               Delete Selected
             </button>
           )}
-          <button className="btn-primary">
-            <FolderPlus className="h-4 w-4 mr-2" />
-            New Workspace
-          </button>
         </div>
       </div>
 

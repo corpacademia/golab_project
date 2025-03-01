@@ -3,12 +3,12 @@ import { GradientText } from '../../../../components/ui/GradientText';
 import { 
   Trash2, 
   Eye, 
-  MoreVertical,
+  AlertCircle,
+  BarChart,
+  Download,
   Check,
   X,
-  Loader,
-  AlertCircle,
-  Download
+  Loader
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -34,23 +34,23 @@ export const OrgActivityTab: React.FC<OrgActivityTabProps> = ({ orgId }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/v1/getOrganizationActivities/${orgId}`);
-        if (response.data.success) {
-          setActivities(response.data.data);
-        } else {
-          throw new Error('Failed to fetch activities');
-        }
-      } catch (err) {
-        setError('Failed to load activities');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchActivities();
   }, [orgId]);
+
+  const fetchActivities = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/getOrganizationActivities/${orgId}`);
+      if (response.data.success) {
+        setActivities(response.data.data);
+      } else {
+        throw new Error('Failed to fetch activities');
+      }
+    } catch (err) {
+      setError('Failed to load activities');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -95,6 +95,24 @@ export const OrgActivityTab: React.FC<OrgActivityTabProps> = ({ orgId }) => {
     }
   };
 
+  const handleExportLog = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/exportActivityLog/${orgId}`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `activity_log_${new Date().toISOString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError('Failed to export activity log');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -120,7 +138,10 @@ export const OrgActivityTab: React.FC<OrgActivityTabProps> = ({ orgId }) => {
               Delete Selected
             </button>
           )}
-          <button className="btn-secondary">
+          <button 
+            onClick={handleExportLog}
+            className="btn-secondary"
+          >
             <Download className="h-4 w-4 mr-2" />
             Export Log
           </button>
@@ -199,7 +220,7 @@ export const OrgActivityTab: React.FC<OrgActivityTabProps> = ({ orgId }) => {
                         <Trash2 className="h-4 w-4 text-red-400" />
                       </button>
                       <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
-                        <MoreVertical className="h-4 w-4 text-gray-400" />
+                        <BarChart className="h-4 w-4 text-gray-400" />
                       </button>
                     </div>
                   </td>

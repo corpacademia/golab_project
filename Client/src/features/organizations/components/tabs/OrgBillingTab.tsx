@@ -96,6 +96,24 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
     }
   };
 
+  const handleExportBilling = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/v1/exportBilling/${orgId}`, {
+        responseType: 'blob'
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `billing_export_${new Date().toISOString()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setError('Failed to export billing data');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -121,7 +139,10 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
               Delete Selected
             </button>
           )}
-          <button className="btn-secondary">
+          <button 
+            onClick={handleExportBilling}
+            className="btn-secondary"
+          >
             <Download className="h-4 w-4 mr-2" />
             Export
           </button>
@@ -218,7 +239,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
                       <button className="p-2 hover:bg-red-500/10 rounded-lg transition-colors">
                         <Trash2 className="h-4 w-4 text-red-400" />
                       </button>
-                      <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
+                      <button className="p 2 hover:bg-primary-500/10 rounded-lg transition-colors">
                         <MoreVertical className="h-4 w-4 text-gray-400" />
                       </button>
                     </div>
