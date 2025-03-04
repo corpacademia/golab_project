@@ -110,6 +110,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete lab'
       });
+      setTimeout(()=>setNotification(null),1500)
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
@@ -130,7 +131,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           type: 'success', 
           message: 'New catalogue created successfully' 
         });
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => setNotification(null), 1500);
       } else {
         throw new Error(response.data.message || 'Failed to create catalogue');
       }
@@ -139,6 +140,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         type: 'error',
         message: error.response?.data?.message || 'Failed to create catalogue'
       });
+      setTimeout(() => setNotification(null), 1500);
     } finally {
       setIsCreating(false);
     }

@@ -49,6 +49,7 @@ export const AdminCloudVMsPage: React.FC = () => {
 
         if (response.data.success) {
           setVMs(response.data.data);
+          console.log(vms)
         } else {
           setError('Failed to fetch VMs');
         }

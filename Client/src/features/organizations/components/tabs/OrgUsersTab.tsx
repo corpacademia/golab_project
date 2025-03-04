@@ -51,7 +51,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     if (user) {
       setFormData({
@@ -272,28 +271,33 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
 
   const handleEditUser = async (userData: Partial<User>) => {
     if (!selectedUser) return;
-
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateOrganizationUser/${selectedUser.id}`, {
+      const response = await axios.put(`http://localhost:3000/api/v1/updateUserFromSuperadmin/${selectedUser.id}`, {
         ...userData,
         orgId
       });
-      
+  
       if (response.data.success) {
         setSuccess('User updated successfully');
-        await fetchUsers(); // Refresh the user list
+        fetchUsers();
+  
+        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
         return response.data;
       } else {
         throw new Error(response.data.message || 'Failed to update user');
       }
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to update user');
+      setError(err.response?.data?.message || 'Failed to update user');
+  
+      setTimeout(() => setError(null), 3000); // Hide error message after 3s
+      throw err;
     }
   };
+  
 
   const handleViewUser = async (user: User) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/v1/getOrganizationUser/${user.id}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/getuserdata/${user.id}`);
       if (response.data.success) {
         setSelectedUser({
           ...user,
@@ -326,52 +330,62 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
 
   const handleDeleteSelected = async () => {
     if (!selectedUsers.length) return;
-
+  
     setIsDeleting(true);
     setError(null);
     setSuccess(null);
-
+  
     try {
       const response = await axios.delete(`http://localhost:3000/api/v1/organization/${orgId}/users`, {
         data: { userIds: selectedUsers }
       });
-
+  
       if (response.data.success) {
         setUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
         setSelectedUsers([]);
         setSuccess('Selected users deleted successfully');
+  
+        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
       } else {
         throw new Error(response.data.message || 'Failed to delete users');
       }
     } catch (err) {
       setError('Failed to delete selected users');
+  
+      setTimeout(() => setError(null), 3000); // Hide error message after 3s
     } finally {
       setIsDeleting(false);
     }
   };
+  
 
   const handleImportUsers = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('orgId', orgId);
-
+  
     try {
       const response = await axios.post(`http://localhost:3000/api/v1/organization/${orgId}/users/import`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-
+  
       if (response.data.success) {
         setSuccess('Users imported successfully');
         fetchUsers();
+  
+        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
       } else {
         throw new Error(response.data.message || 'Failed to import users');
       }
     } catch (err) {
       setError('Failed to import users');
+  
+      setTimeout(() => setError(null), 3000); // Hide error message after 3s
     }
   };
+  
 
   if (isLoading) {
     return (
