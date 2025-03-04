@@ -55,7 +55,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
     setIsFetchingInstances(true);
     try {
       const response = await axios.post('http://localhost:3000/api/v1/getInstances', {
-        cloud: 'aws', // You can make this dynamic if needed
+        cloud: 'aws',
         cpu: formData.cpu,
         ram: formData.ram,
         storage: formData.storage
@@ -140,87 +140,115 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                CPU Cores
+              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+                <Cpu className="h-4 w-4 mr-2" />
+                CPU Cores: {formData.cpu}
               </label>
-              <div className="relative">
-                <Cpu className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                <input
-                  type="number"
-                  min="1"
-                  max="16"
-                  value={formData.cpu}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cpu: parseInt(e.target.value) }))}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
+              <input
+                type="range"
+                min="1"
+                max="16"
+                value={formData.cpu}
+                onChange={(e) => setFormData(prev => ({ ...prev, cpu: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-dark-400 rounded-lg appearance-none cursor-pointer
+                         [&::-webkit-slider-thumb]:appearance-none
+                         [&::-webkit-slider-thumb]:w-4
+                         [&::-webkit-slider-thumb]:h-4
+                         [&::-webkit-slider-thumb]:rounded-full
+                         [&::-webkit-slider-thumb]:bg-primary-500
+                         [&::-webkit-slider-thumb]:cursor-pointer
+                         [&::-webkit-slider-thumb]:transition-all
+                         [&::-webkit-slider-thumb]:duration-150
+                         [&::-webkit-slider-thumb]:ease-in-out
+                         [&::-webkit-slider-thumb]:hover:scale-110"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1 Core</span>
+                <span>16 Cores</span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">Maximum: 16 cores</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Memory (RAM)
+              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+                <Memory className="h-4 w-4 mr-2" />
+                Memory (RAM): {formData.ram} GB
               </label>
-              <div className="relative">
-                <Memory className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                <input
-                  type="number"
-                  min="2"
-                  max="64"
-                  step="2"
-                  value={formData.ram}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ram: parseInt(e.target.value) }))}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
+              <input
+                type="range"
+                min="2"
+                max="64"
+                step="2"
+                value={formData.ram}
+                onChange={(e) => setFormData(prev => ({ ...prev, ram: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-dark-400 rounded-lg appearance-none cursor-pointer
+                         [&::-webkit-slider-thumb]:appearance-none
+                         [&::-webkit-slider-thumb]:w-4
+                         [&::-webkit-slider-thumb]:h-4
+                         [&::-webkit-slider-thumb]:rounded-full
+                         [&::-webkit-slider-thumb]:bg-primary-500
+                         [&::-webkit-slider-thumb]:cursor-pointer
+                         [&::-webkit-slider-thumb]:transition-all
+                         [&::-webkit-slider-thumb]:duration-150
+                         [&::-webkit-slider-thumb]:ease-in-out
+                         [&::-webkit-slider-thumb]:hover:scale-110"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>2 GB</span>
+                <span>64 GB</span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">Maximum: 64 GB</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Storage
+              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+                <HardDrive className="h-4 w-4 mr-2" />
+                Storage: {formData.storage} GB
               </label>
-              <div className="relative">
-                <HardDrive className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                <input
-                  type="number"
-                  min="50"
-                  max="1000"
-                  step="50"
-                  value={formData.storage}
-                  onChange={(e) => setFormData(prev => ({ ...prev, storage: parseInt(e.target.value) }))}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
+              <input
+                type="range"
+                min="50"
+                max="1000"
+                step="50"
+                value={formData.storage}
+                onChange={(e) => setFormData(prev => ({ ...prev, storage: parseInt(e.target.value) }))}
+                className="w-full h-2 bg-dark-400 rounded-lg appearance-none cursor-pointer
+                         [&::-webkit-slider-thumb]:appearance-none
+                         [&::-webkit-slider-thumb]:w-4
+                         [&::-webkit-slider-thumb]:h-4
+                         [&::-webkit-slider-thumb]:rounded-full
+                         [&::-webkit-slider-thumb]:bg-primary-500
+                         [&::-webkit-slider-thumb]:cursor-pointer
+                         [&::-webkit-slider-thumb]:transition-all
+                         [&::-webkit-slider-thumb]:duration-150
+                         [&::-webkit-slider-thumb]:ease-in-out
+                         [&::-webkit-slider-thumb]:hover:scale-110"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>50 GB</span>
+                <span>1000 GB</span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">Maximum: 1000 GB</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
+                <Server className="h-4 w-4 mr-2" />
                 Instance Type
               </label>
-              <div className="relative">
-                <Server className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                <select
-                  value={formData.instance}
-                  onChange={(e) => setFormData(prev => ({ ...prev, instance: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  disabled={isFetchingInstances}
-                >
-                  <option value="">Select Instance</option>
-                  {availableInstances.map((instance, index) => (
-                    <option key={index} value={instance.instancename}>
-                      {instance.instancename} ({instance.vcpu} vCPU, {instance.memory} RAM)
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                value={formData.instance}
+                onChange={(e) => setFormData(prev => ({ ...prev, instance: e.target.value }))}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                disabled={isFetchingInstances}
+              >
+                <option value="">Select Instance</option>
+                {availableInstances.map((instance, index) => (
+                  <option key={index} value={instance.instancename}>
+                    {instance.instancename} ({instance.vcpu} vCPU, {instance.memory} RAM)
+                  </option>
+                ))}
+              </select>
               {isFetchingInstances && (
                 <p className="mt-1 text-xs text-gray-500 flex items-center">
                   <Loader className="animate-spin h-3 w-3 mr-1" />
