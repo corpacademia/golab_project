@@ -20,6 +20,7 @@ import {
 import { GradientText } from '../../../../components/ui/GradientText';
 import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
+import { CreateCatalogueModal } from './CreateCatalogueModal';
 import axios from 'axios';
 
 interface CatalogueCardProps {
@@ -29,6 +30,7 @@ interface CatalogueCardProps {
 export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -75,7 +77,6 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   }, [lab.lab_id]);
 
   const handleEditSuccess = () => {
-    // Refresh lab details after successful edit
     const fetchLabDetails = async () => {
       try {
         const response = await axios.post(
@@ -110,7 +111,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete lab'
       });
-      setTimeout(()=>setNotification(null),1500)
+      setTimeout(() => setNotification(null), 1500);
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
@@ -118,32 +119,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   };
 
   const handleCreateNewCatalogue = async () => {
-    setIsCreating(true);
-    setNotification(null);
-
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/createCatalogue', {
-        lab_id: lab.lab_id
-      });
-
-      if (response.data.success) {
-        setNotification({ 
-          type: 'success', 
-          message: 'New catalogue created successfully' 
-        });
-        setTimeout(() => setNotification(null), 1500);
-      } else {
-        throw new Error(response.data.message || 'Failed to create catalogue');
-      }
-    } catch (error: any) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to create catalogue'
-      });
-      setTimeout(() => setNotification(null), 1500);
-    } finally {
-      setIsCreating(false);
-    }
+    setIsCreateModalOpen(true);
   };
 
   if (!labDetails) {
@@ -268,6 +244,21 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+      />
+
+      <CreateCatalogueModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        existingCatalogue={{
+          cpu: labDetails.cpu,
+          ram: labDetails.ram,
+          storage: labDetails.storage,
+          instance: labDetails.instance
+        }}
+        onSuccess={() => {
+          setNotification({ type: 'success', message: 'New catalogue created successfully' });
+          setTimeout(() => window.location.reload(), 1500);
+        }}
       />
     </>
   );
