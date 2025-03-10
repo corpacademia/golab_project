@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, Mail, Phone, Globe, AlertCircle, Check, Loader } from 'lucide-react';
+import { X, Building2, Mail, Phone, Globe, AlertCircle, Check, Loader, Upload } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
 
@@ -16,18 +16,23 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
   organization,
   onSuccess
 }) => {
-  const [formData, setFormData] = useState({
-    name: organization?.organization_name || '',
-    email: organization?.org_email || '',
-    phone: organization?.phone_number || '',
-    address: organization?.address || '',
-    website: organization?.website || '',
-    type: organization?.org_type || 'enterprise'
-  });
+  const initialFormData = {
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    website: '',
+    type: 'enterprise',
+    status: 'active',
+    orgId: ''
+  };
 
+  const [formData, setFormData] = useState(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (organization) {
@@ -37,8 +42,15 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
         phone: organization.phone_number || '',
         address: organization.address || '',
         website: organization.website || '',
-        type: organization.org_type || 'enterprise'
+        type: organization.org_type || 'enterprise',
+        status: organization.status || 'active',
+        orgId: organization.org_id || ''
       });
+
+      // Set logo preview if exists
+      if (organization.logo) {
+        setLogoPreview(`http://localhost:3000/uploads/${organization.logo.split('uploads/')[1]}`);
+      }
     }
   }, [organization]);
 
@@ -48,6 +60,25 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
     setError(null);
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Logo file size must be less than 5MB');
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        setError('Please upload an image file');
+        return;
+      }
+
+      setLogo(file);
+      setLogoPreview(URL.createObjectURL(file));
+      setError(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -55,20 +86,31 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
     setSuccess(null);
 
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateOrganization/${organization.id}`, {
-        organization_name: formData.name,
-        org_email: formData.email,
-        phone_number: formData.phone,
-        address: formData.address,
-        website: formData.website,
-        org_type: formData.type
+      const formDataToSend = new FormData();
+      formDataToSend.append('organization_name', formData.name);
+      formDataToSend.append('org_email', formData.email);
+      formDataToSend.append('phone_number', formData.phone);
+      formDataToSend.append('address', formData.address);
+      formDataToSend.append('website', formData.website);
+      formDataToSend.append('org_type', formData.type);
+      formDataToSend.append('status', formData.status);
+      formDataToSend.append('org_id', formData.orgId);
+
+      if (logo) {
+        formDataToSend.append('logo', logo);
+      }
+
+      const response = await axios.put(`http://localhost:3000/api/v1/updateOrganization/${organization.id}`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       if (response.data.success) {
         setSuccess('Organization updated successfully');
         setTimeout(() => {
           onSuccess?.();
-          onClose();
+          handleClose();
         }, 1500);
       } else {
         throw new Error(response.data.message || 'Failed to update organization');
@@ -78,6 +120,15 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClose = () => {
+    setFormData(initialFormData);
+    setError(null);
+    setSuccess(null);
+    setLogo(null);
+    setLogoPreview(null);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -90,7 +141,7 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
             <GradientText>Edit Organization</GradientText>
           </h2>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
           >
             <X className="h-5 w-5 text-gray-400" />
@@ -115,6 +166,21 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
                 />
                 <Building2 className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Organization ID
+              </label>
+              <input
+                type="text"
+                name="orgId"
+                value={formData.orgId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
             </div>
 
             <div>
@@ -186,6 +252,24 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Address
@@ -198,6 +282,45 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
                 className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Organization Logo
+              </label>
+              <div className="flex items-center space-x-4">
+                <div className="flex-shrink-0">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="h-16 w-16 object-cover rounded-lg border border-primary-500/20"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-lg bg-dark-400/50 border border-primary-500/20 flex items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-500" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className="btn-secondary inline-block cursor-pointer text-sm py-1.5"
+                  >
+                    Choose Logo
+                  </label>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Recommended: 200x200px. Max: 5MB
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -222,7 +345,7 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
           <div className="flex justify-end space-x-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="btn-secondary"
               disabled={isSubmitting}
             >
