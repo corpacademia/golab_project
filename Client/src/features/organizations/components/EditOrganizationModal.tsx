@@ -33,26 +33,45 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (organization) {
-      setFormData({
-        name: organization.organization_name || '',
-        email: organization.org_email || '',
-        phone: organization.phone_number || '',
-        address: organization.address || '',
-        website: organization.website || '',
-        type: organization.org_type || 'enterprise',
-        status: organization.status || 'active',
-        orgId: organization.org_id || ''
-      });
+    const fetchOrgDetails = async () => {
+      if (!isOpen || !organization?.id) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+          org_id: organization.id
+        });
 
-      // Set logo preview if exists
-      if (organization.logo) {
-        setLogoPreview(`http://localhost:3000/uploads/${organization.logo.split('uploads/')[1]}`);
+        if (response.data.success) {
+          const orgData = response.data.data;
+          setFormData({
+            name: orgData.organization_name || '',
+            email: orgData.org_email || '',
+            phone: orgData.phone_number || '',
+            address: orgData.address || '',
+            website: orgData.website || '',
+            type: orgData.org_type || 'enterprise',
+            status: orgData.status || 'active',
+            orgId: orgData.org_id || ''
+          });
+
+          if (orgData.logo) {
+            setLogoPreview(`http://localhost:3000/uploads/${orgData.logo.split('uploads/')[1]}`);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch organization details:', err);
+        setError('Failed to load organization details');
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [organization]);
+    };
+
+    fetchOrgDetails();
+  }, [isOpen, organization?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -132,6 +151,17 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-dark-200 rounded-lg p-6 flex items-center space-x-3">
+          <Loader className="animate-spin h-6 w-6 text-primary-400" />
+          <span className="text-gray-200">Loading organization details...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
