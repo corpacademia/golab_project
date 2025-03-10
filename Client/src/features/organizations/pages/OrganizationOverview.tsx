@@ -119,6 +119,7 @@ export const OrganizationOverview: React.FC = () => {
         const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
           org_id: orgId
         });
+        console.log(response)
         const orgUsersCount = await axios.get(`http://localhost:3000/api/v1/getOrgUsersCount/${orgId}`); 
         const workspaceCount = await axios.get(`http://localhost:3000/api/v1/workspaceCount/${response.data.data.id}`);
         
@@ -131,11 +132,11 @@ export const OrganizationOverview: React.FC = () => {
        
         if(workspaceCount.data.success){
           setWorkspaceCount(workspaceCount.data.data.count)
-          setOrganization({ ...organization, stats: { ...organization.stats, activeWorkspaces: workspaceCount.data.data.count} });
+          // setOrganization({ ...organization, stats: { ...organization.stats, activeWorkspaces: workspaceCount.data.data.count} });
         }
         if(orgUsersCount.data.success){
           setOrgUserCount(orgUsersCount.data.data)
-          setOrganization({ ...organization, stats: { ...organization.stats, users: orgUsersCount.data.data.users, admins: orgUsersCount.data.data.admins } });
+          // setOrganization({ ...organization, stats: { ...organization.stats, users: orgUsersCount.data.data.users, admins: orgUsersCount.data.data.admins } });
         }
        
         
@@ -181,6 +182,9 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     );
   }
+
+  console.log(organization)
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">

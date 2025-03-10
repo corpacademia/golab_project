@@ -22,6 +22,7 @@ import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
 import { CreateCatalogueModal } from './CreateCatalogueModal';
 import axios from 'axios';
+import { resolveSoa } from 'dns';
 
 interface CatalogueCardProps {
   lab: any;
@@ -36,6 +37,21 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [software, setSoftware] = useState<string[]>([]);
   const [labDetails, setLabDetails] = useState<any>(null);
+  const [ami,setAmi]=useState<string>()
+
+
+  //fetch the ami information
+ useEffect(()=>{
+  const fetchAmi=async()=>{
+    const response = await axios.post('http://localhost:3000/api/v1/amiInformation',
+      {lab_id:lab.lab_id})
+
+    if(response.data.success){
+      setAmi(response.data.result)
+    }
+  }
+  fetchAmi();
+ },[lab.lab_id])
 
   // Fetch software details
   useEffect(() => {
@@ -125,7 +141,7 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
   if (!labDetails) {
     return <div className="animate-pulse h-[320px] bg-dark-300/50 rounded-lg"></div>;
   }
-
+console.log(labDetails)
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -253,7 +269,16 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           cpu: labDetails.cpu,
           ram: labDetails.ram,
           storage: labDetails.storage,
-          instance: labDetails.instance
+          instance: labDetails.instance,
+          os:labDetails.os,
+          os_version:labDetails.os_version,
+          provider:labDetails.provider,
+          platform:labDetails.platform,
+          type:labDetails.type,
+          duration:labDetails.duration,
+          description:labDetails.description,
+          ami:ami.ami_id,
+          lab_id:labDetails.lab_id
         }}
         onSuccess={() => {
           setNotification({ type: 'success', message: 'New catalogue created successfully' });
