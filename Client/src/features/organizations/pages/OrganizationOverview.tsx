@@ -29,6 +29,7 @@ import { OrgBillingTab } from '../components/tabs/OrgBillingTab';
 import { OrgWorkspacesTab } from '../components/tabs/OrgWorkspacesTab';
 import { OrgActivityTab } from '../components/tabs/OrgActivityTab';
 import { OrgDocumentsTab } from '../components/tabs/OrgDocumentsTab';
+import { EditOrganizationModal } from '../components/EditOrganizationModal';
 
 interface OrganizationDetails {
   id: string;
@@ -100,7 +101,7 @@ export const OrganizationOverview: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [orgUserCount, setOrgUserCount] = useState<number>(0);
-  const [worspacecount , setWorkspaceCount] = useState<number>(0);
+  const [worspacecount, setWorkspaceCount] = useState<number>(0);
 
   //to extract the file path of logo
   const getUploadedFilePath = (fullPath: string) => {
@@ -119,10 +120,8 @@ export const OrganizationOverview: React.FC = () => {
         const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
           org_id: orgId
         });
-        console.log(response)
         const orgUsersCount = await axios.get(`http://localhost:3000/api/v1/getOrgUsersCount/${orgId}`); 
         const workspaceCount = await axios.get(`http://localhost:3000/api/v1/workspaceCount/${response.data.data.id}`);
-        
         
         if (response.data.success) {
           setOrganization({
@@ -132,14 +131,10 @@ export const OrganizationOverview: React.FC = () => {
        
         if(workspaceCount.data.success){
           setWorkspaceCount(workspaceCount.data.data.count)
-          // setOrganization({ ...organization, stats: { ...organization.stats, activeWorkspaces: workspaceCount.data.data.count} });
         }
         if(orgUsersCount.data.success){
           setOrgUserCount(orgUsersCount.data.data)
-          // setOrganization({ ...organization, stats: { ...organization.stats, users: orgUsersCount.data.data.users, admins: orgUsersCount.data.data.admins } });
         }
-       
-        
         } else {
           throw new Error('Failed to fetch organization data');
         }
@@ -175,6 +170,23 @@ export const OrganizationOverview: React.FC = () => {
       setIsDeleteModalOpen(false);
     }
   };
+
+  const handleEditSuccess = async () => {
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
+        org_id: orgId
+      });
+      if (response.data.success) {
+        setOrganization({
+          ...defaultOrganization,
+          ...response.data.data
+        });
+      }
+    } catch (err) {
+      console.error('Failed to refresh organization data:', err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -182,8 +194,6 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     );
   }
-
-  console.log(organization)
 
   if (error) {
     return (
@@ -198,6 +208,7 @@ export const OrganizationOverview: React.FC = () => {
       </div>
     );
   }
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'users':
@@ -214,6 +225,7 @@ export const OrganizationOverview: React.FC = () => {
         return renderOverviewTab();
     }
   };
+
   const renderOverviewTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -385,6 +397,14 @@ export const OrganizationOverview: React.FC = () => {
 
       {/* Tab Content */}
       {renderTabContent()}
+
+      {/* Edit Modal */}
+      <EditOrganizationModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        organization={organization}
+        onSuccess={handleEditSuccess}
+      />
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
