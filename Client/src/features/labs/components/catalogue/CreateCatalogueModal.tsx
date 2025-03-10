@@ -207,9 +207,14 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
               </label>
               <input
                 type="range"
+// <<<<<<< HEAD
                 min="2"
                 max="16"
                 step="2"
+// =======
+                min="1"
+                max="16"
+/* >>>>>>> 26034a342b5ef48680663fe86b7ed3597cc0866b */
                 value={formData.cpu}
                 onChange={(e) => setFormData(prev => ({ ...prev, cpu: parseInt(e.target.value) }))}
                 className="w-full h-2 bg-dark-400 rounded-lg appearance-none cursor-pointer
@@ -225,7 +230,11 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
                          [&::-webkit-slider-thumb]:hover:scale-110"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
+{/* <<<<<<< HEAD */}
                 <span>2 Cores</span>
+{/* // =======
+//                 <span>1 Core</span>
+// >>>>>>> 26034a342b5ef48680663fe86b7ed3597cc0866b */}
                 <span>16 Cores</span>
               </div>
             </div>
@@ -241,6 +250,11 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
                 max="64"
                 value={formData.ram}
                 onChange={handleRamChange}
+
+//                 step="2"
+//                 value={formData.ram}
+//                 onChange={(e) => setFormData(prev => ({ ...prev, ram: parseInt(e.target.value) }))}
+// >>>>>>> 26034a342b5ef48680663fe86b7ed3597cc0866b
                 className="w-full h-2 bg-dark-400 rounded-lg appearance-none cursor-pointer
                          [&::-webkit-slider-thumb]:appearance-none
                          [&::-webkit-slider-thumb]:w-4
