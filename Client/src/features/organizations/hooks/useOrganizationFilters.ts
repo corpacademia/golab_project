@@ -5,15 +5,18 @@ export const useOrganizationFilters = (organizations: Organization[]) => {
   const [filters, setFilters] = useState<OrganizationFilters>({});
 
   const filterOrganizations = useCallback((orgs: Organization[]) => {
+
+
+
     return orgs.filter(org => {
       // Search filter
-      if (filters.search && !org.name.toLowerCase().includes(filters.search.toLowerCase()) && 
-          !org.contactEmail.toLowerCase().includes(filters.search.toLowerCase())) {
+      if (filters.search && !org.organization_name.toLowerCase().includes(filters.search.toLowerCase()) && 
+          !org.org_email.toLowerCase().includes(filters.search.toLowerCase())) {
         return false;
       }
 
       // Type filter
-      if (filters.type && org.type !== filters.type) {
+      if (filters.type && org.org_type !== filters.type) {
         return false;
       }
 
