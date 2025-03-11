@@ -19,7 +19,6 @@ export const UserList: React.FC<UserListProps> = ({
   const { user: currentUser } = useAuthStore();
   const handleViewDetails = (user: User) => {
     // Use different routes based on the context
-    console.log(user)
     const basePath = currentUser?.role === 'orgadmin' ? 'trainer' : 'user';
     navigate(`/dashboard/${basePath}/${user.id}`);
     onViewDetails(user);

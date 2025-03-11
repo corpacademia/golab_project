@@ -328,7 +328,6 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
         ...userData,
         orgId
       });
-  
       if (response.data.success) {
         setSuccess('User updated successfully');
         fetchUsers();
@@ -387,8 +386,9 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
     setSuccess(null);
   
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/organization/${orgId}/users`, {
-        data: { userIds: selectedUsers }
+      const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizationUsers`, {
+        orgId:orgId,
+        userIds: selectedUsers 
       });
   
       if (response.data.success) {
