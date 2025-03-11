@@ -154,7 +154,9 @@ export const OrganizationOverview: React.FC = () => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/deleteOrganization/${orgId}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizations`,{
+        orgIds:[orgId]
+      });
       if (response.data.success) {
         setSuccess('Organization deleted successfully');
         setTimeout(() => {
