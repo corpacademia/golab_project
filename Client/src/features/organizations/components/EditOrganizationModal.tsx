@@ -70,7 +70,7 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
 
           if (orgData.logo) {
             setLogoPreview(`http://localhost:3000/uploads/${getUploadedFilePath(organization.logo)}`);
-          }
+   }
         }
       } catch (err) {
         console.error('Failed to fetch organization details:', err);
