@@ -10,9 +10,15 @@ import axios from 'axios';
 
 export const Organizations: React.FC = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { filters, filterOrganizations, handleFilterChange } = useOrganizationFilters(organizations);
+  const [filters, setFilters] = useState({
+    search: '',
+    type: '',
+    status: '',
+    subscriptionTier: ''
+  });
   
   const [stats, setStats] = useState({
     totalOrganizations: 0,
@@ -23,7 +29,6 @@ export const Organizations: React.FC = () => {
 
   const [admin,setAdmin] = useState({});
 
-  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_profile');
@@ -34,15 +39,11 @@ export const Organizations: React.FC = () => {
 
   const fetchOrganizations = async () => {
     try {
-      //get the user data
-      const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
-
       const response = await axios.get('http://localhost:3000/api/v1/organizations');
       if (response.data.success) {
-        console.log('working')
         setOrganizations(response.data.data || []);
+        setFilteredOrganizations(response.data.data || []);
         
-        // Update stats based on fetched data
         const orgData = response.data.data || [];
         setStats({
           totalOrganizations: orgData.length,
@@ -62,7 +63,33 @@ export const Organizations: React.FC = () => {
     fetchOrganizations();
   }, [admin.id]);
 
-  const filteredOrganizations = filterOrganizations(organizations);
+  useEffect(() => {
+    const filtered = organizations.filter(org => {
+      const matchesSearch = !filters.search || 
+        org.organization_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        org.org_email?.toLowerCase().includes(filters.search.toLowerCase());
+      
+      const matchesType = !filters.type || 
+        org.org_type?.toLowerCase() === filters.type.toLowerCase();
+      
+      const matchesStatus = !filters.status || 
+        org.status?.toLowerCase() === filters.status.toLowerCase();
+      
+      const matchesSubscriptionTier = !filters.subscriptionTier || 
+        org.subscriptionTier?.toLowerCase() === filters.subscriptionTier.toLowerCase();
+
+      return matchesSearch && matchesType && matchesStatus && matchesSubscriptionTier;
+    });
+
+    setFilteredOrganizations(filtered);
+  }, [filters, organizations]);
+
+  const handleFilterChange = (update: { key: string; value: string }) => {
+    setFilters(prev => ({
+      ...prev,
+      [update.key]: update.value
+    }));
+  };
 
   const handleViewDetails = (org: Organization) => {
     // Navigate to organization details page
@@ -88,7 +115,7 @@ export const Organizations: React.FC = () => {
       <OrganizationFilters 
         onFilterChange={handleFilterChange}
         filters={filters}
-        setFilters={() => {}}
+        setFilters={setFilters}
       />
       
       <OrganizationList 
