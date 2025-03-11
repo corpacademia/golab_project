@@ -12,7 +12,8 @@ import {
   Loader,
   AlertCircle,
   Mail,
-  User
+  User,
+  Lock
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -47,17 +48,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
     name: '',
     email: '',
     role: '',
-    status: ''
+    status: '',
+    password: '',
+    confirmPassword: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name,
         email: user.email,
         role: user.role,
-        status: user.status
+        status: user.status,
+        password: '',
+        confirmPassword: ''
       });
     }
   }, [user]);
@@ -67,8 +73,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
     setIsSubmitting(true);
     setError(null);
 
+    // Validate passwords if either field is filled
+    if ((formData.password || formData.confirmPassword) && formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      await onSave(formData);
+      // Only include password in update if it was changed
+      const updateData = {
+        ...formData,
+        password: formData.password || undefined // Only send password if it was changed
+      };
+      delete updateData.confirmPassword; // Remove confirmPassword before sending
+
+      await onSave(updateData);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to update user');
@@ -135,6 +155,38 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              New Password (leave blank to keep unchanged)
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300"
+                placeholder="Enter new password"
+              />
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300"
+                placeholder="Confirm new password"
+              />
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+            </div>
           </div>
 
           {error && (
@@ -281,7 +333,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
         setSuccess('User updated successfully');
         fetchUsers();
   
-        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
+        setTimeout(() => setSuccess(null), 3000);
         return response.data;
       } else {
         throw new Error(response.data.message || 'Failed to update user');
@@ -289,11 +341,10 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update user');
   
-      setTimeout(() => setError(null), 3000); // Hide error message after 3s
+      setTimeout(() => setError(null), 3000);
       throw err;
     }
   };
-  
 
   const handleViewUser = async (user: User) => {
     try {
@@ -345,19 +396,18 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
         setSelectedUsers([]);
         setSuccess('Selected users deleted successfully');
   
-        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
+        setTimeout(() => setSuccess(null), 3000);
       } else {
         throw new Error(response.data.message || 'Failed to delete users');
       }
     } catch (err) {
       setError('Failed to delete selected users');
   
-      setTimeout(() => setError(null), 3000); // Hide error message after 3s
+      setTimeout(() => setError(null), 3000);
     } finally {
       setIsDeleting(false);
     }
   };
-  
 
   const handleImportUsers = async (file: File) => {
     const formData = new FormData();
@@ -375,17 +425,16 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
         setSuccess('Users imported successfully');
         fetchUsers();
   
-        setTimeout(() => setSuccess(null), 3000); // Hide success message after 3s
+        setTimeout(() => setSuccess(null), 3000);
       } else {
         throw new Error(response.data.message || 'Failed to import users');
       }
     } catch (err) {
       setError('Failed to import users');
   
-      setTimeout(() => setError(null), 3000); // Hide error message after 3s
+      setTimeout(() => setError(null), 3000);
     }
   };
-  
 
   if (isLoading) {
     return (
