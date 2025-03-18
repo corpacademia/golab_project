@@ -47,7 +47,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setIsSubmitting(true);
     try {
       console.log(user.id)
-      const response = await axios.put(`http://localhost:3000/api/v1/updateUser/${user.id}`, {
+      const response = await axios.put(`http://localhost:3000/api/v1/user_ms/updateUser/${user.id}`, {
         name: formData.name,
         email: formData.email,
         password: formData.password || undefined

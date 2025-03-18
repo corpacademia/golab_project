@@ -16,7 +16,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
   // This IIFE runs immediately when the module is loaded.
   (async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile', {
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile', {
         withCredentials: true, // include credentials if needed
       });
       const user = response.data.user;
@@ -63,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     // Expose fetchUser so it can be manually invoked later if needed.
     fetchUser: async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_profile', {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile', {
           withCredentials: true,
         });
         const user = response.data.user;

@@ -71,11 +71,12 @@ export const useLoginForm = () => {
       // const response1 = await authApi.login(formData.email, formData.password);
       // console.log(response1)
       // login(response1.user);
-      const response = await axios.post('http://localhost:3000/api/v1/login',
+      const response = await axios.post('http://localhost:3000/api/v1/user_ms/login',
         {
           email:formData.email,
           password:formData.password,
-        }
+        },
+        {withCredentials:true}
       )
       if(response.data.success) {
         console.log('working')              

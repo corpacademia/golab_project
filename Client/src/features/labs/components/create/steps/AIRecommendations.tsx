@@ -61,7 +61,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setUser(response.data.user);
     };
     getUserDetails();
@@ -70,7 +70,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
  
   useEffect(()=>{
       const fetch = async()=>{
-        const result = await axios.post('http://localhost:3000/api/v1/getInstances',{
+        const result = await axios.post('http://localhost:3000/api/v1/lab_ms/getInstances',{
           cloud:config.cloudProvider,
           cpu:config.vmSize.cpu,
           ram:config.vmSize.ram,
@@ -92,7 +92,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
 
     const deleteLabData = async (lab_id) => {
       try {
-        await axios.delete("http://localhost:3000/api/v1/deleteLab", {
+        await axios.delete("http://localhost:3000/api/v1/aws_ms/deleteLab", {
           lab_id: lab_id,
         });
         console.log(`Deleted lab data for lab_id: ${lab_id}`);
@@ -102,7 +102,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
     };
 
     try {
-      const response = await axios.post("http://localhost:3000/api/v1/labconfig", {
+      const response = await axios.post("http://localhost:3000/api/v1/lab_ms/labconfig", {
         data: data,
         user: user,
       });
@@ -110,23 +110,23 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
         setResponseData(response);
 
        }
-        const terraform = await axios.post("http://localhost:3000/api/v1/python", {
+        const terraform = await axios.post("http://localhost:3000/api/v1/aws_ms/python", {
         cloudPlatform: config.cloudProvider 
       });
       
       console.log("Terraform response:", terraform.data);
 
       // const intervalId = setInterval(fetchData, 5000);
-      const tf = await axios.post("http://localhost:3000/api/v1/pythontf", {
+      const tf = await axios.post("http://localhost:3000/api/v1/aws_ms/pythontf", {
         lab_id:response.data.output.lab_id
       });
       
       if (tf.data.success) {
         try {
-          const instancedetails = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails',{
+          const instancedetails = await axios.post('http://localhost:3000/api/v1/lab_ms/awsCreateInstanceDetails',{
             lab_id:response.data.output.lab_id
           })
-          const decrypt_password = await axios.post("http://localhost:3000/api/v1/decryptPassword",{
+          const decrypt_password = await axios.post("http://localhost:3000/api/v1/aws_ms/decryptPassword",{
             lab_id:response.data.output.lab_id,
             public_ip:instancedetails.data.result.public_ip,
             instance_id:instancedetails.data.result.instance_id,

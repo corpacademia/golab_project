@@ -141,7 +141,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/aws_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -150,7 +150,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/organizations');
+        const response = await axios.get('http://localhost:3000/api/v1/organization_ms/organizations');
         if (response.data.success) {
           setOrganizations(response.data.data);
         }
@@ -176,7 +176,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   const handleInputChange = async(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     try {
-      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+      const org_details = await axios.post('http://localhost:3000/api/v1/organization_ms/getOrgDetails', {
         org_id: formData.organizationId
       });
       if(org_details.data.success){
@@ -240,14 +240,14 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     setSuccess(null);
 
     try {
-      const org_details = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+      const org_details = await axios.post('http://localhost:3000/api/v1/organization_ms/getOrgDetails', {
         org_id: formData.organizationId
       });
 
       if (org_details.data.success) {
         setOrg_details(org_details.data.data);
 
-        const batch = await axios.post('http://localhost:3000/api/v1/batchAssignment', {
+        const batch = await axios.post('http://localhost:3000/api/v1/lab_ms/batchAssignment', {
           lab_id: vmId,
           admin_id: org_details.data.data.org_admin,
           org_id: org_details.data.data.id,
@@ -259,7 +259,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
           software: software.filter(s => s.trim() !== ''),
         });
         if (batch.data.success) {
-          const updateLabConfig = await axios.post('http://localhost:3000/api/v1/updateConfigOfLabs', {
+          const updateLabConfig = await axios.post('http://localhost:3000/api/v1/lab_ms/updateConfigOfLabs', {
             lab_id: vmId,
             admin_id: admin.id,
             config_details: {

@@ -76,7 +76,7 @@ export const useSignupForm = () => {
     setLoading(true);
     try {
       // const response = await authApi.login(formData.email, formData.password);
-      const res = await axios.post('http://localhost:3000/api/v1/signup',{
+      const res = await axios.post('http://localhost:3000/api/v1/user_ms/signup',{
          name:formData.name,
          email:formData.email,
          password:formData.password,

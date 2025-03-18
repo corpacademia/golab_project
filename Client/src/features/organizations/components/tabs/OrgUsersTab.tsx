@@ -308,7 +308,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/v1/getUsersFromOrganization/${orgId}`);
+      const response = await axios.get(`http://localhost:3000/api/v1/organization_ms/user_ms/getUsersFromOrganization/${orgId}`);
       if (response.data.success) {
         setUsers(response.data.data);
       } else {
@@ -324,7 +324,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
   const handleEditUser = async (userData: Partial<User>) => {
     if (!selectedUser) return;
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/updateUserFromSuperadmin/${selectedUser.id}`, {
+      const response = await axios.put(`http://localhost:3000/api/v1/user_ms/updateUserFromSuperadmin/${selectedUser.id}`, {
         ...userData,
         orgId
       });
@@ -347,7 +347,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
 
   const handleViewUser = async (user: User) => {
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/getuserdata/${user.id}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/user_ms/getuserdata/${user.id}`);
       if (response.data.success) {
         setSelectedUser({
           ...user,
@@ -386,7 +386,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
     setSuccess(null);
   
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizationUsers`, {
+      const response = await axios.post(`http://localhost:3000/api/v1/user_ms/deleteOrganizationUsers`, {
         orgId:orgId,
         userIds: selectedUsers 
       });

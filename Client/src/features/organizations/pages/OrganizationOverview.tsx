@@ -117,11 +117,11 @@ export const OrganizationOverview: React.FC = () => {
     const fetchOrganizationData = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
+        const response = await axios.post(`http://localhost:3000/api/v1/organization_ms/getOrgDetails`, {
           org_id: orgId
         });
-        const orgUsersCount = await axios.get(`http://localhost:3000/api/v1/getOrgUsersCount/${orgId}`); 
-        const workspaceCount = await axios.get(`http://localhost:3000/api/v1/workspaceCount/${response.data.data.id}`);
+        const orgUsersCount = await axios.get(`http://localhost:3000/api/v1/organization_ms/getOrgUsersCount/${orgId}`); 
+        const workspaceCount = await axios.get(`http://localhost:3000/api/v1/workspace_ms/workspaceCount/${response.data.data.id}`);
         
         if (response.data.success) {
           setOrganization({
@@ -154,7 +154,7 @@ export const OrganizationOverview: React.FC = () => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizations`,{
+      const response = await axios.post(`http://localhost:3000/api/v1/organization_ms/deleteOrganizations`,{
         orgIds:[orgId]
       });
       if (response.data.success) {
@@ -175,7 +175,7 @@ export const OrganizationOverview: React.FC = () => {
 
   const handleEditSuccess = async () => {
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/getOrgDetails`, {
+      const response = await axios.post(`http://localhost:3000/api/v1/organization_ms/getOrgDetails`, {
         org_id: orgId
       });
       if (response.data.success) {

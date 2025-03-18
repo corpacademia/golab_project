@@ -44,7 +44,7 @@ export const WorkspaceEditPage: React.FC = () => {
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnId/${workspaceId}`);
+        const response = await axios.get(`http://localhost:3000/api/v1/workspace_ms/getWorkspaceOnId/${workspaceId}`);
         setWorkspace(response.data.data);
         
         setFormData({
@@ -141,7 +141,7 @@ export const WorkspaceEditPage: React.FC = () => {
   const removeExistingDocument = async (documentPath: string) => {
     try {
       // Call API to remove document
-      await axios.post(`http://localhost:3000/api/v1/removeWorkspaceDocument`, {
+      await axios.post(`http://localhost:3000/api/v1/workspace_ms/removeWorkspaceDocument`, {
         workspaceId,
         filePath: documentPath
       });
@@ -215,7 +215,7 @@ export const WorkspaceEditPage: React.FC = () => {
         }
       });
       console.log(formDataToSend)
-      await axios.post(`http://localhost:3000/api/v1/editWorkspace/${workspaceId}`, formDataToSend, {
+      await axios.post(`http://localhost:3000/api/v1/workspace_ms/editWorkspace/${workspaceId}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

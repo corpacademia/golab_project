@@ -33,7 +33,7 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setUser(response.data.user);
     };
     getUserDetails();
@@ -43,7 +43,7 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
   useEffect(() => {
     const fetchSoftware = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/getSoftwareDetails');
+        const response = await axios.get('http://localhost:3000/api/v1/lab_ms/getSoftwareDetails');
         if (response.data.success) {
           const labSoftware = response.data.data.find((s: any) => s.lab_id === lab.lab_id);
           if (labSoftware) {
@@ -62,7 +62,7 @@ export const UserCatalogueCard: React.FC<UserCatalogueCardProps> = ({ lab }) => 
   useEffect(() => {
     const checkLabStatus = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/checkLabStatus', {
+        const response = await axios.post('localhost:3000/api/v1/aws_ms/checkLabStatus', {
           lab_id: lab.lab_id,
           user_id: user.id
         });

@@ -26,7 +26,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
 
   useEffect(()=>{
     const fetch = async()=>{
-        const lab = await axios.get('http://localhost:3000/api/v1/getCatalogues')
+        const lab = await axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues')
         setAvailableLabs(lab.data.data)
     }
     fetch();

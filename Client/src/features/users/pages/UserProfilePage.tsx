@@ -20,7 +20,7 @@ export const UserProfilePage: React.FC = () => {
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setUser(response.data.user);
     };
     getUserDetails();

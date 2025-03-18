@@ -52,12 +52,12 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
 
     try {
 
-      const instance_details = await axios.post('http://localhost:3000/api/v1/awsInstanceOfUsers', {
+      const instance_details = await axios.post('http://localhost:3000/api/v1/lab_ms/awsInstanceOfUsers', {
         lab_id: labId,
         user_id:userId,
       });
-      const ami = await axios.post('http://localhost:3000/api/v1/amiinformation', { lab_id: labId });
-      const response = await axios.post('http://localhost:3000/api/v1/deletevm', {
+      const ami = await axios.post('http://localhost:3000/api/v1/lab_ms/amiinformation', { lab_id: labId });
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/deletevm', {
         id: labId,
         instance_id: instance_details.data.result.instance_id,
         ami_id: ami.data.result.ami_id,
@@ -183,7 +183,7 @@ export const MyLabs: React.FC = () => {
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setUser(response.data.user);
     };
     getUserDetails();
@@ -193,9 +193,9 @@ export const MyLabs: React.FC = () => {
     const fetchData = async () => {
       try {
         const [cataloguesRes, labsRes, softwareRes] = await Promise.all([
-          axios.get('http://localhost:3000/api/v1/getCatalogues'),
-          axios.post('http://localhost:3000/api/v1/getAssignedLabs', { userId: user.id }),
-          axios.get('http://localhost:3000/api/v1/getSoftwareDetails')
+          axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues'),
+          axios.post('http://localhost:3000/api/v1/lab_ms/getAssignedLabs', { userId: user.id }),
+          axios.get('http://localhost:3000/api/v1/lab_ms/getSoftwareDetails')
         ]);
         const cats = cataloguesRes.data.data;
         const labss = labsRes.data.data;
@@ -263,7 +263,7 @@ export const MyLabs: React.FC = () => {
 
   const checkLabStatus = async (labId: string) => {
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/checkLabStatus', {
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/checkLabStatus', {
         lab_id: labId,
         user_id: user.id
       });
@@ -294,8 +294,8 @@ export const MyLabs: React.FC = () => {
   
     try {
       const [ami, labConfig] = await Promise.all([
-        axios.post('http://localhost:3000/api/v1/amiinformation', { lab_id: lab.lab_id }),
-        axios.post('http://localhost:3000/api/v1/getAssignLabOnId', { labId: lab.lab_id ,userId:user.id}),
+        axios.post('http://localhost:3000/api/v1/lab_ms/amiinformation', { lab_id: lab.lab_id }),
+        axios.post('http://localhost:3000/api/v1/lab_ms/getAssignLabOnId', { labId: lab.lab_id ,userId:user.id}),
         
       ]);
       if (!ami.data.success) {
@@ -305,7 +305,7 @@ export const MyLabs: React.FC = () => {
       // setCloudInstanceDetails(cloudInstanceDetails.data.data);
   
       // First API: Launch instance (Keep loading active)
-      const response = await axios.post('http://localhost:3000/api/v1/launchInstance', {
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/launchInstance', {
         name: user.name,
         ami_id: ami.data.result.ami_id,
         user_id: user.id,
@@ -392,7 +392,7 @@ setTimeout(() => {
       }
     }));
 
-    const cloudinstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
+    const cloudinstanceDetails = await axios.post('http://localhost:3000/api/v1/aws_ms/getAssignedInstance', {
       user_id: user.id,
       lab_id: lab.lab_id,
     })
@@ -405,11 +405,11 @@ setTimeout(() => {
       const instanceId = cloudInstanceDetails?.instance_id;
 
       if (isStop) {
-        const stop =await axios.post('http://localhost:3000/api/v1/stopInstance', {
+        const stop =await axios.post('http://localhost:3000/api/v1/aws_ms/stopInstance', {
           instance_id: instanceId
         });
         if(stop.data.success){
-          await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+          await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
             lab_id:lab.lab_id,
             user_id:user.id,
             state:false
@@ -443,7 +443,7 @@ setTimeout(() => {
       }
 
     
-      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted',{
+      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/lab_ms/checkisstarted',{
         type:'user',
         id:cloudinstanceDetails?.data.data.instance_id,
       })
@@ -451,7 +451,7 @@ setTimeout(() => {
       if(checkInstanceAlreadyStarted.data.isstarted ===false){
        
           console.log('stop')
-          const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+          const response = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
             os_name: lab.os,
             instance_id: cloudinstanceDetails?.data.data.instance_id,
             hostname: cloudinstanceDetails?.data.data.public_ip,
@@ -460,7 +460,7 @@ setTimeout(() => {
           });
     
         if (response.data.success && response.data.jwtToken) {
-          await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+          await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
             lab_id:lab.lab_id,
             user_id:user.id,
             state:true
@@ -473,7 +473,7 @@ setTimeout(() => {
       else{
         console.log('run')
         
-        const restart = await axios.post('http://localhost:3000/api/v1/restart_instance', {
+        const restart = await axios.post('http://localhost:3000/api/v1/aws_ms/restart_instance', {
           instance_id: cloudinstanceDetails?.data.data.instance_id,
           user_type:'user'
         });
@@ -481,12 +481,12 @@ setTimeout(() => {
 
   
         if (restart.data.success ) {
-          const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
+          const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/aws_ms/getAssignedInstance', {
             user_id: user.id,
             lab_id: lab.lab_id,
           })
           if(cloudInstanceDetails.data.success){
-            const response = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+            const response = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
               os_name: lab.os,
               instance_id: cloudinstanceDetails?.data.data.instance_id,
               hostname: cloudInstanceDetails?.data.data.public_ip,
@@ -496,7 +496,7 @@ setTimeout(() => {
             
             if(response.data.success){
               //update database that the instance is started
-              await axios.post('http://localhost:3000/api/v1/updateawsInstanceOfUsers',{
+              await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
                 lab_id:lab.lab_id,
                 user_id:user.id,
                 state:true

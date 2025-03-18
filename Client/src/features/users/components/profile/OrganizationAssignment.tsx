@@ -36,7 +36,7 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
     try {
       // TODO: Implement API call
       // await new Promise(resolve => setTimeout(resolve, 1000));
-      const update_user_field = await axios.put('http://localhost:3000/api/v1/updateUserOrganization',{
+      const update_user_field = await axios.put('http://localhost:3000/api/v1/user_ms/updateUserOrganization',{
         userId:userId,
         values:selectedOrg,
       })

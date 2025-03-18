@@ -43,7 +43,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -66,7 +66,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
 
     setIsFetchingInstances(true);
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/getInstances', {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getInstances', {
         cloud: 'aws',
         cpu: formData.cpu,
         ram: formData.ram,
@@ -110,7 +110,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
     setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/createCatalogue', {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/createCatalogue', {
         name: formData.name,
         cpu: formData.cpu,
         ram: formData.ram,
@@ -128,7 +128,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
       
       if (response.data.success) {
 
-        const createNewInstance = await axios.post('http://localhost:3000/api/v1/createNewInstance',{
+        const createNewInstance = await axios.post('http://localhost:3000/api/v1/aws_ms/createNewInstance',{
           instance_type:formData.instance,
           ami_id:existingCatalogue.ami,
           storage_size:formData.storage,

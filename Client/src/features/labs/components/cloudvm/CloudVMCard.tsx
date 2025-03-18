@@ -83,7 +83,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -92,7 +92,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
 useEffect(() => {
   const checkVmCreated = async () => {
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/checkvmcreated', {
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/checkvmcreated', {
         lab_id: vm.lab_id,
       });
       if (response.data.success) {
@@ -109,7 +109,7 @@ useEffect(() => {
 
  const checkLabLaunched= async ()=>{
       try {
-        const check = await axios.post('http://localhost:3000/api/v1/checkIsLabInstanceLaunched',{
+        const check = await axios.post('http://localhost:3000/api/v1/aws_ms/checkIsLabInstanceLaunched',{
           lab_id:vm.lab_id
         })
         if(check.data.success){
@@ -128,7 +128,7 @@ useEffect(() => {
   useEffect(() => {
     const fetchInstanceDetails = async () => {
       try {
-        const instance = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+        const instance = await axios.post('http://localhost:3000/api/v1/lab_ms/awsCreateInstanceDetails', {
           lab_id: vm.lab_id,
         });
 
@@ -149,7 +149,7 @@ useEffect(() => {
     const fetchLabDetails = async () => {
       try {
         const response = await axios.post(
-          "http://localhost:3000/api/v1/getLabOnId",
+          "http://localhost:3000/api/v1/lab_ms/getLabOnId",
           {
             labId: vm.lab_id,
           }
@@ -168,7 +168,7 @@ useEffect(() => {
     const fetchLabDetails = async () => {
       try {
         const response = await axios.post(
-          "http://localhost:3000/api/v1/getLabOnId",
+          "http://localhost:3000/api/v1/lab_ms/getLabOnId",
           {
             labId: vm.lab_id,
           }
@@ -189,12 +189,12 @@ useEffect(() => {
     try {
       if (buttonLabel === 'Stop') {
         // Stop the Instance
-        const stopResponse = await axios.post('http://localhost:3000/api/v1/stopInstance', {
+        const stopResponse = await axios.post('http://localhost:3000/api/v1/aws_ms/stopInstance', {
           instance_id: instanceDetails?.instance_id,
         });
   
         if (stopResponse.data.success) {
-          await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+          await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstance', {
             lab_id: vm.lab_id,
             state: false,
           });
@@ -213,14 +213,14 @@ useEffect(() => {
       }
       
       //check the instance is already started once
-      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/checkisstarted',{
+      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/lab_ms/checkisstarted',{
         type:'lab',
         id:instanceDetails?.instance_id,
       })
       if(checkInstanceAlreadyStarted.data.isstarted ===false){
 
         // Launch the Instance
-      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+      const launchResponse = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
         os_name: vm.os,
         instance_id: instanceDetails?.instance_id,
         hostname: instanceDetails?.public_ip,
@@ -229,7 +229,7 @@ useEffect(() => {
       });
   
       if (launchResponse.data.success) {
-        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+        await axios.post('http://localhost:3000/api/v1/aws_ms/updateawsInstance', {
           lab_id: vm.lab_id,
           state: true,
         });
@@ -250,20 +250,20 @@ useEffect(() => {
       }
       }
       else{
-        const restart = await axios.post('http://localhost:3000/api/v1/restart_instance', {
+        const restart = await axios.post('http://localhost:3000/api/v1/aws_ms/restart_instance', {
           instance_id:  instanceDetails?.instance_id,
           user_type:'lab'
         });
 
         //get the public from the database which is updated public_ip after stop
-        const instance = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+        const instance = await axios.post('http://localhost:3000/api/v1/lab_ms/awsCreateInstanceDetails', {
           lab_id: vm.lab_id,
         });
 
         if(instance.data.success){
           console.log(instance.data)
               // Launch the Instance
-      const launchResponse = await axios.post('http://localhost:3000/api/v1/runSoftwareOrStop', {
+      const launchResponse = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
         os_name: vm.os,
         instance_id: instanceDetails?.instance_id,
         hostname: instance?.data.result.public_ip,
@@ -272,7 +272,7 @@ useEffect(() => {
       });
   
       if (launchResponse.data.success) {
-        await axios.post('http://localhost:3000/api/v1/updateawsInstance', {
+        await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstance', {
           lab_id: vm.lab_id,
           state: true,
         });
@@ -312,17 +312,17 @@ useEffect(() => {
     setIsProcessing(true);
     try {
 
-       const result = await axios.post('http://localhost:3000/api/v1/awsCreateInstanceDetails', {
+       const result = await axios.post('http://localhost:3000/api/v1/lab_ms/awsCreateInstanceDetails', {
         lab_id: vm.lab_id
       });
       
-      const response = await axios.post('http://localhost:3000/api/v1/createGoldenImage', {
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/createGoldenImage', {
         instance_id: result.data.result.instance_id,
         lab_id: vm.lab_id
       });
 
       if (response.data.success) { 
-        const ami = await axios.post('http://localhost:3000/api/v1/amiInformation', {
+        const ami = await axios.post('http://localhost:3000/api/v1/lab_ms/amiInformation', {
           lab_id: vm.lab_id
         });
         setNotification({ type: 'success', message: 'Golden image created successfully' });
@@ -345,7 +345,7 @@ useEffect(() => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/deletesupervm', {
+      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/deletesupervm', {
         id: vm.lab_id,
         instance_id: instanceDetails?.instance_id,
         ami_id: amiId,

@@ -36,7 +36,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
   useEffect(() => {
     const fetchVMs = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getAssessments', {
+        const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssessments', {
           admin_id: admin.id
         });
 

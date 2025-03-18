@@ -52,7 +52,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -121,7 +121,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
         formDataToSend.append('logo', formData.logo);
       }
       const response = await axios.post(
-        'http://localhost:3000/api/v1/createOrganization', 
+        'http://localhost:3000/api/v1/organization_ms/createOrganization', 
         formDataToSend,
         {
           headers: {

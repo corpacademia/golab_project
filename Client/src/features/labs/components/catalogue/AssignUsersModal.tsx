@@ -37,7 +37,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -46,7 +46,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   React.useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
+        const response = await axios.post('http://localhost:3000/api/v1/user_ms/getOrganizationUsers', {
           admin_id: admin.id
         });
         setUsers(response.data.data);
@@ -102,7 +102,7 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
     setNotification(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
         lab: lab?.lab_id,
         userId: selectedUsers,
         assign_admin_id: admin.id

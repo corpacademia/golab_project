@@ -128,7 +128,7 @@ export const useUserProfile = (userId: string) => {
         // await new Promise(resolve => setTimeout(resolve, 500));
         
         // const userData = mockUserProfiles[userId];
-        const userData = await axios.post(`http://localhost:3000/api/v1/getuserdata/${userId}`)
+        const userData = await axios.post(`http://localhost:3000/api/v1/user_ms/getuserdata/${userId}`)
         if (!userData.data.success) {
           throw new Error('User not found');
         }

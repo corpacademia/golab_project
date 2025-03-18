@@ -51,7 +51,7 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
       
       setIsLoading(true);
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+        const response = await axios.post('http://localhost:3000/api/v1/organization_ms/getOrgDetails', {
           org_id: organization.id
         });
 
@@ -129,7 +129,7 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
         formDataToSend.append('logo', logo);
       }
 
-      const response = await axios.put(`http://localhost:3000/api/v1/updateOrganization/${organization.id}`, formDataToSend, {
+      const response = await axios.put(`http://localhost:3000/api/v1/organization_ms/updateOrganization/${organization.id}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

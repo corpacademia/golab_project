@@ -34,7 +34,7 @@ export const AdminCloudVMsPage: React.FC = () => {
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -43,7 +43,7 @@ export const AdminCloudVMsPage: React.FC = () => {
   useEffect(() => {
     const fetchVMs = async () => {
       try {
-        const response = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
+        const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
           admin_id: admin.id
         });
 

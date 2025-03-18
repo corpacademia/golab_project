@@ -64,7 +64,7 @@ export const WorkspacePage: React.FC = () => {
         // Using mock data for now
 
 
-        const response = await axios.get(`http://localhost:3000/api/v1/getWorkspaceOnUserId/${user.id}`);
+        const response = await axios.get(`http://localhost:3000/api/v1/workspace_ms/getWorkspaceOnUserId/${user.id}`);
         if(response.data.success){
           setWorkspaces(response.data.data);
         }
@@ -102,7 +102,7 @@ export const WorkspacePage: React.FC = () => {
 
   const handleDelete = async (ids: string[]) => {
     try {
-      const delete_workspace = await axios.post(`http://localhost:3000/api/v1/deleteWorkspace`,{
+      const delete_workspace = await axios.post(`http://localhost:3000/api/v1/workspace_ms/deleteWorkspace`,{
         ids
       });
        
@@ -152,7 +152,7 @@ export const WorkspacePage: React.FC = () => {
       // });
 
       //api call to store the workspace
-      const response = await axios.post("http://localhost:3000/api/v1/createWorkspace", data, {
+      const response = await axios.post("http://localhost:3000/api/v1/workspace_ms/createWorkspace", data, {
         headers: { "Content-Type": "multipart/form-data" },
     });
       // Mock response

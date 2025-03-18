@@ -29,7 +29,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -37,7 +37,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   useEffect(() => {
     const fetch = async () => {
       try {
-        const data = await axios.post('http://localhost:3000/api/v1/getLabsConfigured', {
+        const data = await axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
           admin_id: admin.id
         });
         setAvailableLabs(data.data.data);
@@ -129,7 +129,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
     setSelectedLabDetails(lab);
 
     try {
-      const assign = await axios.post('http://localhost:3000/api/v1/assignlab', {
+      const assign = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
         lab: lab,
         duration: duration,
         userId: userId,

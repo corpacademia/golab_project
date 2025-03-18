@@ -23,7 +23,7 @@ export const UsersPage: React.FC = () => {
   });
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();
@@ -31,7 +31,7 @@ export const UsersPage: React.FC = () => {
   useEffect(() => {
     const getUsers = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/allUsers');
         setOriginalUsers(response.data.data);
         setUsers(response.data.data);
         
@@ -96,7 +96,7 @@ export const UsersPage: React.FC = () => {
 
   const handleAddUser = async (userData: Omit<User, 'id' | 'lastActive' | 'createdAt'>) => {
     try {
-      const result = await axios.post('http://localhost:3000/api/v1/addUser', {
+      const result = await axios.post('http://localhost:3000/api/v1/user_ms/addUser', {
         formData: userData,
         user: admin
       });
@@ -104,7 +104,7 @@ export const UsersPage: React.FC = () => {
       if (result.data.success) {
         setIsAddModalOpen(false);
         // Refresh the user list
-        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/allUsers');
         setOriginalUsers(response.data.data);
         setUsers(response.data.data);
       }
@@ -115,7 +115,7 @@ export const UsersPage: React.FC = () => {
 
   const handleBulkUpload = async (uploadedUsers: any[]) => {
     try {
-      const result = await axios.post('http://localhost:3000/api/v1/bulkUploadUsers', {
+      const result = await axios.post('http://localhost:3000/api/v1/user_ms/bulkUploadUsers', {
         users: uploadedUsers,
         admin: admin
       });
@@ -123,7 +123,7 @@ export const UsersPage: React.FC = () => {
       if (result.data.success) {
         setIsUploadModalOpen(false);
         // Refresh the user list
-        const response = await axios.get('http://localhost:3000/api/v1/allUsers');
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/allUsers');
         setOriginalUsers(response.data.data);
         setUsers(response.data.data);
       }
