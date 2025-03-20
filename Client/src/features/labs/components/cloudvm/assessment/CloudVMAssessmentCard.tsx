@@ -84,7 +84,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   useEffect(() => {
     const fetchOrg = async () => {
       if (assessment.config_details?.organizationId) {
-        const organizationDetails = await axios.post('http://localhost:3000/api/v1/getOrgDetails', {
+        const organizationDetails = await axios.post('http://localhost:3000/api/v1/organization_ms/getOrgDetails', {
           org_id: assessment.config_details.organizationId
         });
         setOrgDetails(organizationDetails.data.data);
@@ -96,9 +96,9 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const user_cred = await axios.get('http://localhost:3000/api/v1/user_profile');
+        const user_cred = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(user_cred.data.user);
-        const response = await axios.post('http://localhost:3000/api/v1/getOrganizationUsers', {
+        const response = await axios.post('http://localhost:3000/api/v1/user_ms/getOrganizationUsers', {
           admin_id: user_cred.data.user.id
         });
         setUsers(response.data.data);
@@ -124,7 +124,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     const fetch = async () => {
       try {
         const fetchLabDetails = await axios.post(
-          "http://localhost:3000/api/v1/getLabOnId",
+          "http://localhost:3000/api/v1/lab_ms/getLabOnId",
           {
             labId: assessment.lab_id,
           }
@@ -196,7 +196,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
     setNotification(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/assignlab', {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
         lab: assessment.lab_id,
         userId: selectedUsers,
         assign_admin_id: admin.id
@@ -224,7 +224,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/deleteAssessment`,{
+      const response = await axios.post(`http://localhost:3000/api/v1/organization_ms/deleteAssessment`,{
         lab_id:assessment.lab_id,
         admin_id:admin.id,
       });

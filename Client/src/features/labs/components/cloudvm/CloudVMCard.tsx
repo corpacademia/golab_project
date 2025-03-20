@@ -88,7 +88,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
     };
     getUserDetails();
   }, []);
-  
 useEffect(() => {
   const checkVmCreated = async () => {
     try {
@@ -197,6 +196,7 @@ useEffect(() => {
           await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstance', {
             lab_id: vm.lab_id,
             state: false,
+            isStarted:true
           });
   
           setButtonLabel('Launch Software');
@@ -217,8 +217,7 @@ useEffect(() => {
         type:'lab',
         id:instanceDetails?.instance_id,
       })
-      if(checkInstanceAlreadyStarted.data.isstarted ===false){
-
+      if(checkInstanceAlreadyStarted.data.isStarted === false){
         // Launch the Instance
       const launchResponse = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
         os_name: vm.os,
@@ -228,10 +227,11 @@ useEffect(() => {
         buttonState: buttonLabel,
       });
   
-      if (launchResponse.data.success) {
-        await axios.post('http://localhost:3000/api/v1/aws_ms/updateawsInstance', {
+      if (launchResponse.data.response.success) {
+        await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstance', {
           lab_id: vm.lab_id,
           state: true,
+          isStarted:false
         });
   
         setButtonLabel('Stop');
@@ -241,12 +241,13 @@ useEffect(() => {
         });
   
         // Open Guacamole if the VM is running and JWT token is available
-        if (launchResponse.data.jwtToken) {
+        if (launchResponse.data.response.jwtToken) {
+
           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
           window.open(guacUrl, '_blank');
         }
       } else {
-        throw new Error(launchResponse.data.message || 'Failed to launch software');
+        throw new Error(launchResponse.data.response.message || 'Failed to launch software');
       }
       }
       else{
@@ -270,11 +271,11 @@ useEffect(() => {
         password: instanceDetails?.password,
         buttonState: buttonLabel,
       });
-  
-      if (launchResponse.data.success) {
+      if (launchResponse.data.response.success) {
         await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstance', {
           lab_id: vm.lab_id,
           state: true,
+          isStarted:true
         });
   
         setButtonLabel('Stop');
@@ -284,12 +285,12 @@ useEffect(() => {
         });
   
         // Open Guacamole if the VM is running and JWT token is available
-        if (launchResponse.data.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
+        if (launchResponse.data.response.jwtToken) {
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           window.open(guacUrl, '_blank');
         }
       } else {
-        throw new Error(launchResponse.data.message || 'Failed to launch software');
+        throw new Error(launchResponse.data.response.message || 'Failed to launch software');
       }
         }
       
@@ -320,7 +321,6 @@ useEffect(() => {
         instance_id: result.data.result.instance_id,
         lab_id: vm.lab_id
       });
-
       if (response.data.success) { 
         const ami = await axios.post('http://localhost:3000/api/v1/lab_ms/amiInformation', {
           lab_id: vm.lab_id

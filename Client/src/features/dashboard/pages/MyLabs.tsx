@@ -412,7 +412,8 @@ setTimeout(() => {
           await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
             lab_id:lab.lab_id,
             user_id:user.id,
-            state:false
+            state:false,
+            isStarted:true
           })
         }
 
@@ -447,8 +448,7 @@ setTimeout(() => {
         type:'user',
         id:cloudinstanceDetails?.data.data.instance_id,
       })
-
-      if(checkInstanceAlreadyStarted.data.isstarted ===false){
+      if(checkInstanceAlreadyStarted.data.isStarted === false){
        
           console.log('stop')
           const response = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
@@ -458,12 +458,13 @@ setTimeout(() => {
             password: cloudinstanceDetails?.data.data.password,
             buttonState: 'Start Lab'
           });
-    
-        if (response.data.success && response.data.jwtToken) {
+          
+        if (response.data.response.success && response.data.response.jwtToken) {
           await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
             lab_id:lab.lab_id,
             user_id:user.id,
-            state:true
+            state:true,
+            isStarted:false
           })
   
           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
@@ -493,16 +494,16 @@ setTimeout(() => {
               password: cloudinstanceDetails?.data.data.password,
               buttonState: 'Start Lab'
             });
-            
-            if(response.data.success){
+            if(response.data.response.success){
               //update database that the instance is started
               await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers',{
                 lab_id:lab.lab_id,
                 user_id:user.id,
-                state:true
+                state:true,
+                isStarted:true
               })
   
-              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.jwtToken}`;
+              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
             window.open(guacUrl, '_blank');
             }
           }
@@ -549,6 +550,16 @@ setTimeout(() => {
           }
         }
       }));
+
+      setTimeout(()=>{
+        setLabControls(prev => ({
+          ...prev,
+          [lab.lab_id]: {
+            ...prev[lab.lab_id],
+            notification: null
+          }
+        }));
+      },3000)
     }
   };
 

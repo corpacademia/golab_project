@@ -308,7 +308,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/v1/organization_ms/user_ms/getUsersFromOrganization/${orgId}`);
+      const response = await axios.get(`http://localhost:3000/api/v1/user_ms/getUsersFromOrganization/${orgId}`);
       if (response.data.success) {
         setUsers(response.data.data);
       } else {

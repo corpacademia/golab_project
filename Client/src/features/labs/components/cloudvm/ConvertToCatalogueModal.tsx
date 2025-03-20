@@ -141,7 +141,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
 
   useEffect(() => {
     const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/aws_ms/user_profile');
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(response.data.user);
     };
     getUserDetails();

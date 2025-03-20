@@ -21,7 +21,6 @@ useEffect(() => {
     const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile', {
       withCredentials: true,
     });
-   
   if (!response.data.user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

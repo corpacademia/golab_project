@@ -33,9 +33,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
     login: (user) => { 
       set({ user, isAuthenticated: true });
     },
-    logout: () => {
-      set({ user: null, isAuthenticated: false });
+    logout: async () => {
+      try {
+        await axios.get('http://localhost:3000/api/v1/user_ms/logout', {
+          withCredentials: true,
+        });
+        set({ user: null, isAuthenticated: false });
+      } catch (error) {
+        console.error('Logout failed', error);
+        set({ user: null, isAuthenticated: false }); // Ensure state is reset even if API call fails
+      }
     },
+    
     switchOrganization: (org) => {
       const currentUser = get().user;
       if (!currentUser) return;
