@@ -31,7 +31,7 @@ export const Team: React.FC = () => {
   // }, []);
   const fetchTeamMembers = async () => {
     try {
-      const user_list = await axios.get('http://localhost:3000/api/v1/aws_ms/user_profile');
+      const user_list = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setAdmin(user_list.data.user);
       const response = await axios.post('http://localhost:3000/api/v1/user_ms/getOrganizationUsers', {
         admin_id: user_list.data.user.id
