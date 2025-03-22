@@ -1,6 +1,7 @@
+
+import { GradientText } from '../../../components/ui/GradientText';
 import React, { useState } from 'react';
 import { X, AlertCircle, Check, Loader } from 'lucide-react';
-import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
 
 interface EditProfileModalProps {
@@ -10,6 +11,7 @@ interface EditProfileModalProps {
     id: string;
     name: string;
     email: string;
+    status?: string;
   };
 }
 
@@ -22,14 +24,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     name: user.name,
     email: user.email,
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    status: user.status || 'active'
   });
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -46,13 +49,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      console.log(user.id)
       const response = await axios.put(`http://localhost:3000/api/v1/user_ms/updateUser/${user.id}`, {
         name: formData.name,
         email: formData.email,
-        password: formData.password || undefined
+        password: formData.password || undefined,
+        status: formData.status
       });
-      console.log(response)
+
       if (response.data.success) {
         setSuccess('Profile updated successfully');
         setTimeout(() => {
@@ -116,6 +119,24 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+              </select>
             </div>
 
             <div>
