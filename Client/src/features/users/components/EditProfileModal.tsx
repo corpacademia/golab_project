@@ -1,7 +1,6 @@
-
-import { GradientText } from '../../../components/ui/GradientText';
 import React, { useState } from 'react';
 import { X, AlertCircle, Check, Loader } from 'lucide-react';
+import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
 
 interface EditProfileModalProps {
@@ -12,6 +11,7 @@ interface EditProfileModalProps {
     name: string;
     email: string;
     status?: string;
+    role?: string;
   };
 }
 
@@ -25,7 +25,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     email: user.email,
     password: '',
     confirmPassword: '',
-    status: user.status || 'active'
+    status: user.status || 'active',
+    role: user.role || 'user'
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +54,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         name: formData.name,
         email: formData.email,
         password: formData.password || undefined,
-        status: formData.status
+        status: formData.status,
+        role: formData.role
       });
 
       if (response.data.success) {
@@ -119,6 +121,23 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Role
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
 
             <div>
