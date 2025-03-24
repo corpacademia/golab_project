@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MoreVertical, Mail, ExternalLink, Pencil, Trash2, Loader, AlertCircle, Check } from 'lucide-react';
 import { User } from '../types';
 import { useAuthStore } from '../../../store/authStore';
+import { EditUserModal } from './EditUserModal';
 import axios from 'axios';
 
 interface UserListProps {
@@ -22,6 +23,7 @@ export const UserList: React.FC<UserListProps> = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [editModalUser, setEditModalUser] = useState<User | null>(null);
 
   const handleViewDetails = (user: User) => {
     const basePath = currentUser?.role === 'orgadmin' ? 'trainer' : 'user';
@@ -29,11 +31,12 @@ export const UserList: React.FC<UserListProps> = ({
     onViewDetails(user);
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    setSelectedUsers(checked ? users.map(u => u.id) : []);
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    setSelectedUsers(e.target.checked ? users.map(u => u.id) : []);
   };
 
-  const handleSelectUser = (userId: string, e: React.MouseEvent) => {
+  const handleSelectUser = (e: React.ChangeEvent<HTMLInputElement>, userId: string) => {
     e.stopPropagation();
     setSelectedUsers(prev => 
       prev.includes(userId)
@@ -62,8 +65,15 @@ export const UserList: React.FC<UserListProps> = ({
       });
     } finally {
       setIsDeleting(false);
+      setActiveDropdown(null);
       setTimeout(() => setNotification(null), 3000);
     }
+  };
+
+  const handleEdit = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation();
+    setEditModalUser(user);
+    setActiveDropdown(null);
   };
 
   return (
@@ -120,8 +130,9 @@ export const UserList: React.FC<UserListProps> = ({
                 <input
                   type="checkbox"
                   checked={users.length > 0 && selectedUsers.length === users.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  onChange={handleSelectAll}
                   className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
+                  onClick={e => e.stopPropagation()}
                 />
               </th>
               <th className="pb-4">User</th>
@@ -139,11 +150,11 @@ export const UserList: React.FC<UserListProps> = ({
                 className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
                 onClick={() => handleViewDetails(user)}
               >
-                <td className="py-4 pl-4">
+                <td className="py-4 pl-4" onClick={e => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={selectedUsers.includes(user.id)}
-                    onChange={(e) => handleSelectUser(user.id, e)}
+                    onChange={(e) => handleSelectUser(e, user.id)}
                     className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
                   />
                 </td>
@@ -189,13 +200,10 @@ export const UserList: React.FC<UserListProps> = ({
                 <td className="py-4 text-gray-400">
                   {user.lastactive}
                 </td>
-                <td className="py-4">
+                <td className="py-4" onClick={e => e.stopPropagation()}>
                   <div className="relative">
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDropdown(activeDropdown === user.id ? null : user.id);
-                      }}
+                      onClick={() => setActiveDropdown(activeDropdown === user.id ? null : user.id)}
                       className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                     >
                       <MoreVertical className="h-4 w-4 text-gray-400" />
@@ -203,20 +211,14 @@ export const UserList: React.FC<UserListProps> = ({
                     {activeDropdown === user.id && (
                       <div className="absolute right-0 mt-2 w-48 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/dashboard/user/${user.id}`);
-                          }}
+                          onClick={() => handleViewDetails(user)}
                           className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-primary-500/10 flex items-center space-x-2"
                         >
                           <ExternalLink className="h-4 w-4 text-primary-400" />
                           <span>View Details</span>
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/dashboard/user/${user.id}?edit=true`);
-                          }}
+                          onClick={(e) => handleEdit(e, user)}
                           className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-primary-500/10 flex items-center space-x-2"
                         >
                           <Pencil className="h-4 w-4 text-primary-400" />
@@ -241,6 +243,14 @@ export const UserList: React.FC<UserListProps> = ({
           </tbody>
         </table>
       </div>
+
+      {editModalUser && (
+        <EditUserModal
+          isOpen={true}
+          onClose={() => setEditModalUser(null)}
+          user={editModalUser}
+        />
+      )}
     </div>
   );
 };
