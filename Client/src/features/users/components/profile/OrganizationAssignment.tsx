@@ -63,7 +63,6 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
     try {
       // TODO: Implement API call
       // await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log(selectedOrg)
       const update_user_field = await axios.put('http://localhost:3000/api/v1/user_ms/updateUserOrganization',{
         userId:userId,
         values:selectedOrg,
@@ -124,7 +123,7 @@ export const OrganizationAssignment: React.FC<OrganizationAssignmentProps> = ({
           >
             <option value="">Select an organization</option>
             {availableOrganizations.map(org => (
-              <option key={org.id} value={[org.organization_name,org.org_type]}>
+              <option key={org.id} value={[org.organization_name,org.org_type,org.id]}>
                 {org.organization_name} ({org.org_type})
               </option>
             ))}

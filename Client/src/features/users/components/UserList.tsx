@@ -23,7 +23,6 @@ export const UserList: React.FC<UserListProps> = ({
     navigate(`/dashboard/${basePath}/${user.id}`);
     onViewDetails(user);
   };
-
   return (
     <div className="glass-panel">
       <div className="overflow-x-auto">
