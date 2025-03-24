@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreVertical, Mail, ExternalLink } from 'lucide-react';
+import { MoreVertical, Mail, ExternalLink, Pencil, Trash2, Loader, AlertCircle, Check } from 'lucide-react';
 import { User } from '../types';
 import { useAuthStore } from '../../../store/authStore';
+import axios from 'axios';
 
 interface UserListProps {
   users: User[];
@@ -17,19 +18,113 @@ export const UserList: React.FC<UserListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
   const handleViewDetails = (user: User) => {
-    // Use different routes based on the context
     const basePath = currentUser?.role === 'orgadmin' ? 'trainer' : 'user';
     navigate(`/dashboard/${basePath}/${user.id}`);
     onViewDetails(user);
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedUsers(checked ? users.map(u => u.id) : []);
+  };
+
+  const handleSelectUser = (userId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedUsers(prev => 
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleDelete = async (userIds: string[]) => {
+    setIsDeleting(true);
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/user_ms/deleteUsers', {
+        userIds
+      });
+
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Users deleted successfully' });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete users');
+      }
+    } catch (err: any) {
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to delete users'
+      });
+    } finally {
+      setIsDeleting(false);
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
+
   return (
     <div className="glass-panel">
+      {notification && (
+        <div className={`mb-4 p-4 rounded-lg flex items-center space-x-2 ${
+          notification.type === 'success' 
+            ? 'bg-emerald-500/20 border border-emerald-500/20' 
+            : 'bg-red-500/20 border border-red-500/20'
+        }`}>
+          {notification.type === 'success' ? (
+            <Check className="h-5 w-5 text-emerald-400" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-red-400" />
+          )}
+          <span className={`text-sm ${
+            notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+          }`}>
+            {notification.message}
+          </span>
+        </div>
+      )}
+
+      {selectedUsers.length > 0 && (
+        <div className="mb-4 p-4 bg-dark-300/50 rounded-lg flex justify-between items-center">
+          <span className="text-sm text-gray-400">
+            {selectedUsers.length} user(s) selected
+          </span>
+          <button
+            onClick={() => handleDelete(selectedUsers)}
+            disabled={isDeleting}
+            className="btn-secondary text-red-400 hover:text-red-300"
+          >
+            {isDeleting ? (
+              <span className="flex items-center">
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+                Deleting...
+              </span>
+            ) : (
+              <span className="flex items-center">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-              <th className="pb-4 pl-4">User</th>
+              <th className="pb-4 pl-4">
+                <input
+                  type="checkbox"
+                  checked={users.length > 0 && selectedUsers.length === users.length}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
+                />
+              </th>
+              <th className="pb-4">User</th>
               <th className="pb-4">Role</th>
               {!hideOrganization && <th className="pb-4">Organization</th>}
               <th className="pb-4">Status</th>
@@ -45,6 +140,14 @@ export const UserList: React.FC<UserListProps> = ({
                 onClick={() => handleViewDetails(user)}
               >
                 <td className="py-4 pl-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user.id)}
+                    onChange={(e) => handleSelectUser(user.id, e)}
+                    className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
+                  />
+                </td>
+                <td className="py-4">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
                       <span className="text-lg font-medium text-primary-400">
@@ -87,22 +190,50 @@ export const UserList: React.FC<UserListProps> = ({
                   {user.lastactive}
                 </td>
                 <td className="py-4">
-                  <div className="flex items-center space-x-2">
-                    <button
+                  <div className="relative">
+                    <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleViewDetails(user);
+                        setActiveDropdown(activeDropdown === user.id ? null : user.id);
                       }}
-                      className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                    >
-                      <ExternalLink className="h-4 w-4 text-primary-400" />
-                    </button>
-                    <button 
-                      onClick={(e) => e.stopPropagation()}
                       className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                     >
                       <MoreVertical className="h-4 w-4 text-gray-400" />
                     </button>
+                    {activeDropdown === user.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/user/${user.id}`);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-primary-500/10 flex items-center space-x-2"
+                        >
+                          <ExternalLink className="h-4 w-4 text-primary-400" />
+                          <span>View Details</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/dashboard/user/${user.id}?edit=true`);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-primary-500/10 flex items-center space-x-2"
+                        >
+                          <Pencil className="h-4 w-4 text-primary-400" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete([user.id]);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center space-x-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </td>
               </tr>
