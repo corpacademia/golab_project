@@ -136,7 +136,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 required
               >
                 <option value="user">User</option>
-                <option value="admin">Admin</option>
+                <option value="orgadmin">Admin</option>
               </select>
             </div>
 
