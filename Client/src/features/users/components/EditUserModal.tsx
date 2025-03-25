@@ -24,9 +24,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
-    role: user.role,
-    organization: user.organization || '',
     status: user.status,
+    role: user.role,
     password: '',
     confirmPassword: ''
   });
@@ -54,7 +53,6 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
         name: user.name,
         email: user.email,
         role: user.role,
-        organization: user.organization || '',
         status: user.status,
         password: '',
         confirmPassword: ''
@@ -180,7 +178,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
             </select>
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Organization
             </label>
@@ -198,7 +196,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">

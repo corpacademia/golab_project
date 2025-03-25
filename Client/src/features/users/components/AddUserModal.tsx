@@ -47,6 +47,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
   }, [isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError(null);
@@ -211,7 +212,7 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
             >
               <option value="">Select Organization</option>
               {organizations.map(org => (
-                <option key={org.id} value={org.organization_name}>
+                <option key={org.id} value={[org.organization_name,org.org_type,org.id]}>
                   {org.organization_name}
                 </option>
               ))}
