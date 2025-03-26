@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import { 
-  Settings, 
-  Server, 
-  Network, 
-  CreditCard,
-  ChevronRight,
-  Check,
-  X,
+  Search, 
+  ChevronDown, 
+  X, 
+  AlertCircle, 
+  Check, 
   Loader,
-  AlertCircle,
-  Calendar,
-  Search,
-  ChevronDown,
-  Plus,
-  Minus
+  Calendar 
 } from 'lucide-react';
 
 interface CloudSliceConfigProps {
   onBack: () => void;
+  labDetails: {
+    title: string;
+    description: string;
+    duration: number;
+  };
 }
 
 interface Service {
@@ -43,7 +41,7 @@ const awsServiceCategories = {
     { name: 'DynamoDB', category: 'Databases', description: 'Managed NoSQL database' },
     { name: 'Redshift', category: 'Databases', description: 'Data warehouse service' }
   ],
-  'Networking': [
+  'Networking & Content Delivery': [
     { name: 'VPC', category: 'Networking', description: 'Isolated cloud resources' },
     { name: 'CloudFront', category: 'Networking', description: 'Global content delivery network' },
     { name: 'Route 53', category: 'Networking', description: 'Scalable DNS and domain registration' }
@@ -63,10 +61,62 @@ const awsServiceCategories = {
     { name: 'CloudWatch', category: 'Developer Tools', description: 'Monitoring and observability' },
     { name: 'CloudTrail', category: 'Developer Tools', description: 'AWS API activity tracking' }
   ],
-  'Security': [
+  'Security & Identity': [
     { name: 'IAM', category: 'Security', description: 'Identity and access management' },
     { name: 'GuardDuty', category: 'Security', description: 'Threat detection service' },
     { name: 'Shield', category: 'Security', description: 'DDoS protection' }
+  ],
+  'Migration & Transfer': [
+    { name: 'Migration Hub', category: 'Migration', description: 'Track application migration' },
+    { name: 'DataSync', category: 'Migration', description: 'Online data transfer service' },
+    { name: 'Snowball', category: 'Migration', description: 'Large-scale data transport' }
+  ],
+  'IoT': [
+    { name: 'IoT Core', category: 'IoT', description: 'Connect IoT devices' },
+    { name: 'IoT Analytics', category: 'IoT', description: 'IoT data analytics' },
+    { name: 'IoT Device Management', category: 'IoT', description: 'Manage IoT devices' }
+  ],
+  'Business Applications': [
+    { name: 'WorkSpaces', category: 'Business', description: 'Virtual desktop service' },
+    { name: 'Chime', category: 'Business', description: 'Communications service' },
+    { name: 'WorkDocs', category: 'Business', description: 'Content collaboration' }
+  ],
+  'AR/VR': [
+    { name: 'Sumerian', category: 'AR/VR', description: 'Create VR and AR applications' }
+  ],
+  'Blockchain': [
+    { name: 'Managed Blockchain', category: 'Blockchain', description: 'Managed blockchain networks' },
+    { name: 'QLDB', category: 'Blockchain', description: 'Ledger database service' }
+  ],
+  'Robotics': [
+    { name: 'RoboMaker', category: 'Robotics', description: 'Robotics development platform' }
+  ],
+  'Game Development': [
+    { name: 'GameLift', category: 'Gaming', description: 'Game server hosting' },
+    { name: 'GameKit', category: 'Gaming', description: 'Game development tools' }
+  ],
+  'Cost Management': [
+    { name: 'Cost Explorer', category: 'Cost', description: 'Analyze AWS spending' },
+    { name: 'Pricing Calculator', category: 'Cost', description: 'Estimate AWS costs' }
+  ],
+  'Customer Engagement': [
+    { name: 'Pinpoint', category: 'Engagement', description: 'Customer engagement service' },
+    { name: 'SES', category: 'Engagement', description: 'Email service' },
+    { name: 'SNS', category: 'Engagement', description: 'Notification service' }
+  ],
+  'Media Services': [
+    { name: 'MediaConvert', category: 'Media', description: 'File-based video transcoding' },
+    { name: 'MediaLive', category: 'Media', description: 'Live video processing' },
+    { name: 'MediaPackage', category: 'Media', description: 'Video origination and packaging' }
+  ],
+  'End User Computing': [
+    { name: 'AppStream 2.0', category: 'Computing', description: 'Application streaming service' },
+    { name: 'WorkSpaces', category: 'Computing', description: 'Virtual desktop infrastructure' }
+  ],
+  'Automation': [
+    { name: 'Systems Manager', category: 'Automation', description: 'AWS resource management' },
+    { name: 'CloudFormation', category: 'Automation', description: 'Infrastructure as code' },
+    { name: 'EventBridge', category: 'Automation', description: 'Serverless event bus' }
   ]
 };
 
@@ -81,7 +131,7 @@ const regions = [
   { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
 ];
 
-export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) => {
+export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails }) => {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,6 +179,8 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) =>
 
     try {
       const config = {
+        title: labDetails.title,
+        description: labDetails.description,
         services: selectedServices.map(s => s.name),
         region: selectedRegion,
         startDate,
@@ -136,9 +188,6 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) =>
         cleanupPolicy: `${cleanupPolicy}-day`,
       };
 
-      // This is where you would integrate with your backend
-      console.log('Cloud slice configuration:', config);
-      
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -153,9 +202,12 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) =>
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-display font-bold">
-          <GradientText>AWS Cloud Slice Configuration</GradientText>
-        </h2>
+        <div>
+          <h2 className="text-2xl font-display font-bold">
+            <GradientText>AWS Cloud Slice Configuration</GradientText>
+          </h2>
+          <p className="mt-2 text-gray-400">{labDetails.description}</p>
+        </div>
         <div className="text-lg font-semibold text-primary-400">
           Credits Available: ${credits.toLocaleString()}
         </div>
@@ -313,30 +365,36 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) =>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Start Date
             </label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              required
-            />
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               End Date
             </label>
-            <input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              min={startDate || new Date().toISOString().slice(0, 16)}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              required
-            />
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || new Date().toISOString().slice(0, 16)}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
+            </div>
           </div>
         </div>
 
