@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
 import { LabTypeSelector } from '../components/create/LabTypeSelector';
 import { SingleVMWorkflow } from '../components/create/SingleVMWorkflow';
+import { CloudSlicePage } from './CloudSlicePage';
 import { LabType } from '../types';
 
 export const CreateLabEnvironment: React.FC = () => {
@@ -26,6 +27,9 @@ export const CreateLabEnvironment: React.FC = () => {
         <>
           {selectedType === 'single-vm' && (
             <SingleVMWorkflow onBack={() => setSelectedType(null)} />
+          )}
+          {selectedType === 'cloud-slice' && (
+            <CloudSlicePage />
           )}
           {/* Add other workflow components for different lab types */}
         </>

@@ -5,7 +5,6 @@ import { VMSizeSelector } from './steps/VMSizeSelector';
 import { AIRecommendations } from './steps/AIRecommendations';
 import { DeploymentStatus } from './steps/DeploymentStatus';
 import { LabDetailsInput } from './steps/LabDetailsInput';
-import { CloudSliceConfig } from './steps/CloudSliceConfig';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SingleVMWorkflowProps {
@@ -22,7 +21,6 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     cloudProvider: '',
     vmSize: null,
     region: '',
-    cloudSlice: null
   });
 
   const updateConfig = (updates: Partial<typeof config>) => {
@@ -42,11 +40,7 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     }
 
     if (step >= 4) {
-      if (config.cloudProvider === 'aws' && config.platform === 'cloud') {
-        breadcrumbs.push({ label: 'Cloud Slice Config', step: 4 });
-      } else {
-        breadcrumbs.push({ label: 'VM Configuration', step: 4 });
-      }
+      breadcrumbs.push({ label: 'VM Configuration', step: 4 });
     }
 
     if (step >= 5) {
@@ -104,13 +98,7 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
           onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
         />
       )}
-      {step === 4 && config.cloudProvider === 'aws' && config.platform === 'cloud' && (
-        <CloudSliceConfig
-          onSubmit={(cloudSlice) => updateConfig({ cloudSlice })}
-          onBack={() => setStep(3)}
-        />
-      )}
-      {step === 4 && (!config.cloudProvider || config.cloudProvider !== 'aws') && (
+      {step === 4 && (
         <VMSizeSelector 
           onSelect={(size) => updateConfig({ vmSize: size })} 
         />
