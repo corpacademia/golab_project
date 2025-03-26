@@ -3,7 +3,6 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { LabTypeSelector } from '../components/create/LabTypeSelector';
 import { SingleVMWorkflow } from '../components/create/SingleVMWorkflow';
 import { CloudSliceWorkflow } from '../components/create/CloudSliceWorkflow';
-import { LabDetailsInput } from '../components/create/steps/LabDetailsInput';
 import { LabType } from '../types';
 
 export const CreateLabEnvironment: React.FC = () => {
@@ -12,17 +11,13 @@ export const CreateLabEnvironment: React.FC = () => {
     title: string;
     description: string;
     duration: number;
-  } | null>(null);
-
-  const handleLabDetails = (details: { title: string; description: string; duration: number }) => {
-    setLabDetails(details);
-  };
+  }>({
+    title: '',
+    description: '',
+    duration: 60
+  });
 
   const renderWorkflow = () => {
-    if (!labDetails) {
-      return <LabDetailsInput onNext={handleLabDetails} />;
-    }
-
     if (!selectedType) {
       return <LabTypeSelector onSelect={setSelectedType} />;
     }
@@ -32,7 +27,6 @@ export const CreateLabEnvironment: React.FC = () => {
         return (
           <SingleVMWorkflow 
             onBack={() => setSelectedType(null)} 
-            labDetails={labDetails}
           />
         );
       case 'cloud-slice':

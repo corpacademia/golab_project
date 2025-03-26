@@ -3,20 +3,22 @@ import { PlatformSelector } from './steps/PlatformSelector';
 import { CloudProviderSelector } from './steps/CloudProviderSelector';
 import { CloudSliceConfig } from './steps/CloudSliceConfig';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { LabDetailsInput } from './steps/LabDetailsInput';
 
 interface CloudSliceWorkflowProps {
   onBack: () => void;
+  labDetails: {
+    title: string;
+    description: string;
+    duration: number;
+  };
 }
 
-export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }) => {
+export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ 
+  onBack,
+  labDetails 
+}) => {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState({
-    labDetails: {
-      title: '',
-      description: '',
-      duration: 60
-    },
     platform: '',
     cloudProvider: '',
     region: '',
@@ -36,10 +38,9 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
   const getBreadcrumbs = () => {
     const breadcrumbs = [
       { label: 'Lab Types', step: 0 },
-      { label: 'Lab Details', step: 1 },
-      { label: 'Platform Selection', step: 2 },
-      { label: 'Cloud Provider', step: 3 },
-      { label: 'Service Configuration', step: 4 }
+      { label: 'Platform Selection', step: 1 },
+      { label: 'Cloud Provider', step: 2 },
+      { label: 'Service Configuration', step: 3 }
     ];
 
     return breadcrumbs.slice(0, step + 1);
@@ -75,24 +76,19 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
       </div>
 
       {step === 1 && (
-        <LabDetailsInput 
-          onNext={(details) => updateConfig({ labDetails: details })} 
-        />
-      )}
-      {step === 2 && (
         <PlatformSelector 
           onSelect={(platform) => updateConfig({ platform })} 
         />
       )}
-      {step === 3 && (
+      {step === 2 && (
         <CloudProviderSelector 
           onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
         />
       )}
-      {step === 4 && (
+      {step === 3 && (
         <CloudSliceConfig 
-          onBack={() => setStep(3)}
-          labDetails={config.labDetails}
+          onBack={() => setStep(2)}
+          labDetails={labDetails}
         />
       )}
     </div>
