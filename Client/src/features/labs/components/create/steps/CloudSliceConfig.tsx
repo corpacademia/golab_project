@@ -5,9 +5,10 @@ import {
   ChevronDown, 
   X, 
   AlertCircle, 
+  Calendar, 
+  Loader, 
   Check, 
-  Loader,
-  Calendar 
+  Clock 
 } from 'lucide-react';
 
 interface CloudSliceConfigProps {
