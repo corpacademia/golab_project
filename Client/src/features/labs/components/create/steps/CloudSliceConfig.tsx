@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { GradientText } from '../../../../../components/ui/GradientText';
-import { Search, ChevronDown, X, AlertCircle, Check, Loader } from 'lucide-react';
-import axios from 'axios';
+import { 
+  Settings, 
+  Server, 
+  Network, 
+  CreditCard,
+  ChevronRight,
+  Check,
+  X,
+  Loader,
+  AlertCircle,
+  Calendar,
+  Search,
+  ChevronDown,
+  Plus,
+  Minus
+} from 'lucide-react';
 
 interface CloudSliceConfigProps {
-  onSubmit: (config: any) => void;
   onBack: () => void;
 }
 
@@ -14,7 +27,7 @@ interface Service {
   description: string;
 }
 
-const awsServices: Record<string, Service[]> = {
+const awsServiceCategories = {
   'Compute': [
     { name: 'EC2', category: 'Compute', description: 'Virtual servers in the cloud' },
     { name: 'Lambda', category: 'Compute', description: 'Run code without thinking about servers' },
@@ -39,6 +52,21 @@ const awsServices: Record<string, Service[]> = {
     { name: 'SageMaker', category: 'Machine Learning', description: 'Build ML models at scale' },
     { name: 'Rekognition', category: 'Machine Learning', description: 'Image and video analysis' },
     { name: 'Comprehend', category: 'Machine Learning', description: 'Natural language processing' }
+  ],
+  'Analytics': [
+    { name: 'EMR', category: 'Analytics', description: 'Big data processing' },
+    { name: 'Athena', category: 'Analytics', description: 'Query data in S3' },
+    { name: 'Kinesis', category: 'Analytics', description: 'Real-time data streaming' }
+  ],
+  'Developer Tools': [
+    { name: 'CodeCommit', category: 'Developer Tools', description: 'Source control service' },
+    { name: 'CloudWatch', category: 'Developer Tools', description: 'Monitoring and observability' },
+    { name: 'CloudTrail', category: 'Developer Tools', description: 'AWS API activity tracking' }
+  ],
+  'Security': [
+    { name: 'IAM', category: 'Security', description: 'Identity and access management' },
+    { name: 'GuardDuty', category: 'Security', description: 'Threat detection service' },
+    { name: 'Shield', category: 'Security', description: 'DDoS protection' }
   ]
 };
 
@@ -46,13 +74,14 @@ const regions = [
   { code: 'us-east-1', name: 'US East (N. Virginia)', location: 'Northern Virginia' },
   { code: 'us-west-2', name: 'US West (Oregon)', location: 'Oregon' },
   { code: 'eu-west-1', name: 'Europe (Ireland)', location: 'Ireland' },
-  { code: 'ap-southeast-1', name: 'Asia Pacific (Singapore)', location: 'Singapore' }
+  { code: 'ap-southeast-1', name: 'Asia Pacific (Singapore)', location: 'Singapore' },
+  { code: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)', location: 'Tokyo' },
+  { code: 'eu-central-1', name: 'Europe (Frankfurt)', location: 'Frankfurt' },
+  { code: 'ap-south-1', name: 'Asia Pacific (Mumbai)', location: 'Mumbai' },
+  { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
 ];
 
-export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
-  onSubmit,
-  onBack
-}) => {
+export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack }) => {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,7 +93,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
   const [cleanupPolicy, setCleanupPolicy] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [credits, setCredits] = useState(10000); // Example credit amount
+  const [credits] = useState(10000); // Example credit amount
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -107,15 +136,15 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
         cleanupPolicy: `${cleanupPolicy}-day`,
       };
 
-      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/createCloudSlice', config);
+      // This is where you would integrate with your backend
+      console.log('Cloud slice configuration:', config);
       
-      if (response.data.success) {
-        onSubmit(config);
-      } else {
-        throw new Error(response.data.message || 'Failed to create cloud slice');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to create cloud slice');
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      onBack(); // Return to the list view
+    } catch (err) {
+      setError('Failed to create cloud slice');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +178,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
         </div>
 
         <div className="space-y-2">
-          {Object.entries(awsServices).map(([category, services]) => (
+          {Object.entries(awsServiceCategories).map(([category, services]) => (
             <div key={category} className="relative">
               <button
                 onClick={() => setActiveCategoryDropdown(
@@ -291,6 +320,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
               min={new Date().toISOString().slice(0, 16)}
               className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              required
             />
           </div>
 
@@ -305,6 +335,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({
               min={startDate || new Date().toISOString().slice(0, 16)}
               className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              required
             />
           </div>
         </div>
