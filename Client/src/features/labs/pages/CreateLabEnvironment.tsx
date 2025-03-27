@@ -8,21 +8,8 @@ import { LabType } from '../types';
 
 export const CreateLabEnvironment: React.FC = () => {
   const [selectedType, setSelectedType] = useState<LabType | null>(null);
-  const [labDetails, setLabDetails] = useState<{
-    title: string;
-    description: string;
-    duration: number;
-  } | null>(null);
-
-  const handleLabDetails = (details: { title: string; description: string; duration: number }) => {
-    setLabDetails(details);
-  };
 
   const renderWorkflow = () => {
-    if (!labDetails) {
-      return <LabDetailsInput onNext={handleLabDetails} />;
-    }
-
     if (!selectedType) {
       return <LabTypeSelector onSelect={setSelectedType} />;
     }
@@ -32,14 +19,17 @@ export const CreateLabEnvironment: React.FC = () => {
         return (
           <SingleVMWorkflow 
             onBack={() => setSelectedType(null)} 
-            labDetails={labDetails}
           />
         );
       case 'cloud-slice':
         return (
           <CloudSliceWorkflow 
             onBack={() => setSelectedType(null)}
-            labDetails={labDetails}
+            labDetails={{
+              title: '',
+              description: '',
+              duration: 60
+            }}
           />
         );
       default:
