@@ -2,22 +2,20 @@ import React, { useState } from 'react';
 import { PlatformSelector } from './steps/PlatformSelector';
 import { CloudProviderSelector } from './steps/CloudProviderSelector';
 import { CloudSliceConfig } from './steps/CloudSliceConfig';
+import { LabDetailsInput } from './steps/LabDetailsInput';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CloudSliceWorkflowProps {
   onBack: () => void;
-  labDetails: {
+}
+
+export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }) => {
+  const [step, setStep] = useState(1);
+  const [labDetails, setLabDetails] = useState<{
     title: string;
     description: string;
     duration: number;
-  };
-}
-
-export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ 
-  onBack,
-  labDetails 
-}) => {
-  const [step, setStep] = useState(1);
+  } | null>(null);
   const [config, setConfig] = useState({
     platform: '',
     cloudProvider: '',
@@ -35,12 +33,18 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({
     setStep(prev => prev + 1);
   };
 
+  const handleLabDetails = (details: { title: string; description: string; duration: number }) => {
+    setLabDetails(details);
+    setStep(prev => prev + 1);
+  };
+
   const getBreadcrumbs = () => {
     const breadcrumbs = [
       { label: 'Lab Types', step: 0 },
-      { label: 'Platform Selection', step: 1 },
-      { label: 'Cloud Provider', step: 2 },
-      { label: 'Service Configuration', step: 3 }
+      { label: 'Lab Details', step: 1 },
+      { label: 'Platform Selection', step: 2 },
+      { label: 'Cloud Provider', step: 3 },
+      { label: 'Service Configuration', step: 4 }
     ];
 
     return breadcrumbs.slice(0, step + 1);
@@ -51,6 +55,26 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({
       onBack();
     } else if (targetStep < step) {
       setStep(targetStep);
+    }
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return <LabDetailsInput onNext={handleLabDetails} />;
+      case 2:
+        return <PlatformSelector onSelect={(platform) => updateConfig({ platform })} />;
+      case 3:
+        return <CloudProviderSelector onSelect={(provider) => updateConfig({ cloudProvider: provider })} />;
+      case 4:
+        return labDetails ? (
+          <CloudSliceConfig 
+            onBack={() => setStep(3)}
+            labDetails={labDetails}
+          />
+        ) : null;
+      default:
+        return null;
     }
   };
 
@@ -75,22 +99,7 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({
         ))}
       </div>
 
-      {step === 1 && (
-        <PlatformSelector 
-          onSelect={(platform) => updateConfig({ platform })} 
-        />
-      )}
-      {step === 2 && (
-        <CloudProviderSelector 
-          onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
-        />
-      )}
-      {step === 3 && (
-        <CloudSliceConfig 
-          onBack={() => setStep(2)}
-          labDetails={labDetails}
-        />
-      )}
+      {renderStep()}
     </div>
   );
 };
