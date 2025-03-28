@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import { 
   Search, 
@@ -161,14 +162,17 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   useEffect(()=>{
     const getAwsServices = async () =>{
       try {
-        const fetch = await axios.get('')
+        const fetch = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        console.log(fetch)
       } catch (error) {
-        
+        console.log(error);
+        setError('Failed to fetch AWS services');
       }
       finally{
         isLoading(true);
       }
     }
+    getAwsServices();
   },[])
 
   const extractAwsServices = async (awsServices: { service: string; description: string; category: string }[]): Promise<CategorizedServices> => {
@@ -239,7 +243,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     }
   };
 
-  if(loading){
+  if(!loading){
     return <div>Loading...</div>;
   }
 
