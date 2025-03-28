@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import { 
   Search, 
@@ -25,6 +25,17 @@ interface Service {
   category: string;
   description: string;
 }
+
+interface AwsService {
+  name: string;
+  category: string;
+  description: string;
+}
+
+interface CategorizedServices {
+  [category: string]: AwsService[];
+}
+
 
 const awsServiceCategories = {
   'Compute': [
@@ -145,6 +156,34 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
+  const [loading,isLoading] = useState(false);
+
+  useEffect(()=>{
+    const getAwsServices = async () =>{
+      try {
+        const fetch = await axios.get('')
+      } catch (error) {
+        
+      }
+      finally{
+        isLoading(true);
+      }
+    }
+  },[])
+
+  const extractAwsServices = async (awsServices: { service: string; description: string; category: string }[]): Promise<CategorizedServices> => {
+    const services: CategorizedServices = {};
+  
+    awsServices.forEach(({ service, description, category }) => {
+      if (services[category]) {
+        services[category].push({ name: service,category:category, description:description });
+      } else {
+        services[category] = [{ name: service,category:category, description:description }];
+      }
+    });
+  
+    return services;
+  };
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -199,6 +238,10 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       setIsSubmitting(false);
     }
   };
+
+  if(loading){
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
