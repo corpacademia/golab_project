@@ -95,7 +95,7 @@ useEffect(() => {
         lab_id: vm.lab_id,
       });
       if (response.data.success) {
-        setAmiId(response.data.data.ami_id);
+        setAmiId(response.data?.result?.ami_id);
         setIsConvertEnabled(true);
       }
     } catch (error) {
@@ -243,7 +243,7 @@ useEffect(() => {
         // Open Guacamole if the VM is running and JWT token is available
         if (launchResponse.data.response.jwtToken) {
 
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.jwtToken}`;
+          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           window.open(guacUrl, '_blank');
         }
       } else {

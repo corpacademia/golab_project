@@ -20,24 +20,46 @@ interface CloudVM {
   software: string[];
   config_details?: any;
 }
+interface User{
+  id:string;
+  name:string;
+  email:string;
+  password:string;
+  role:string;
+  created_at:string;
+  lastactive:string;
+  organization:string;
+  created_by:string;
+  status:string;
+}
 
 export const OrgAdminCloudVMsPage: React.FC = () => {
   const [vms, setVMs] = useState<CloudVM[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const[admin , setAdmin] = useState<User[]>([]);
   const [filters, setFilters] = useState({
     search: '',
     provider: '',
     status: ''
   });
 
-  const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   useEffect(() => {
     const fetchVMs = async () => {
       try {
+        const admin = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        console.log(admin.data?.user?.id)
+        
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssessments', {
-          admin_id: admin.id
+          admin_id: admin.data?.user?.id
         });
 
         if (response.data.success) {

@@ -72,7 +72,6 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   const [paymentSuccess, setPaymentSuccess] = useState(true);
 
   const [admin,setAdmin] = useState({});
-
   // useEffect(() => {
   //   const getUserDetails = async () => {
   //     const response = await axios.get('http://localhost:3000/api/v1/user_profile');
