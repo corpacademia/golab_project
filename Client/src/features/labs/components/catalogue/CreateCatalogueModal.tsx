@@ -22,6 +22,7 @@ export const CreateCatalogueModal: React.FC<CreateCatalogueModalProps> = ({
   existingCatalogue,
   onSuccess
 }) => {
+
   const initialFormData = {
     name: '',
     cpu: existingCatalogue.cpu,

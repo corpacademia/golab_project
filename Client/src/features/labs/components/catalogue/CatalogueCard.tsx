@@ -65,7 +65,13 @@ export const CatalogueCard: React.FC<CatalogueCardProps> = ({ lab }) => {
           }
         }
       } catch (error) {
-        console.error('Error fetching software details:', error);
+        if(error.status === 404){
+          console.warn('No software details:',error)
+        }
+        else{
+          console.error('Error fetching software details:', error);
+        }
+        
       }
     };
 
