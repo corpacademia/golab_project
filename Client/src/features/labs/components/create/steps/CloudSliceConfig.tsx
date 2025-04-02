@@ -147,9 +147,12 @@ const regions = [
 export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails }) => {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
   const [regionSearch, setRegionSearch] = useState('');
-  const [activeCategoryDropdown, setActiveCategoryDropdown] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showRegionDropdown, setShowRegionDropdown] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -157,7 +160,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
-  const [loading,isLoading] = useState(false);
+  const [loading, isLoading] = useState(false);
 
   useEffect(()=>{
     const getAwsServices = async () =>{
@@ -193,6 +196,17 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
     region.location.toLowerCase().includes(regionSearch.toLowerCase())
   );
+
+  const filteredCategories = Object.keys(awsServiceCategories).filter(category =>
+    category.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const filteredServices = selectedCategory 
+    ? awsServiceCategories[selectedCategory].filter(service =>
+        service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+        service.description.toLowerCase().includes(serviceSearch.toLowerCase())
+      )
+    : [];
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices(prev => {
@@ -261,49 +275,106 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         </div>
       </div>
 
-      {/* Services Selection */}
+      {/* Services Selection - Updated with two dropdowns */}
       <div className="glass-panel space-y-4">
         <h3 className="text-lg font-semibold text-gray-200">AWS Services</h3>
         
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search services..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                     text-gray-300 focus:border-primary-500/40 focus:outline-none"
-          />
-          <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-500" />
-        </div>
-
-        <div className="space-y-2">
-          {Object.entries(awsServiceCategories).map(([category, services]) => (
-            <div key={category} className="relative">
-              <button
-                onClick={() => setActiveCategoryDropdown(
-                  activeCategoryDropdown === category ? null : category
-                )}
-                className="w-full flex items-center justify-between p-3 bg-dark-300/50 
-                         hover:bg-dark-300 rounded-lg transition-colors"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Categories Dropdown */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-300">Service Categories</h4>
+            <div className="relative">
+              <div 
+                className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                         border border-primary-500/20 hover:border-primary-500/40 
+                         rounded-lg cursor-pointer transition-colors"
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
               >
-                <span className="text-gray-200">{category}</span>
+                <span className="text-gray-300">
+                  {selectedCategory || 'Select a category'}
+                </span>
                 <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
-                  activeCategoryDropdown === category ? 'transform rotate-180' : ''
+                  showCategoryDropdown ? 'transform rotate-180' : ''
                 }`} />
-              </button>
+              </div>
 
-              {activeCategoryDropdown === category && (
-                <div className="mt-2 p-2 bg-dark-200 rounded-lg border border-primary-500/20">
-                  {services
-                    .filter(service => 
-                      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      service.description.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map(service => (
+              {showCategoryDropdown && (
+                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                              border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                  <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search categories..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                    </div>
+                  </div>
+                  <div>
+                    {filteredCategories.map(category => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setShowCategoryDropdown(false);
+                          setShowServiceDropdown(true);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                      >
+                        <p className="text-gray-200">{category}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column - Services Dropdown */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-300">Services</h4>
+            <div className="relative">
+              <div 
+                className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                         border border-primary-500/20 hover:border-primary-500/40 
+                         rounded-lg cursor-pointer transition-colors"
+                onClick={() => selectedCategory && setShowServiceDropdown(!showServiceDropdown)}
+              >
+                <span className="text-gray-300">
+                  {selectedServices.length > 0 
+                    ? `${selectedServices.length} service(s) selected` 
+                    : 'Select services'}
+                </span>
+                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                  showServiceDropdown ? 'transform rotate-180' : ''
+                }`} />
+              </div>
+
+              {showServiceDropdown && selectedCategory && (
+                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                              border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                  <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={serviceSearch}
+                        onChange={(e) => setServiceSearch(e.target.value)}
+                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                    </div>
+                  </div>
+                  <div>
+                    {filteredServices.map(service => (
                       <label
                         key={service.name}
-                        className="flex items-center space-x-3 p-2 hover:bg-dark-300/50 rounded-lg
+                        className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
                                  cursor-pointer transition-colors"
                       >
                         <input
@@ -318,14 +389,15 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
                           <p className="text-sm text-gray-400">{service.description}</p>
                         </div>
                       </label>
-                    ))
-                  }
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          ))}
+          </div>
         </div>
 
+        {/* Selected Services Display */}
         {selectedServices.length > 0 && (
           <div className="mt-4">
             <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h4>
