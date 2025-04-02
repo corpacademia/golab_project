@@ -38,100 +38,100 @@ interface CategorizedServices {
 }
 
 
-const awsServiceCategories = {
-  'Compute': [
-    { name: 'EC2', category: 'Compute', description: 'Virtual servers in the cloud' },
-    { name: 'Lambda', category: 'Compute', description: 'Run code without thinking about servers' },
-    { name: 'Elastic Beanstalk', category: 'Compute', description: 'Run and manage web apps' }
-  ],
-  'Storage': [
-    { name: 'S3', category: 'Storage', description: 'Scalable storage in the cloud' },
-    { name: 'EBS', category: 'Storage', description: 'Block storage for EC2' },
-    { name: 'Glacier', category: 'Storage', description: 'Low-cost archive storage' }
-  ],
-  'Databases': [
-    { name: 'RDS', category: 'Databases', description: 'Managed relational databases' },
-    { name: 'DynamoDB', category: 'Databases', description: 'Managed NoSQL database' },
-    { name: 'Redshift', category: 'Databases', description: 'Data warehouse service' }
-  ],
-  'Networking & Content Delivery': [
-    { name: 'VPC', category: 'Networking', description: 'Isolated cloud resources' },
-    { name: 'CloudFront', category: 'Networking', description: 'Global content delivery network' },
-    { name: 'Route 53', category: 'Networking', description: 'Scalable DNS and domain registration' }
-  ],
-  'Machine Learning': [
-    { name: 'SageMaker', category: 'Machine Learning', description: 'Build ML models at scale' },
-    { name: 'Rekognition', category: 'Machine Learning', description: 'Image and video analysis' },
-    { name: 'Comprehend', category: 'Machine Learning', description: 'Natural language processing' }
-  ],
-  'Analytics': [
-    { name: 'EMR', category: 'Analytics', description: 'Big data processing' },
-    { name: 'Athena', category: 'Analytics', description: 'Query data in S3' },
-    { name: 'Kinesis', category: 'Analytics', description: 'Real-time data streaming' }
-  ],
-  'Developer Tools': [
-    { name: 'CodeCommit', category: 'Developer Tools', description: 'Source control service' },
-    { name: 'CloudWatch', category: 'Developer Tools', description: 'Monitoring and observability' },
-    { name: 'CloudTrail', category: 'Developer Tools', description: 'AWS API activity tracking' }
-  ],
-  'Security & Identity': [
-    { name: 'IAM', category: 'Security', description: 'Identity and access management' },
-    { name: 'GuardDuty', category: 'Security', description: 'Threat detection service' },
-    { name: 'Shield', category: 'Security', description: 'DDoS protection' }
-  ],
-  'Migration & Transfer': [
-    { name: 'Migration Hub', category: 'Migration', description: 'Track application migration' },
-    { name: 'DataSync', category: 'Migration', description: 'Online data transfer service' },
-    { name: 'Snowball', category: 'Migration', description: 'Large-scale data transport' }
-  ],
-  'IoT': [
-    { name: 'IoT Core', category: 'IoT', description: 'Connect IoT devices' },
-    { name: 'IoT Analytics', category: 'IoT', description: 'IoT data analytics' },
-    { name: 'IoT Device Management', category: 'IoT', description: 'Manage IoT devices' }
-  ],
-  'Business Applications': [
-    { name: 'WorkSpaces', category: 'Business', description: 'Virtual desktop service' },
-    { name: 'Chime', category: 'Business', description: 'Communications service' },
-    { name: 'WorkDocs', category: 'Business', description: 'Content collaboration' }
-  ],
-  'AR/VR': [
-    { name: 'Sumerian', category: 'AR/VR', description: 'Create VR and AR applications' }
-  ],
-  'Blockchain': [
-    { name: 'Managed Blockchain', category: 'Blockchain', description: 'Managed blockchain networks' },
-    { name: 'QLDB', category: 'Blockchain', description: 'Ledger database service' }
-  ],
-  'Robotics': [
-    { name: 'RoboMaker', category: 'Robotics', description: 'Robotics development platform' }
-  ],
-  'Game Development': [
-    { name: 'GameLift', category: 'Gaming', description: 'Game server hosting' },
-    { name: 'GameKit', category: 'Gaming', description: 'Game development tools' }
-  ],
-  'Cost Management': [
-    { name: 'Cost Explorer', category: 'Cost', description: 'Analyze AWS spending' },
-    { name: 'Pricing Calculator', category: 'Cost', description: 'Estimate AWS costs' }
-  ],
-  'Customer Engagement': [
-    { name: 'Pinpoint', category: 'Engagement', description: 'Customer engagement service' },
-    { name: 'SES', category: 'Engagement', description: 'Email service' },
-    { name: 'SNS', category: 'Engagement', description: 'Notification service' }
-  ],
-  'Media Services': [
-    { name: 'MediaConvert', category: 'Media', description: 'File-based video transcoding' },
-    { name: 'MediaLive', category: 'Media', description: 'Live video processing' },
-    { name: 'MediaPackage', category: 'Media', description: 'Video origination and packaging' }
-  ],
-  'End User Computing': [
-    { name: 'AppStream 2.0', category: 'Computing', description: 'Application streaming service' },
-    { name: 'WorkSpaces', category: 'Computing', description: 'Virtual desktop infrastructure' }
-  ],
-  'Automation': [
-    { name: 'Systems Manager', category: 'Automation', description: 'AWS resource management' },
-    { name: 'CloudFormation', category: 'Automation', description: 'Infrastructure as code' },
-    { name: 'EventBridge', category: 'Automation', description: 'Serverless event bus' }
-  ]
-};
+// const awsServiceCategories = {
+//   'Compute': [
+//     { name: 'EC2', category: 'Compute', description: 'Virtual servers in the cloud' },
+//     { name: 'Lambda', category: 'Compute', description: 'Run code without thinking about servers' },
+//     { name: 'Elastic Beanstalk', category: 'Compute', description: 'Run and manage web apps' }
+//   ],
+//   'Storage': [
+//     { name: 'S3', category: 'Storage', description: 'Scalable storage in the cloud' },
+//     { name: 'EBS', category: 'Storage', description: 'Block storage for EC2' },
+//     { name: 'Glacier', category: 'Storage', description: 'Low-cost archive storage' }
+//   ],
+//   'Databases': [
+//     { name: 'RDS', category: 'Databases', description: 'Managed relational databases' },
+//     { name: 'DynamoDB', category: 'Databases', description: 'Managed NoSQL database' },
+//     { name: 'Redshift', category: 'Databases', description: 'Data warehouse service' }
+//   ],
+//   'Networking & Content Delivery': [
+//     { name: 'VPC', category: 'Networking', description: 'Isolated cloud resources' },
+//     { name: 'CloudFront', category: 'Networking', description: 'Global content delivery network' },
+//     { name: 'Route 53', category: 'Networking', description: 'Scalable DNS and domain registration' }
+//   ],
+//   'Machine Learning': [
+//     { name: 'SageMaker', category: 'Machine Learning', description: 'Build ML models at scale' },
+//     { name: 'Rekognition', category: 'Machine Learning', description: 'Image and video analysis' },
+//     { name: 'Comprehend', category: 'Machine Learning', description: 'Natural language processing' }
+//   ],
+//   'Analytics': [
+//     { name: 'EMR', category: 'Analytics', description: 'Big data processing' },
+//     { name: 'Athena', category: 'Analytics', description: 'Query data in S3' },
+//     { name: 'Kinesis', category: 'Analytics', description: 'Real-time data streaming' }
+//   ],
+//   'Developer Tools': [
+//     { name: 'CodeCommit', category: 'Developer Tools', description: 'Source control service' },
+//     { name: 'CloudWatch', category: 'Developer Tools', description: 'Monitoring and observability' },
+//     { name: 'CloudTrail', category: 'Developer Tools', description: 'AWS API activity tracking' }
+//   ],
+//   'Security & Identity': [
+//     { name: 'IAM', category: 'Security', description: 'Identity and access management' },
+//     { name: 'GuardDuty', category: 'Security', description: 'Threat detection service' },
+//     { name: 'Shield', category: 'Security', description: 'DDoS protection' }
+//   ],
+//   'Migration & Transfer': [
+//     { name: 'Migration Hub', category: 'Migration', description: 'Track application migration' },
+//     { name: 'DataSync', category: 'Migration', description: 'Online data transfer service' },
+//     { name: 'Snowball', category: 'Migration', description: 'Large-scale data transport' }
+//   ],
+//   'IoT': [
+//     { name: 'IoT Core', category: 'IoT', description: 'Connect IoT devices' },
+//     { name: 'IoT Analytics', category: 'IoT', description: 'IoT data analytics' },
+//     { name: 'IoT Device Management', category: 'IoT', description: 'Manage IoT devices' }
+//   ],
+//   'Business Applications': [
+//     { name: 'WorkSpaces', category: 'Business', description: 'Virtual desktop service' },
+//     { name: 'Chime', category: 'Business', description: 'Communications service' },
+//     { name: 'WorkDocs', category: 'Business', description: 'Content collaboration' }
+//   ],
+//   'AR/VR': [
+//     { name: 'Sumerian', category: 'AR/VR', description: 'Create VR and AR applications' }
+//   ],
+//   'Blockchain': [
+//     { name: 'Managed Blockchain', category: 'Blockchain', description: 'Managed blockchain networks' },
+//     { name: 'QLDB', category: 'Blockchain', description: 'Ledger database service' }
+//   ],
+//   'Robotics': [
+//     { name: 'RoboMaker', category: 'Robotics', description: 'Robotics development platform' }
+//   ],
+//   'Game Development': [
+//     { name: 'GameLift', category: 'Gaming', description: 'Game server hosting' },
+//     { name: 'GameKit', category: 'Gaming', description: 'Game development tools' }
+//   ],
+//   'Cost Management': [
+//     { name: 'Cost Explorer', category: 'Cost', description: 'Analyze AWS spending' },
+//     { name: 'Pricing Calculator', category: 'Cost', description: 'Estimate AWS costs' }
+//   ],
+//   'Customer Engagement': [
+//     { name: 'Pinpoint', category: 'Engagement', description: 'Customer engagement service' },
+//     { name: 'SES', category: 'Engagement', description: 'Email service' },
+//     { name: 'SNS', category: 'Engagement', description: 'Notification service' }
+//   ],
+//   'Media Services': [
+//     { name: 'MediaConvert', category: 'Media', description: 'File-based video transcoding' },
+//     { name: 'MediaLive', category: 'Media', description: 'Live video processing' },
+//     { name: 'MediaPackage', category: 'Media', description: 'Video origination and packaging' }
+//   ],
+//   'End User Computing': [
+//     { name: 'AppStream 2.0', category: 'Computing', description: 'Application streaming service' },
+//     { name: 'WorkSpaces', category: 'Computing', description: 'Virtual desktop infrastructure' }
+//   ],
+//   'Automation': [
+//     { name: 'Systems Manager', category: 'Automation', description: 'AWS resource management' },
+//     { name: 'CloudFormation', category: 'Automation', description: 'Infrastructure as code' },
+//     { name: 'EventBridge', category: 'Automation', description: 'Serverless event bus' }
+//   ]
+// };
 
 const regions = [
   { code: 'us-east-1', name: 'US East (N. Virginia)', location: 'Northern Virginia' },
@@ -162,11 +162,29 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [credits] = useState(10000); // Example credit amount
   const [loading, isLoading] = useState(false);
 
+  let awsServiceCategories ;
+
+ //extract the aws services
+ const extractAwsServices = async (awsServices: { service: string; description: string; category: string }[]): Promise<CategorizedServices> => {
+  const services: CategorizedServices = {};
+
+  awsServices.forEach(({ service, description, category }) => {
+    if (services[category]) {
+      services[category].push({ name: service,category:category, description:description });
+    } else {
+      services[category] = [{ name: service,category:category, description:description }];
+    }
+  });
+
+  return services;
+};
+
   useEffect(()=>{
     const getAwsServices = async () =>{
       try {
         const fetch = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
-        console.log(fetch)
+        awsServiceCategories = extractAwsServices(fetch.data.data);
+        console.log(awsServiceCategories)
       } catch (error) {
         console.log(error);
         setError('Failed to fetch AWS services');
@@ -178,19 +196,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     getAwsServices();
   },[])
 
-  const extractAwsServices = async (awsServices: { service: string; description: string; category: string }[]): Promise<CategorizedServices> => {
-    const services: CategorizedServices = {};
-  
-    awsServices.forEach(({ service, description, category }) => {
-      if (services[category]) {
-        services[category].push({ name: service,category:category, description:description });
-      } else {
-        services[category] = [{ name: service,category:category, description:description }];
-      }
-    });
-  
-    return services;
-  };
+ console.log(awsServiceCategories);
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
