@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Check, Loader, XCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../../../../store/authStore';
 import axios from 'axios';
 
 interface DeploymentStatusProps {
@@ -10,12 +12,15 @@ interface DeploymentStatusProps {
 export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const steps = [
     { id: 'EC2', label: 'Terraform Setup' },
     { id: 'Terraform', label: 'Terraform Initialization' },
     { id: 'Terraform Apply', label: 'Terraform Applying' },
-    // { id: 'complete', label: 'Setup Complete' }
+    { id: 'complete', label: 'Setup Complete' }
   ];
 
   // Function to check script execution status
@@ -26,7 +31,20 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
       if (data.data.data.step1) step = 1;
       if (data.data.data.step2) step = 2;
       if (data.data.data.step3) step = 3;
+      
       setCurrentStep(step);
+      
+      // If all steps are complete, set isComplete to true
+      if (step === 3) {
+        setIsComplete(true);
+        // Navigate to the appropriate Cloud VMs page after a short delay
+        setTimeout(() => {
+          const route = user?.role === 'superadmin' 
+            ? '/dashboard/labs/cloud-vms' 
+            : '/dashboard/labs/cloud-vms';
+          navigate(route);
+        }, 2000);
+      }
     } catch (err) {
       setError('Failed to fetch deployment progress.');
     }
@@ -88,6 +106,17 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
             );
           })}
         </div>
+
+        {isComplete && (
+          <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Check className="h-5 w-5 text-emerald-400" />
+              <span className="text-emerald-200">
+                Deployment completed successfully! Redirecting to Cloud VMs page...
+              </span>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
