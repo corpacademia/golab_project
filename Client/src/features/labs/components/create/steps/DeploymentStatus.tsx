@@ -22,7 +22,7 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
   const fetchProgress = async () => {
     try {
       const data = await axios.get('http://localhost:3000/api/v1/aws_ms/labprogress');
-      let step = 0;
+      let step =0;
       if (data.data.data.step1) step = 1;
       if (data.data.data.step2) step = 2;
       if (data.data.data.step3) step = 3;
