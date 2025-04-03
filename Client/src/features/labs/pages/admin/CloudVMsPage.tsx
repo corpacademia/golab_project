@@ -11,7 +11,7 @@ interface CloudVM {
   description: string;
   provider: string;
   instance: string;
-  status: 'running' | 'stopped' | 'pending';
+  status: 'available' | 'inactive' | 'pending';
   cpu: number;
   ram: number;
   storage: number;
@@ -49,7 +49,6 @@ export const AdminCloudVMsPage: React.FC = () => {
 
         if (response.data.success) {
           setVMs(response.data.data);
-          console.log(vms)
         } else {
           setError('Failed to fetch VMs');
         }
@@ -126,8 +125,8 @@ export const AdminCloudVMsPage: React.FC = () => {
                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
             >
               <option value="">All Status</option>
-              <option value="running">Running</option>
-              <option value="stopped">Stopped</option>
+              <option value="available">available</option>
+              <option value="inactive">Inactive</option>
               <option value="pending">Pending</option>
             </select>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Check, Loader, XCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface DeploymentStatusProps {
   config: any;
@@ -11,22 +12,29 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
   const [error, setError] = useState<string | null>(null);
 
   const steps = [
-    { id: 'EC2', label: 'Terraform Setup'},
-    { id: 'Terraform ', label: 'Terraform Initialization' },
-    { id: 'Terrafrom Apply', label: 'Terrafrom Applying' },
-    { id: 'complete', label: 'Setup Complete' }
+    { id: 'EC2', label: 'Terraform Setup' },
+    { id: 'Terraform', label: 'Terraform Initialization' },
+    { id: 'Terraform Apply', label: 'Terraform Applying' },
+    // { id: 'complete', label: 'Setup Complete' }
   ];
 
-  useEffect(() => {
-    // Simulate deployment progress
-    const interval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev < steps.length - 1) return prev + 1;
-        clearInterval(interval);
-        return prev;
-      });
-    }, 3000);
+  // Function to check script execution status
+  const fetchProgress = async () => {
+    try {
+      const data = await axios.get('http://localhost:3000/api/v1/aws_ms/labprogress');
+      let step = 0;
+      if (data.data.data.step1) step = 1;
+      if (data.data.data.step2) step = 2;
+      if (data.data.data.step3) step = 3;
+      setCurrentStep(step);
+    } catch (err) {
+      setError('Failed to fetch deployment progress.');
+    }
+  };
 
+  // Poll API every 3 seconds to update progress
+  useEffect(() => {
+    const interval = setInterval(fetchProgress, 3000);
     return () => clearInterval(interval);
   }, []);
 

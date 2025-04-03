@@ -328,6 +328,23 @@ useEffect(() => {
         setNotification({ type: 'success', message: 'Golden image created successfully' });
         setAmiId(ami.data.ami_id);
         setIsConvertEnabled(true);
+
+        try {
+          const updateStatus = await axios.post('http://localhost:3000/api/v1/lab_ms/updateSingleVmStatus', {
+            labId: vm.lab_id,
+            status: 'available',
+          })
+          if(updateStatus.data.success){
+            setNotification({ type: 'success', message: 'Lab status updated successfully' });
+          } else {
+            setNotification({ type: 'error', message: 'Failed to update lab status' });
+          }
+        } catch (error) {
+          setNotification({
+            type: 'error',
+            message: error.response?.data?.message || 'Failed to update lab status'
+          });
+        }
       } else {
         throw new Error(response.data.message || 'Failed to create golden image');
       }

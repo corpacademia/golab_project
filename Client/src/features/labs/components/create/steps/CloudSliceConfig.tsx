@@ -19,23 +19,13 @@ interface CloudSliceConfigProps {
     description: string;
     duration: number;
   };
+  awsServiceCategories: {
+    service: string;
+    category: string;
+    description: string;
+}
 }
 
-interface Service {
-  name: string;
-  category: string;
-  description: string;
-}
-
-interface AwsService {
-  name: string;
-  category: string;
-  description: string;
-}
-
-interface CategorizedServices {
-  [category: string]: AwsService[];
-}
 
 
 // const awsServiceCategories = {
@@ -144,7 +134,7 @@ const regions = [
   { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
 ];
 
-export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails }) => {
+export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails , awsServiceCategories}) => {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -160,43 +150,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
-  const [loading, isLoading] = useState(false);
 
-  let awsServiceCategories ;
-
- //extract the aws services
- const extractAwsServices = async (awsServices: { service: string; description: string; category: string }[]): Promise<CategorizedServices> => {
-  const services: CategorizedServices = {};
-
-  awsServices.forEach(({ service, description, category }) => {
-    if (services[category]) {
-      services[category].push({ name: service,category:category, description:description });
-    } else {
-      services[category] = [{ name: service,category:category, description:description }];
-    }
-  });
-
-  return services;
-};
-
-  useEffect(()=>{
-    const getAwsServices = async () =>{
-      try {
-        const fetch = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
-        awsServiceCategories = extractAwsServices(fetch.data.data);
-        console.log(awsServiceCategories)
-      } catch (error) {
-        console.log(error);
-        setError('Failed to fetch AWS services');
-      }
-      finally{
-        isLoading(true);
-      }
-    }
-    getAwsServices();
-  },[])
-
- console.log(awsServiceCategories);
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -206,7 +160,6 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const filteredCategories = Object.keys(awsServiceCategories).filter(category =>
     category.toLowerCase().includes(categorySearch.toLowerCase())
   );
-
   const filteredServices = selectedCategory 
     ? awsServiceCategories[selectedCategory].filter(service =>
         service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
@@ -263,9 +216,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     }
   };
 
-  if(!loading){
-    return <div>Loading...</div>;
-  }
+  
 
   return (
     <div className="space-y-6">

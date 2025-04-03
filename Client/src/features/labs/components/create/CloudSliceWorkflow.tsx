@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
+import axios from 'axios';
 import { PlatformSelector } from './steps/PlatformSelector';
 import { CloudProviderSelector } from './steps/CloudProviderSelector';
 import { CloudSliceConfig } from './steps/CloudSliceConfig';
@@ -9,6 +10,22 @@ interface CloudSliceWorkflowProps {
   onBack: () => void;
 }
 
+interface Service {
+  name: string;
+  category: string;
+  description: string;
+}
+
+interface AwsService {
+  name: string;
+  category: string;
+  description: string;
+}
+
+interface CategorizedServices {
+  [category: string]: AwsService[];
+}
+
 export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }) => {
   const [step, setStep] = useState(1);
   const [labDetails, setLabDetails] = useState<{
@@ -16,6 +33,8 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
     description: string;
     duration: number;
   } | null>(null);
+  const [awsServices, setAwsServices] = useState<AwsService[]>([]);
+
   const [config, setConfig] = useState({
     platform: '',
     cloudProvider: '',
@@ -71,12 +90,41 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
           <CloudSliceConfig 
             onBack={() => setStep(3)}
             labDetails={labDetails}
+            awsServiceCategories = {awsServices}
           />
         ) : null;
       default:
         return null;
     }
   };
+
+ //extract the aws services
+ const extractAwsServices = async (awsServices: { services: string; description: string; category: string }[]): Promise<CategorizedServices> => {
+  const servicess: CategorizedServices = {};
+  awsServices.forEach(({ services, description, category }) => {
+    if (servicess[category]) {
+      servicess[category].push({ name: services,category:category, description:description });
+    } else {
+      servicess[category] = [{ name: services,category:category, description:description }];
+    }
+  });
+
+  return servicess;
+};
+
+  useEffect(()=>{
+    const getAwsServices = async () =>{
+      try {
+        const fetch = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        const awsServiceCategories = await extractAwsServices(fetch.data.data);
+    
+        setAwsServices(awsServiceCategories);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    getAwsServices();
+  },[])
 
   return (
     <div className="space-y-6">

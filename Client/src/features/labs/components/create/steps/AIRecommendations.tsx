@@ -89,6 +89,7 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
     localStorage.setItem("formData", JSON.stringify(updatedData));
     const data = JSON.parse(localStorage.getItem("formData")) || {};
     const user = user_cred;
+    
 
     const deleteLabData = async (lab_id) => {
       try {
