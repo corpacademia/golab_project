@@ -20,6 +20,8 @@ interface CloudSliceConfigProps {
     title: string;
     description: string;
     duration: number;
+    cloudProvider: string;
+    platform: string;
   };
   awsServiceCategories: {
     service: string;
@@ -63,6 +65,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
+
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -110,6 +113,8 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       const config = {
         title: labDetails.title,
         description: labDetails.description,
+        platform:labDetails.platform,
+        cloudProvider: labDetails.cloudProvider,
         services: selectedServices.map(s => s.name),
         region: selectedRegion,
         startDate,
@@ -117,9 +122,24 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         cleanupPolicy: `${cleanupPolicy}-day`,
         labType
       };
-
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        const user_profile = await axios.get(`http://localhost:3000/api/v1/user_ms/user_profile`)
+        const result = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLab', {
+          createdBy:user_profile.data.user.id,
+          labData:config
+        });
+        if(result.data.success) {
+          alert('Cloud slice created successfully!');
+        }
+        else { {
+          setError('Failed to create cloud slice');
+        }
+        }
+      } catch (error) {
+        setError('Failed to create cloud slice');
+      }
       
       if (labType === 'with-modules') {
         // Navigate to module creation page with lab config data
@@ -141,6 +161,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           <h2 className="text-2xl font-display font-bold">
             <GradientText>AWS Cloud Slice Configuration</GradientText>
           </h2>
+          <p className="mt-2 text-gray-400">{labDetails.title}</p>
           <p className="mt-2 text-gray-400">{labDetails.description}</p>
         </div>
         <div className="text-lg font-semibold text-primary-400">
@@ -164,7 +185,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
             />
             <div>
               <span className="text-gray-300">Lab Without Modules</span>
-              <p className="text-sm text-gray-400">Standard lab with all features and functionalities</p>
+              <p className="text-sm text-gray-400">Standard lab with all services and functionalities</p>
             </div>
           </label>
           
@@ -469,7 +490,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
               className="btn-secondary"
             >
               <Layers className="h-4 w-4 mr-2" />
-              Create Modules
+              Create Course
             </button>
           )}
           <button

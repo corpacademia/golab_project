@@ -51,7 +51,6 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
 
   const updateConfig = (updates: Partial<typeof config>) => {
     setConfig(prev => ({ ...prev, ...updates }));
-    
     // Update labDetails with platform and provider information
     if (updates.platform || updates.cloudProvider) {
       setLabDetails(prev => {
@@ -91,7 +90,6 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
       setStep(targetStep);
     }
   };
-
   const renderStep = () => {
     switch (step) {
       case 1:
