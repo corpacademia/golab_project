@@ -27,6 +27,23 @@ import { WorkspaceViewPage } from '../features/labs/pages/WorkspaceViewPage';
 import { WorkspaceEditPage } from '../features/labs/pages/WorkspaceEditPage';
 import { useAuthStore } from '../store/authStore';
 
+// Placeholder for the CreateModules component
+const CreateModules = () => (
+  <div className="p-6">
+    <h1 className="text-3xl font-display font-bold mb-6 bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent">
+      Create Lab Modules
+    </h1>
+    <div className="glass-panel">
+      <p className="text-gray-300 mb-4">
+        This page allows you to create structured learning modules for your lab.
+      </p>
+      <p className="text-gray-400">
+        You can define step-by-step instructions, add resources, and create assessments for each module.
+      </p>
+    </div>
+  </div>
+);
+
 export const AppRoutes: React.FC = () => {
   const { user } = useAuthStore();
 
@@ -73,6 +90,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="settings" element={<Settings />} />
         <Route path="assessments" element={<Assessments />} />
         <Route path="my-labs" element={<MyLabs />} />
+        <Route path="create-modules" element={<CreateModules />} />
       </Route>
 
       <Route path="/" element={<LoginForm />} />

@@ -9,8 +9,10 @@ import {
   Calendar, 
   Loader, 
   Check, 
-  Clock 
+  Clock,
+  Layers
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface CloudSliceConfigProps {
   onBack: () => void;
@@ -23,105 +25,14 @@ interface CloudSliceConfigProps {
     service: string;
     category: string;
     description: string;
+  }
 }
+
+interface Service {
+  name: string;
+  category: string;
+  description: string;
 }
-
-
-
-// const awsServiceCategories = {
-//   'Compute': [
-//     { name: 'EC2', category: 'Compute', description: 'Virtual servers in the cloud' },
-//     { name: 'Lambda', category: 'Compute', description: 'Run code without thinking about servers' },
-//     { name: 'Elastic Beanstalk', category: 'Compute', description: 'Run and manage web apps' }
-//   ],
-//   'Storage': [
-//     { name: 'S3', category: 'Storage', description: 'Scalable storage in the cloud' },
-//     { name: 'EBS', category: 'Storage', description: 'Block storage for EC2' },
-//     { name: 'Glacier', category: 'Storage', description: 'Low-cost archive storage' }
-//   ],
-//   'Databases': [
-//     { name: 'RDS', category: 'Databases', description: 'Managed relational databases' },
-//     { name: 'DynamoDB', category: 'Databases', description: 'Managed NoSQL database' },
-//     { name: 'Redshift', category: 'Databases', description: 'Data warehouse service' }
-//   ],
-//   'Networking & Content Delivery': [
-//     { name: 'VPC', category: 'Networking', description: 'Isolated cloud resources' },
-//     { name: 'CloudFront', category: 'Networking', description: 'Global content delivery network' },
-//     { name: 'Route 53', category: 'Networking', description: 'Scalable DNS and domain registration' }
-//   ],
-//   'Machine Learning': [
-//     { name: 'SageMaker', category: 'Machine Learning', description: 'Build ML models at scale' },
-//     { name: 'Rekognition', category: 'Machine Learning', description: 'Image and video analysis' },
-//     { name: 'Comprehend', category: 'Machine Learning', description: 'Natural language processing' }
-//   ],
-//   'Analytics': [
-//     { name: 'EMR', category: 'Analytics', description: 'Big data processing' },
-//     { name: 'Athena', category: 'Analytics', description: 'Query data in S3' },
-//     { name: 'Kinesis', category: 'Analytics', description: 'Real-time data streaming' }
-//   ],
-//   'Developer Tools': [
-//     { name: 'CodeCommit', category: 'Developer Tools', description: 'Source control service' },
-//     { name: 'CloudWatch', category: 'Developer Tools', description: 'Monitoring and observability' },
-//     { name: 'CloudTrail', category: 'Developer Tools', description: 'AWS API activity tracking' }
-//   ],
-//   'Security & Identity': [
-//     { name: 'IAM', category: 'Security', description: 'Identity and access management' },
-//     { name: 'GuardDuty', category: 'Security', description: 'Threat detection service' },
-//     { name: 'Shield', category: 'Security', description: 'DDoS protection' }
-//   ],
-//   'Migration & Transfer': [
-//     { name: 'Migration Hub', category: 'Migration', description: 'Track application migration' },
-//     { name: 'DataSync', category: 'Migration', description: 'Online data transfer service' },
-//     { name: 'Snowball', category: 'Migration', description: 'Large-scale data transport' }
-//   ],
-//   'IoT': [
-//     { name: 'IoT Core', category: 'IoT', description: 'Connect IoT devices' },
-//     { name: 'IoT Analytics', category: 'IoT', description: 'IoT data analytics' },
-//     { name: 'IoT Device Management', category: 'IoT', description: 'Manage IoT devices' }
-//   ],
-//   'Business Applications': [
-//     { name: 'WorkSpaces', category: 'Business', description: 'Virtual desktop service' },
-//     { name: 'Chime', category: 'Business', description: 'Communications service' },
-//     { name: 'WorkDocs', category: 'Business', description: 'Content collaboration' }
-//   ],
-//   'AR/VR': [
-//     { name: 'Sumerian', category: 'AR/VR', description: 'Create VR and AR applications' }
-//   ],
-//   'Blockchain': [
-//     { name: 'Managed Blockchain', category: 'Blockchain', description: 'Managed blockchain networks' },
-//     { name: 'QLDB', category: 'Blockchain', description: 'Ledger database service' }
-//   ],
-//   'Robotics': [
-//     { name: 'RoboMaker', category: 'Robotics', description: 'Robotics development platform' }
-//   ],
-//   'Game Development': [
-//     { name: 'GameLift', category: 'Gaming', description: 'Game server hosting' },
-//     { name: 'GameKit', category: 'Gaming', description: 'Game development tools' }
-//   ],
-//   'Cost Management': [
-//     { name: 'Cost Explorer', category: 'Cost', description: 'Analyze AWS spending' },
-//     { name: 'Pricing Calculator', category: 'Cost', description: 'Estimate AWS costs' }
-//   ],
-//   'Customer Engagement': [
-//     { name: 'Pinpoint', category: 'Engagement', description: 'Customer engagement service' },
-//     { name: 'SES', category: 'Engagement', description: 'Email service' },
-//     { name: 'SNS', category: 'Engagement', description: 'Notification service' }
-//   ],
-//   'Media Services': [
-//     { name: 'MediaConvert', category: 'Media', description: 'File-based video transcoding' },
-//     { name: 'MediaLive', category: 'Media', description: 'Live video processing' },
-//     { name: 'MediaPackage', category: 'Media', description: 'Video origination and packaging' }
-//   ],
-//   'End User Computing': [
-//     { name: 'AppStream 2.0', category: 'Computing', description: 'Application streaming service' },
-//     { name: 'WorkSpaces', category: 'Computing', description: 'Virtual desktop infrastructure' }
-//   ],
-//   'Automation': [
-//     { name: 'Systems Manager', category: 'Automation', description: 'AWS resource management' },
-//     { name: 'CloudFormation', category: 'Automation', description: 'Infrastructure as code' },
-//     { name: 'EventBridge', category: 'Automation', description: 'Serverless event bus' }
-//   ]
-// };
 
 const regions = [
   { code: 'us-east-1', name: 'US East (N. Virginia)', location: 'Northern Virginia' },
@@ -134,7 +45,8 @@ const regions = [
   { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
 ];
 
-export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails , awsServiceCategories}) => {
+export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labDetails, awsServiceCategories }) => {
+  const navigate = useNavigate();
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -150,7 +62,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
-
+  const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -203,20 +115,24 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         startDate,
         endDate,
         cleanupPolicy: `${cleanupPolicy}-day`,
+        labType
       };
 
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      onBack(); // Return to the list view
+      if (labType === 'with-modules') {
+        // Navigate to module creation page with lab config data
+        navigate('/dashboard/create-modules', { state: { labConfig: config } });
+      } else {
+        onBack(); // Return to the list view for labs without modules
+      }
     } catch (err) {
       setError('Failed to create cloud slice');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  
 
   return (
     <div className="space-y-6">
@@ -229,6 +145,43 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         </div>
         <div className="text-lg font-semibold text-primary-400">
           Credits Available: ${credits.toLocaleString()}
+        </div>
+      </div>
+
+      {/* Lab Type Selection */}
+      <div className="glass-panel space-y-4">
+        <h3 className="text-lg font-semibold text-gray-200">Lab Type</h3>
+        
+        <div className="flex flex-col space-y-3">
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="radio"
+              name="labType"
+              value="without-modules"
+              checked={labType === 'without-modules'}
+              onChange={() => setLabType('without-modules')}
+              className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+            />
+            <div>
+              <span className="text-gray-300">Lab Without Modules</span>
+              <p className="text-sm text-gray-400">Standard lab with all features and functionalities</p>
+            </div>
+          </label>
+          
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="radio"
+              name="labType"
+              value="with-modules"
+              checked={labType === 'with-modules'}
+              onChange={() => setLabType('with-modules')}
+              className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+            />
+            <div>
+              <span className="text-gray-300">Lab With Modules</span>
+              <p className="text-sm text-gray-400">Lab with structured learning modules and step-by-step guides</p>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -509,20 +462,31 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         >
           Back
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          className="btn-primary"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center">
-              <Loader className="animate-spin h-4 w-4 mr-2" />
-              Creating Cloud Slice...
-            </span>
-          ) : (
-            'Create Cloud Slice'
+        <div className="flex space-x-4">
+          {labType === 'with-modules' && (
+            <button
+              onClick={() => navigate('/dashboard/create-modules')}
+              className="btn-secondary"
+            >
+              <Layers className="h-4 w-4 mr-2" />
+              Create Modules
+            </button>
           )}
-        </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="btn-primary"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center">
+                <Loader className="animate-spin h-4 w-4 mr-2" />
+                Creating Cloud Slice...
+              </span>
+            ) : (
+              'Create Cloud Slice'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
