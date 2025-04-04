@@ -32,6 +32,8 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
     title: string;
     description: string;
     duration: number;
+    platform?: string;
+    cloudProvider?: string;
   } | null>(null);
   const [awsServices, setAwsServices] = useState<AwsService[]>([]);
 
@@ -49,6 +51,19 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
 
   const updateConfig = (updates: Partial<typeof config>) => {
     setConfig(prev => ({ ...prev, ...updates }));
+    
+    // Update labDetails with platform and provider information
+    if (updates.platform || updates.cloudProvider) {
+      setLabDetails(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          platform: updates.platform || prev.platform,
+          cloudProvider: updates.cloudProvider || prev.cloudProvider
+        };
+      });
+    }
+    
     setStep(prev => prev + 1);
   };
 
@@ -103,9 +118,9 @@ export const CloudSliceWorkflow: React.FC<CloudSliceWorkflowProps> = ({ onBack }
   const servicess: CategorizedServices = {};
   awsServices.forEach(({ services, description, category }) => {
     if (servicess[category]) {
-      servicess[category].push({ name: services,category:category, description:description });
+      servicess[category].push({ name: services, category: category, description: description });
     } else {
-      servicess[category] = [{ name: services,category:category, description:description }];
+      servicess[category] = [{ name: services, category: category, description: description }];
     }
   });
 
