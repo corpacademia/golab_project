@@ -119,7 +119,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         region: selectedRegion,
         startDate,
         endDate,
-        cleanupPolicy: `${cleanupPolicy}-day`,
+        cleanupPolicy: cleanupPolicy,
         labType
       };
       // Simulate API delay
