@@ -10,8 +10,7 @@ import {
   Loader, 
   Check, 
   Clock,
-  Layers,
-  XCircle
+  Layers
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,11 +63,9 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [cleanupPolicy, setCleanupPolicy] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentStep, setDeploymentStep] = useState(0);
-  const [deploymentSuccess, setDeploymentSuccess] = useState(false);
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -95,35 +92,6 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     });
   };
 
-  const deploymentSteps = [
-    { id: 'EC2', label: 'Terraform Setup' },
-    { id: 'Terraform', label: 'Terraform Initialization' },
-    { id: 'Terraform Apply', label: 'Terraform Applying' },
-    { id: 'complete', label: 'Setup Complete' }
-  ];
-
-  // Function to check deployment progress
-  const checkDeploymentProgress = async () => {
-    try {
-      const data = await axios.get('http://localhost:3000/api/v1/aws_ms/labprogress');
-      let step = 0;
-      if (data.data.data.step1) step = 1;
-      if (data.data.data.step2) step = 2;
-      if (data.data.data.step3) step = 3;
-      
-      setDeploymentStep(step);
-      
-      if (step === 3) {
-        setDeploymentSuccess(true);
-        setTimeout(() => {
-          navigate('/dashboard/labs/cloud-vms');
-        }, 2000);
-      }
-    } catch (err) {
-      setError('Failed to fetch deployment progress.');
-    }
-  };
-
   const handleSubmit = async () => {
     if (!selectedRegion) {
       setError('Please select a region');
@@ -140,6 +108,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
 
     setIsSubmitting(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const config = {
@@ -164,19 +133,11 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         
         if (result.data.success) {
           if (labType === 'without-modules') {
-            // For labs without modules, show deployment status
-            setIsDeploying(true);
-            // Start polling for deployment status
-            const interval = setInterval(() => {
-              checkDeploymentProgress();
-            }, 3000);
-            
-            // Clean up interval after 5 minutes (failsafe)
+            // For labs without modules, show success message
+            setSuccess('Cloud slice created successfully!');
             setTimeout(() => {
-              clearInterval(interval);
-            }, 5 * 60 * 1000);
-            
-            return () => clearInterval(interval);
+              setSuccess(null);
+            }, 3000);
           } else {
             // For labs with modules, navigate to module creation page
             navigate('/dashboard/create-modules', { state: { labConfig: config } });
@@ -195,87 +156,6 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       setIsSubmitting(false);
     }
   };
-
-  // Render deployment status when deploying
-  const renderDeploymentStatus = () => {
-    return (
-      <div className="space-y-6">
-        <h2 className="text-2xl font-display font-semibold">
-          <GradientText>Deploying Lab Environment</GradientText>
-        </h2>
-
-        <div className="glass-panel">
-          <div className="flex items-center space-x-2 mb-6">
-            <Clock className="h-5 w-5 text-primary-400" />
-            <h3 className="text-lg font-semibold text-gray-200">
-              Deployment Progress
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            {deploymentSteps.map((step, index) => {
-              const isActive = index === deploymentStep;
-              const isComplete = index < deploymentStep;
-              const isFuture = index > deploymentStep;
-
-              return (
-                <div 
-                  key={step.id}
-                  className={`flex items-center space-x-3 p-4 rounded-lg ${
-                    isActive ? 'bg-primary-500/10 border border-primary-500/20' :
-                    isComplete ? 'bg-dark-300/50' : 'bg-dark-300/30'
-                  }`}
-                >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                    isComplete ? 'bg-emerald-500/20 text-emerald-400' :
-                    isActive ? 'bg-primary-500/20 text-primary-400' :
-                    'bg-dark-400/50 text-gray-500'
-                  }`}>
-                    {isComplete ? (
-                      <Check className="h-4 w-4" />
-                    ) : isActive ? (
-                      <Loader className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <div className="w-2 h-2 rounded-full bg-current" />
-                    )}
-                  </div>
-                  <span className={`flex-1 ${
-                    isFuture ? 'text-gray-500' : 'text-gray-200'
-                  }`}>
-                    {step.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {deploymentSuccess && (
-            <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-emerald-400" />
-                <span className="text-emerald-200">
-                  Deployment completed successfully! Redirecting to Cloud VMs page...
-                </span>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <XCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-200">{error}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  if (isDeploying) {
-    return renderDeploymentStatus();
-  }
 
   return (
     <div className="space-y-6">
@@ -595,6 +475,15 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           <div className="flex items-center space-x-2">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <span className="text-red-200">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Check className="h-5 w-5 text-emerald-400" />
+            <span className="text-emerald-200">{success}</span>
           </div>
         </div>
       )}
