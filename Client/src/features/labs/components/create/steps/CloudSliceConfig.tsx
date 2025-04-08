@@ -65,7 +65,9 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [error, setError] = useState<string | null>(null);
   const [credits] = useState(10000); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
-
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentStep, setDeploymentStep] = useState(0);
+  const [deploymentSuccess, setDeploymentSuccess] = useState(false);
 
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
@@ -92,6 +94,35 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
     });
   };
 
+  const deploymentSteps = [
+    { id: 'EC2', label: 'Terraform Setup' },
+    { id: 'Terraform', label: 'Terraform Initialization' },
+    { id: 'Terraform Apply', label: 'Terraform Applying' },
+    { id: 'complete', label: 'Setup Complete' }
+  ];
+
+  // Function to check deployment progress
+  const checkDeploymentProgress = async () => {
+    try {
+      const data = await axios.get('http://localhost:3000/api/v1/aws_ms/labprogress');
+      let step = 0;
+      if (data.data.data.step1) step = 1;
+      if (data.data.data.step2) step = 2;
+      if (data.data.data.step3) step = 3;
+      
+      setDeploymentStep(step);
+      
+      if (step === 3) {
+        setDeploymentSuccess(true);
+        setTimeout(() => {
+          navigate('/dashboard/labs/cloud-vms');
+        }, 2000);
+      }
+    } catch (err) {
+      setError('Failed to fetch deployment progress.');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedRegion) {
       setError('Please select a region');
@@ -113,7 +144,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       const config = {
         title: labDetails.title,
         description: labDetails.description,
-        platform:labDetails.platform,
+        platform: labDetails.platform,
         cloudProvider: labDetails.cloudProvider,
         services: selectedServices.map(s => s.name),
         region: selectedRegion,
@@ -122,37 +153,128 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         cleanupPolicy: cleanupPolicy,
         labType
       };
-      // Simulate API delay
-      // await new Promise(resolve => setTimeout(resolve, 1500));
+
       try {
-        const user_profile = await axios.get(`http://localhost:3000/api/v1/user_ms/user_profile`)
+        const user_profile = await axios.get(`http://localhost:3000/api/v1/user_ms/user_profile`);
         const result = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLab', {
-          createdBy:user_profile.data.user.id,
-          labData:config
+          createdBy: user_profile.data.user.id,
+          labData: config
         });
-        if(result.data.success) {
-          alert('Cloud slice created successfully!');
-        }
-        else { {
+        
+        if (result.data.success) {
+          if (labType === 'without-modules') {
+            // For labs without modules, show deployment status
+            setIsDeploying(true);
+            // Start polling for deployment status
+            const interval = setInterval(() => {
+              checkDeploymentProgress();
+            }, 3000);
+            
+            // Clean up interval after 5 minutes (failsafe)
+            setTimeout(() => {
+              clearInterval(interval);
+            }, 5 * 60 * 1000);
+            
+            return () => clearInterval(interval);
+          } else {
+            // For labs with modules, navigate to module creation page
+            navigate('/dashboard/create-modules', { state: { labConfig: config } });
+          }
+        } else {
           setError('Failed to create cloud slice');
         }
-        }
       } catch (error) {
+        console.error('API error:', error);
         setError('Failed to create cloud slice');
       }
-      
-      if (labType === 'with-modules') {
-        // Navigate to module creation page with lab config data
-        navigate('/dashboard/create-modules', { state: { labConfig: config } });
-      } else {
-        onBack(); // Return to the list view for labs without modules
-      }
     } catch (err) {
+      console.error('Submission error:', err);
       setError('Failed to create cloud slice');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Render deployment status when deploying
+  const renderDeploymentStatus = () => {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-display font-semibold">
+          <GradientText>Deploying Lab Environment</GradientText>
+        </h2>
+
+        <div className="glass-panel">
+          <div className="flex items-center space-x-2 mb-6">
+            <Clock className="h-5 w-5 text-primary-400" />
+            <h3 className="text-lg font-semibold text-gray-200">
+              Deployment Progress
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {deploymentSteps.map((step, index) => {
+              const isActive = index === deploymentStep;
+              const isComplete = index < deploymentStep;
+              const isFuture = index > deploymentStep;
+
+              return (
+                <div 
+                  key={step.id}
+                  className={`flex items-center space-x-3 p-4 rounded-lg ${
+                    isActive ? 'bg-primary-500/10 border border-primary-500/20' :
+                    isComplete ? 'bg-dark-300/50' : 'bg-dark-300/30'
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    isComplete ? 'bg-emerald-500/20 text-emerald-400' :
+                    isActive ? 'bg-primary-500/20 text-primary-400' :
+                    'bg-dark-400/50 text-gray-500'
+                  }`}>
+                    {isComplete ? (
+                      <Check className="h-4 w-4" />
+                    ) : isActive ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-current" />
+                    )}
+                  </div>
+                  <span className={`flex-1 ${
+                    isFuture ? 'text-gray-500' : 'text-gray-200'
+                  }`}>
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {deploymentSuccess && (
+            <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Check className="h-5 w-5 text-emerald-400" />
+                <span className="text-emerald-200">
+                  Deployment completed successfully! Redirecting to Cloud VMs page...
+                </span>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (isDeploying) {
+    return renderDeploymentStatus();
+  }
 
   return (
     <div className="space-y-6">
@@ -484,29 +606,40 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           Back
         </button>
         <div className="flex space-x-4">
-          {labType === 'with-modules' && (
+          {labType === 'with-modules' ? (
             <button
-              onClick={() => navigate('/dashboard/create-modules')}
-              className="btn-secondary"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="btn-primary"
             >
-              <Layers className="h-4 w-4 mr-2" />
-              Create Course
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Creating Lab...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Continue to Module Creation
+                </span>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="btn-primary"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Creating Cloud Slice...
+                </span>
+              ) : (
+                'Create Cloud Slice'
+              )}
             </button>
           )}
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="btn-primary"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin h-4 w-4 mr-2" />
-                Creating Cloud Slice...
-              </span>
-            ) : (
-              'Create Cloud Slice'
-            )}
-          </button>
         </div>
       </div>
     </div>
