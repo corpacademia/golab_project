@@ -67,6 +67,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [credits] = useState(10000); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
 
+
   const filteredRegions = regions.filter(region => 
     region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
     region.location.toLowerCase().includes(regionSearch.toLowerCase())
@@ -97,10 +98,12 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       setError('Please select a region');
       return;
     }
-    if (selectedServices.length === 0) {
+    
+    if (selectedServices.length === 0 && labType === 'without-modules') {
       setError('Please select at least one service');
       return;
     }
+    
     if (!startDate || !endDate) {
       setError('Please specify start and end dates');
       return;
@@ -124,6 +127,12 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         labType
       };
 
+      if (labType === 'with-modules') {
+        // For labs with modules, navigate to module creation page
+        navigate('/dashboard/create-modules', { state: { labConfig: config } });
+        return;
+      }
+
       try {
         const user_profile = await axios.get(`http://localhost:3000/api/v1/user_ms/user_profile`);
         const result = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLab', {
@@ -132,16 +141,11 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         });
         
         if (result.data.success) {
-          if (labType === 'without-modules') {
-            // For labs without modules, show success message
-            setSuccess('Cloud slice created successfully!');
-            setTimeout(() => {
-              setSuccess(null);
-            }, 3000);
-          } else {
-            // For labs with modules, navigate to module creation page
-            navigate('/dashboard/create-modules', { state: { labConfig: config } });
-          }
+          // For labs without modules, show success message
+          setSuccess('Cloud slice created successfully!');
+          setTimeout(() => {
+            setSuccess(null);
+          }, 3000);
         } else {
           setError('Failed to create cloud slice');
         }
@@ -209,154 +213,156 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         </div>
       </div>
 
-      {/* Services Selection - Updated with two dropdowns */}
-      <div className="glass-panel space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">AWS Services</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column - Categories Dropdown */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-gray-300">Service Categories</h4>
-            <div className="relative">
-              <div 
-                className="w-full flex items-center justify-between p-3 bg-dark-400/50 
-                         border border-primary-500/20 hover:border-primary-500/40 
-                         rounded-lg cursor-pointer transition-colors"
-                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              >
-                <span className="text-gray-300">
-                  {selectedCategory || 'Select a category'}
-                </span>
-                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
-                  showCategoryDropdown ? 'transform rotate-180' : ''
-                }`} />
-              </div>
-
-              {showCategoryDropdown && (
-                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
-                              border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
-                  <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search categories..."
-                        value={categorySearch}
-                        onChange={(e) => setCategorySearch(e.target.value)}
-                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
-                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                      />
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-                    </div>
-                  </div>
-                  <div>
-                    {filteredCategories.map(category => (
-                      <button
-                        key={category}
-                        onClick={() => {
-                          setSelectedCategory(category);
-                          setShowCategoryDropdown(false);
-                          setShowServiceDropdown(true);
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
-                      >
-                        <p className="text-gray-200">{category}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column - Services Dropdown */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-gray-300">Services</h4>
-            <div className="relative">
-              <div 
-                className="w-full flex items-center justify-between p-3 bg-dark-400/50 
-                         border border-primary-500/20 hover:border-primary-500/40 
-                         rounded-lg cursor-pointer transition-colors"
-                onClick={() => selectedCategory && setShowServiceDropdown(!showServiceDropdown)}
-              >
-                <span className="text-gray-300">
-                  {selectedServices.length > 0 
-                    ? `${selectedServices.length} service(s) selected` 
-                    : 'Select services'}
-                </span>
-                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
-                  showServiceDropdown ? 'transform rotate-180' : ''
-                }`} />
-              </div>
-
-              {showServiceDropdown && selectedCategory && (
-                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
-                              border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
-                  <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search services..."
-                        value={serviceSearch}
-                        onChange={(e) => setServiceSearch(e.target.value)}
-                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
-                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                      />
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-                    </div>
-                  </div>
-                  <div>
-                    {filteredServices.map(service => (
-                      <label
-                        key={service.name}
-                        className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
-                                 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedServices.some(s => s.name === service.name)}
-                          onChange={() => handleServiceToggle(service)}
-                          className="form-checkbox h-4 w-4 text-primary-500 rounded 
-                                   border-gray-500/20 focus:ring-primary-500"
-                        />
-                        <div>
-                          <p className="font-medium text-gray-200">{service.name}</p>
-                          <p className="text-sm text-gray-400">{service.description}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Services Display */}
-        {selectedServices.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h4>
-            <div className="flex flex-wrap gap-2">
-              {selectedServices.map(service => (
-                <div
-                  key={service.name}
-                  className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
-                           rounded-full text-sm"
+      {/* Services Selection - Only show for labs without modules */}
+      {labType === 'without-modules' && (
+        <div className="glass-panel space-y-4">
+          <h3 className="text-lg font-semibold text-gray-200">AWS Services</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column - Categories Dropdown */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-300">Service Categories</h4>
+              <div className="relative">
+                <div 
+                  className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                           border border-primary-500/20 hover:border-primary-500/40 
+                           rounded-lg cursor-pointer transition-colors"
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                 >
-                  {service.name}
-                  <button
-                    onClick={() => handleServiceToggle(service)}
-                    className="ml-2 hover:text-primary-400"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <span className="text-gray-300">
+                    {selectedCategory || 'Select a category'}
+                  </span>
+                  <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                    showCategoryDropdown ? 'transform rotate-180' : ''
+                  }`} />
                 </div>
-              ))}
+
+                {showCategoryDropdown && (
+                  <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                    <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search categories..."
+                          value={categorySearch}
+                          onChange={(e) => setCategorySearch(e.target.value)}
+                          className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                   rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                      </div>
+                    </div>
+                    <div>
+                      {filteredCategories.map(category => (
+                        <button
+                          key={category}
+                          onClick={() => {
+                            setSelectedCategory(category);
+                            setShowCategoryDropdown(false);
+                            setShowServiceDropdown(true);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                        >
+                          <p className="text-gray-200">{category}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column - Services Dropdown */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-300">Services</h4>
+              <div className="relative">
+                <div 
+                  className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                           border border-primary-500/20 hover:border-primary-500/40 
+                           rounded-lg cursor-pointer transition-colors"
+                  onClick={() => selectedCategory && setShowServiceDropdown(!showServiceDropdown)}
+                >
+                  <span className="text-gray-300">
+                    {selectedServices.length > 0 
+                      ? `${selectedServices.length} service(s) selected` 
+                      : 'Select services'}
+                  </span>
+                  <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                    showServiceDropdown ? 'transform rotate-180' : ''
+                  }`} />
+                </div>
+
+                {showServiceDropdown && selectedCategory && (
+                  <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                    <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search services..."
+                          value={serviceSearch}
+                          onChange={(e) => setServiceSearch(e.target.value)}
+                          className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                   rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                      </div>
+                    </div>
+                    <div>
+                      {filteredServices.map(service => (
+                        <label
+                          key={service.name}
+                          className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                   cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedServices.some(s => s.name === service.name)}
+                            onChange={() => handleServiceToggle(service)}
+                            className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                     border-gray-500/20 focus:ring-primary-500"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-200">{service.name}</p>
+                            <p className="text-sm text-gray-400">{service.description}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Region Selection */}
+          {/* Selected Services Display */}
+          {selectedServices.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedServices.map(service => (
+                  <div
+                    key={service.name}
+                    className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                             rounded-full text-sm"
+                  >
+                    {service.name}
+                    <button
+                      onClick={() => handleServiceToggle(service)}
+                      className="ml-2 hover:text-primary-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Region Selection - Show for both lab types */}
       <div className="glass-panel space-y-4">
         <h3 className="text-lg font-semibold text-gray-200">Region Selection</h3>
         
@@ -410,7 +416,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         </div>
       </div>
 
-      {/* Duration and Cleanup */}
+      {/* Duration and Cleanup - Show for both lab types */}
       <div className="glass-panel space-y-4">
         <h3 className="text-lg font-semibold text-gray-200">Duration & Cleanup</h3>
         

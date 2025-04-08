@@ -14,12 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  Database,
-  Server,
-  Cloud,
-  Calendar,
-  Globe,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -65,17 +61,6 @@ interface Service {
   description: string;
 }
 
-const regions = [
-  { code: 'us-east-1', name: 'US East (N. Virginia)', location: 'Northern Virginia' },
-  { code: 'us-west-2', name: 'US West (Oregon)', location: 'Oregon' },
-  { code: 'eu-west-1', name: 'Europe (Ireland)', location: 'Ireland' },
-  { code: 'ap-southeast-1', name: 'Asia Pacific (Singapore)', location: 'Singapore' },
-  { code: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)', location: 'Tokyo' },
-  { code: 'eu-central-1', name: 'Europe (Frankfurt)', location: 'Frankfurt' },
-  { code: 'ap-south-1', name: 'Asia Pacific (Mumbai)', location: 'Mumbai' },
-  { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
-];
-
 export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -96,15 +81,14 @@ export const CreateModulesPage: React.FC = () => {
     message: string;
   } | null>(null);
 
-  // Display selected services from lab config
+  // Service selection state
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [availableCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
-  const [selectedRegion, setSelectedRegion] = useState(labConfig?.region || '');
-  const [regionSearch, setRegionSearch] = useState('');
-  const [showRegionDropdown, setShowRegionDropdown] = useState(false);
-  const [cleanupPolicy, setCleanupPolicy] = useState(labConfig?.cleanupPolicy || '1');
-  const [startDate, setStartDate] = useState(labConfig?.startDate || '');
-  const [endDate, setEndDate] = useState(labConfig?.endDate || '');
+  const [showCategoryDropdowns, setShowCategoryDropdowns] = useState<Record<string, boolean>>({});
+  const [showServiceDropdowns, setShowServiceDropdowns] = useState<Record<string, boolean>>({});
+  const [categorySearches, setCategorySearches] = useState<Record<string, string>>({});
+  const [serviceSearches, setServiceSearches] = useState<Record<string, string>>({});
+  const [selectedCategories, setSelectedCategories] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     // Check if we have lab config from previous step
@@ -378,6 +362,59 @@ export const CreateModulesPage: React.FC = () => {
     }));
   };
 
+  const toggleCategoryDropdown = (exerciseId: string) => {
+    setShowCategoryDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+    
+    // Close service dropdown if category dropdown is being opened
+    if (!showCategoryDropdowns[exerciseId]) {
+      setShowServiceDropdowns(prev => ({
+        ...prev,
+        [exerciseId]: false
+      }));
+    }
+  };
+
+  const toggleServiceDropdown = (exerciseId: string) => {
+    setShowServiceDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
+  const updateCategorySearch = (exerciseId: string, value: string) => {
+    setCategorySearches(prev => ({
+      ...prev,
+      [exerciseId]: value
+    }));
+  };
+
+  const updateServiceSearch = (exerciseId: string, value: string) => {
+    setServiceSearches(prev => ({
+      ...prev,
+      [exerciseId]: value
+    }));
+  };
+
+  const selectCategory = (exerciseId: string, category: string) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [exerciseId]: category
+    }));
+    
+    setShowCategoryDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: false
+    }));
+    
+    setShowServiceDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: true
+    }));
+  };
+
   const toggleServiceForExercise = (
     moduleIndex: number,
     exerciseIndex: number,
@@ -458,22 +495,6 @@ export const CreateModulesPage: React.FC = () => {
         }
       }
     }
-
-    if (!selectedRegion) {
-      setNotification({
-        type: 'error',
-        message: 'Please select a region'
-      });
-      return false;
-    }
-
-    if (!startDate || !endDate) {
-      setNotification({
-        type: 'error',
-        message: 'Please specify start and end dates'
-      });
-      return false;
-    }
     
     return true;
   };
@@ -491,13 +512,7 @@ export const CreateModulesPage: React.FC = () => {
       
       // Prepare data for submission
       const submissionData = {
-        labConfig: {
-          ...labConfig,
-          region: selectedRegion,
-          startDate,
-          endDate,
-          cleanupPolicy
-        },
+        labConfig,
         modules,
         createdBy: userId
       };
@@ -533,10 +548,24 @@ export const CreateModulesPage: React.FC = () => {
     }
   };
 
-  const filteredRegions = regions.filter(region => 
-    region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
-    region.location.toLowerCase().includes(regionSearch.toLowerCase())
-  );
+  const getFilteredCategories = (exerciseId: string) => {
+    const search = categorySearches[exerciseId] || '';
+    return Object.keys(availableCategories).filter(category =>
+      category.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  const getFilteredServices = (exerciseId: string) => {
+    const search = serviceSearches[exerciseId] || '';
+    const category = selectedCategories[exerciseId];
+    
+    if (!category) return [];
+    
+    return availableCategories[category].filter(service =>
+      service.name.toLowerCase().includes(search.toLowerCase()) ||
+      service.description.toLowerCase().includes(search.toLowerCase())
+    );
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -823,43 +852,158 @@ export const CreateModulesPage: React.FC = () => {
                             </div>
 
                             {/* Service Selection for this Lab Exercise */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Required AWS Services
-                              </label>
-                              <div className="p-4 bg-dark-400/30 rounded-lg border border-primary-500/10">
-                                <p className="text-sm text-gray-400 mb-3">
-                                  Select the AWS services required for this lab exercise:
-                                </p>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                                  {Object.entries(availableCategories).map(([category, services]) => (
-                                    <div key={category} className="mb-4">
-                                      <h5 className="text-sm font-medium text-gray-300 mb-2">{category}</h5>
-                                      <div className="space-y-1">
-                                        {services.map(service => (
-                                          <label 
-                                            key={service.name}
-                                            className="flex items-center space-x-2 cursor-pointer"
-                                          >
-                                            <input
-                                              type="checkbox"
-                                              checked={exercise.labExercise?.services?.includes(service.name) || false}
-                                              onChange={() => toggleServiceForExercise(
-                                                currentModuleIndex,
-                                                exerciseIndex,
-                                                service.name
-                                              )}
-                                              className="rounded border-gray-500 text-primary-500 focus:ring-primary-500"
-                                            />
-                                            <span className="text-sm text-gray-300">{service.name}</span>
-                                          </label>
-                                        ))}
-                                      </div>
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium text-gray-300">AWS Services for this Exercise</h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Category Dropdown */}
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-300">
+                                    Service Category
+                                  </label>
+                                  <div className="relative">
+                                    <div 
+                                      className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                                               border border-primary-500/20 hover:border-primary-500/40 
+                                               rounded-lg cursor-pointer transition-colors"
+                                      onClick={() => toggleCategoryDropdown(exercise.id)}
+                                    >
+                                      <span className="text-gray-300">
+                                        {selectedCategories[exercise.id] || 'Select a category'}
+                                      </span>
+                                      <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                                        showCategoryDropdowns[exercise.id] ? 'transform rotate-180' : ''
+                                      }`} />
                                     </div>
-                                  ))}
+
+                                    {showCategoryDropdowns[exercise.id] && (
+                                      <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                                    border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                                        <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              placeholder="Search categories..."
+                                              value={categorySearches[exercise.id] || ''}
+                                              onChange={(e) => updateCategorySearch(exercise.id, e.target.value)}
+                                              className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                                       rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                            />
+                                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          {getFilteredCategories(exercise.id).map(category => (
+                                            <button
+                                              key={category}
+                                              onClick={() => selectCategory(exercise.id, category)}
+                                              className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                                            >
+                                              <p className="text-gray-200">{category}</p>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Services Dropdown */}
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-300">
+                                    Services
+                                  </label>
+                                  <div className="relative">
+                                    <div 
+                                      className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                                               border border-primary-500/20 hover:border-primary-500/40 
+                                               rounded-lg cursor-pointer transition-colors"
+                                      onClick={() => selectedCategories[exercise.id] && toggleServiceDropdown(exercise.id)}
+                                    >
+                                      <span className="text-gray-300">
+                                        {exercise.labExercise?.services?.length 
+                                          ? `${exercise.labExercise.services.length} service(s) selected` 
+                                          : 'Select services'}
+                                      </span>
+                                      <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                                        showServiceDropdowns[exercise.id] ? 'transform rotate-180' : ''
+                                      }`} />
+                                    </div>
+
+                                    {showServiceDropdowns[exercise.id] && selectedCategories[exercise.id] && (
+                                      <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                                    border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                                        <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              placeholder="Search services..."
+                                              value={serviceSearches[exercise.id] || ''}
+                                              onChange={(e) => updateServiceSearch(exercise.id, e.target.value)}
+                                              className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                                       rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                            />
+                                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          {getFilteredServices(exercise.id).map(service => (
+                                            <label
+                                              key={service.name}
+                                              className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                                       cursor-pointer transition-colors"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={exercise.labExercise?.services?.includes(service.name) || false}
+                                                onChange={() => toggleServiceForExercise(
+                                                  currentModuleIndex,
+                                                  exerciseIndex,
+                                                  service.name
+                                                )}
+                                                className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                                         border-gray-500/20 focus:ring-primary-500"
+                                              />
+                                              <div>
+                                                <p className="font-medium text-gray-200">{service.name}</p>
+                                                <p className="text-sm text-gray-400">{service.description}</p>
+                                              </div>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+
+                              {/* Selected Services Display */}
+                              {exercise.labExercise?.services && exercise.labExercise.services.length > 0 && (
+                                <div className="mt-2">
+                                  <h5 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h5>
+                                  <div className="flex flex-wrap gap-2">
+                                    {exercise.labExercise.services.map(serviceName => (
+                                      <div
+                                        key={serviceName}
+                                        className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                                                 rounded-full text-sm"
+                                      >
+                                        {serviceName}
+                                        <button
+                                          onClick={() => toggleServiceForExercise(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            serviceName
+                                          )}
+                                          className="ml-2 hover:text-primary-400"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             <div>
@@ -1037,124 +1181,6 @@ export const CreateModulesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Lab Configuration Options */}
-      <div className="glass-panel">
-        <h3 className="text-lg font-semibold text-gray-200 mb-4">Lab Environment Configuration</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Region Selection */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-gray-300">Region Selection</h4>
-            <div className="relative">
-              <button
-                onClick={() => setShowRegionDropdown(!showRegionDropdown)}
-                className="w-full flex items-center justify-between p-3 bg-dark-300/50 
-                         hover:bg-dark-300 rounded-lg transition-colors"
-              >
-                <span className="text-gray-200">
-                  {selectedRegion ? 
-                    regions.find(r => r.code === selectedRegion)?.name :
-                    'Select a region'
-                  }
-                </span>
-                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
-                  showRegionDropdown ? 'transform rotate-180' : ''
-                }`} />
-              </button>
-
-              {showRegionDropdown && (
-                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
-                              border-primary-500/20 shadow-lg">
-                  <div className="p-2">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search regions..."
-                        value={regionSearch}
-                        onChange={(e) => setRegionSearch(e.target.value)}
-                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
-                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                      />
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-                    </div>
-                  </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {filteredRegions.map(region => (
-                      <button
-                        key={region.code}
-                        onClick={() => {
-                          setSelectedRegion(region.code);
-                          setShowRegionDropdown(false);
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
-                      >
-                        <p className="text-gray-200">{region.name}</p>
-                        <p className="text-sm text-gray-400">{region.location}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Cleanup Policy */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-gray-300">Cleanup Policy</h4>
-            <select
-              value={cleanupPolicy}
-              onChange={(e) => setCleanupPolicy(e.target.value)}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-            >
-              <option value="1">1-day cleanup</option>
-              <option value="2">2-day cleanup</option>
-              <option value="3">3-day cleanup</option>
-              <option value="7">7-day cleanup</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Duration and Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Start Date
-            </label>
-            <div className="relative">
-              <input
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                required
-              />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              End Date
-            </label>
-            <div className="relative">
-              <input
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || new Date().toISOString().slice(0, 16)}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                required
-              />
-              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Services Section */}
       <div className="glass-panel">
         <h3 className="text-lg font-semibold text-gray-200 mb-4">AWS Services for this Lab</h3>
@@ -1169,15 +1195,6 @@ export const CreateModulesPage: React.FC = () => {
                 key={service.name}
                 className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10 flex items-start space-x-3"
               >
-                <div className="p-2 rounded-lg bg-primary-500/10">
-                  {service.name.toLowerCase().includes('ec2') ? (
-                    <Server className="h-5 w-5 text-primary-400" />
-                  ) : service.name.toLowerCase().includes('s3') ? (
-                    <Database className="h-5 w-5 text-primary-400" />
-                  ) : (
-                    <Cloud className="h-5 w-5 text-primary-400" />
-                  )}
-                </div>
                 <div>
                   <h4 className="font-medium text-gray-200">{service.name}</h4>
                   <p className="text-sm text-gray-400">{service.description}</p>
