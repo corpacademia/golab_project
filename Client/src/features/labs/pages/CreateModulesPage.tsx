@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
@@ -14,7 +14,11 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  Search
+  Search,
+  Upload,
+  X,
+  FileText,
+  File
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -32,12 +36,22 @@ interface Question {
   correctAnswer: string;
 }
 
+interface LabFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  file: File;
+  progress: number;
+}
+
 interface LabExercise {
   id: string;
   title: string;
   duration: number;
   instructions: string;
   services?: string[];
+  files?: LabFile[];
 }
 
 interface Exercise {
@@ -64,6 +78,7 @@ export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const labConfig = location.state?.labConfig;
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   
   const [modules, setModules] = useState<Module[]>([{
     id: `module-${Date.now()}`,
@@ -182,7 +197,8 @@ export const CreateModulesPage: React.FC = () => {
           title: '',
           duration: 30,
           instructions: '',
-          services: []
+          services: [],
+          files: []
         }
       };
     } else {
@@ -435,6 +451,63 @@ export const CreateModulesPage: React.FC = () => {
     }
   };
 
+  const handleFileUpload = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    files: FileList
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise) {
+      if (!exercise.labExercise.files) {
+        exercise.labExercise.files = [];
+      }
+      
+      Array.from(files).forEach(file => {
+        // Check if file already exists
+        const fileExists = exercise.labExercise?.files?.some(f => 
+          f.name === file.name && f.size === file.size
+        );
+        
+        if (!fileExists) {
+          exercise.labExercise?.files?.push({
+            id: generateId('file'),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file: file,
+            progress: 100 // Simulate completed upload
+          });
+        }
+      });
+      
+      setModules(newModules);
+    }
+  };
+
+  const removeFile = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    fileId: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise && exercise.labExercise.files) {
+      exercise.labExercise.files = exercise.labExercise.files.filter(f => f.id !== fileId);
+      setModules(newModules);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const validateModules = (): boolean => {
     // Basic validation
     for (const module of modules) {
@@ -516,10 +589,36 @@ export const CreateModulesPage: React.FC = () => {
         createdBy: userId
       };
       
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(submissionData));
+      
+      // Add files to FormData
+      let fileCount = 0;
+      modules.forEach((module, moduleIndex) => {
+        module.exercises.forEach((exercise, exerciseIndex) => {
+          if (exercise.type === 'lab' && exercise.labExercise?.files) {
+            exercise.labExercise.files.forEach(fileObj => {
+              formData.append(
+                `files[${moduleIndex}][${exerciseIndex}][${fileCount}]`, 
+                fileObj.file, 
+                fileObj.name
+              );
+              fileCount++;
+            });
+          }
+        });
+      });
+      
       // Submit to backend
       const response = await axios.post(
         'http://localhost:3000/api/v1/cloud_slice_ms/createLabModules', 
-        submissionData
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
       
       if (response.data.success) {
@@ -563,6 +662,12 @@ export const CreateModulesPage: React.FC = () => {
       service.name.toLowerCase().includes(search.toLowerCase()) ||
       service.description.toLowerCase().includes(search.toLowerCase())
     );
+  };
+
+  const triggerFileInput = (exerciseId: string) => {
+    if (fileInputRefs.current[exerciseId]) {
+      fileInputRefs.current[exerciseId]?.click();
+    }
   };
 
   return (
@@ -1021,6 +1126,65 @@ export const CreateModulesPage: React.FC = () => {
                                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
                               />
+                            </div>
+
+                            {/* File Upload Section */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Lab Files
+                              </label>
+                              <div className="border-2 border-dashed border-primary-500/20 rounded-lg p-6 text-center">
+                                <input
+                                  type="file"
+                                  multiple
+                                  className="hidden"
+                                  ref={el => fileInputRefs.current[exercise.id] = el}
+                                  onChange={(e) => {
+                                    if (e.target.files) {
+                                      handleFileUpload(currentModuleIndex, exerciseIndex, e.target.files);
+                                    }
+                                  }}
+                                />
+                                <div 
+                                  className="flex flex-col items-center cursor-pointer"
+                                  onClick={() => triggerFileInput(exercise.id)}
+                                >
+                                  <Upload className="h-12 w-12 text-primary-400 mb-4" />
+                                  <p className="text-gray-300 mb-2">
+                                    Drop files here or click to upload
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Upload lab resources, sample code, or documentation
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* File List */}
+                              {exercise.labExercise?.files && exercise.labExercise.files.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  <h5 className="text-sm font-medium text-gray-400 mb-2">Uploaded Files:</h5>
+                                  {exercise.labExercise.files.map(file => (
+                                    <div 
+                                      key={file.id}
+                                      className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg"
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        <FileText className="h-5 w-5 text-primary-400" />
+                                        <div>
+                                          <p className="text-sm text-gray-300">{file.name}</p>
+                                          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => removeFile(currentModuleIndex, exerciseIndex, file.id)}
+                                        className="p-1 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         ) : (
