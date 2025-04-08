@@ -16,7 +16,10 @@ import {
   Layers,
   Database,
   Server,
-  Cloud
+  Cloud,
+  Calendar,
+  Globe,
+  Search
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -39,6 +42,7 @@ interface LabExercise {
   title: string;
   duration: number;
   instructions: string;
+  services?: string[];
 }
 
 interface Exercise {
@@ -60,6 +64,17 @@ interface Service {
   category: string;
   description: string;
 }
+
+const regions = [
+  { code: 'us-east-1', name: 'US East (N. Virginia)', location: 'Northern Virginia' },
+  { code: 'us-west-2', name: 'US West (Oregon)', location: 'Oregon' },
+  { code: 'eu-west-1', name: 'Europe (Ireland)', location: 'Ireland' },
+  { code: 'ap-southeast-1', name: 'Asia Pacific (Singapore)', location: 'Singapore' },
+  { code: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)', location: 'Tokyo' },
+  { code: 'eu-central-1', name: 'Europe (Frankfurt)', location: 'Frankfurt' },
+  { code: 'ap-south-1', name: 'Asia Pacific (Mumbai)', location: 'Mumbai' },
+  { code: 'sa-east-1', name: 'South America (São Paulo)', location: 'São Paulo' }
+];
 
 export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
@@ -83,6 +98,13 @@ export const CreateModulesPage: React.FC = () => {
 
   // Display selected services from lab config
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
+  const [selectedRegion, setSelectedRegion] = useState(labConfig?.region || '');
+  const [regionSearch, setRegionSearch] = useState('');
+  const [showRegionDropdown, setShowRegionDropdown] = useState(false);
+  const [cleanupPolicy, setCleanupPolicy] = useState(labConfig?.cleanupPolicy || '1');
+  const [startDate, setStartDate] = useState(labConfig?.startDate || '');
+  const [endDate, setEndDate] = useState(labConfig?.endDate || '');
 
   useEffect(() => {
     // Check if we have lab config from previous step
@@ -100,6 +122,34 @@ export const CreateModulesPage: React.FC = () => {
       }));
       setSelectedServices(services);
     }
+
+    // Fetch AWS service categories
+    const fetchAwsServiceCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        if (response.data.success) {
+          const categories: Record<string, Service[]> = {};
+          
+          response.data.data.forEach((service: any) => {
+            if (!categories[service.category]) {
+              categories[service.category] = [];
+            }
+            
+            categories[service.category].push({
+              name: service.services,
+              category: service.category,
+              description: service.description
+            });
+          });
+          
+          setAvailableCategories(categories);
+        }
+      } catch (error) {
+        console.error('Failed to fetch AWS services:', error);
+      }
+    };
+    
+    fetchAwsServiceCategories();
   }, [labConfig]);
 
   const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -148,7 +198,8 @@ export const CreateModulesPage: React.FC = () => {
           id: generateId('lab'),
           title: '',
           duration: 30,
-          instructions: ''
+          instructions: '',
+          services: []
         }
       };
     } else {
@@ -188,7 +239,7 @@ export const CreateModulesPage: React.FC = () => {
     moduleIndex: number, 
     exerciseIndex: number, 
     field: keyof LabExercise, 
-    value: string | number
+    value: string | number | string[]
   ) => {
     const newModules = [...modules];
     const exercise = newModules[moduleIndex].exercises[exerciseIndex];
@@ -327,6 +378,27 @@ export const CreateModulesPage: React.FC = () => {
     }));
   };
 
+  const toggleServiceForExercise = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    serviceName: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise) {
+      const services = exercise.labExercise.services || [];
+      
+      if (services.includes(serviceName)) {
+        exercise.labExercise.services = services.filter(s => s !== serviceName);
+      } else {
+        exercise.labExercise.services = [...services, serviceName];
+      }
+      
+      setModules(newModules);
+    }
+  };
+
   const validateModules = (): boolean => {
     // Basic validation
     for (const module of modules) {
@@ -386,6 +458,22 @@ export const CreateModulesPage: React.FC = () => {
         }
       }
     }
+
+    if (!selectedRegion) {
+      setNotification({
+        type: 'error',
+        message: 'Please select a region'
+      });
+      return false;
+    }
+
+    if (!startDate || !endDate) {
+      setNotification({
+        type: 'error',
+        message: 'Please specify start and end dates'
+      });
+      return false;
+    }
     
     return true;
   };
@@ -403,7 +491,13 @@ export const CreateModulesPage: React.FC = () => {
       
       // Prepare data for submission
       const submissionData = {
-        labConfig,
+        labConfig: {
+          ...labConfig,
+          region: selectedRegion,
+          startDate,
+          endDate,
+          cleanupPolicy
+        },
         modules,
         createdBy: userId
       };
@@ -437,6 +531,11 @@ export const CreateModulesPage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  const filteredRegions = regions.filter(region => 
+    region.name.toLowerCase().includes(regionSearch.toLowerCase()) ||
+    region.location.toLowerCase().includes(regionSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 pb-12">
@@ -503,10 +602,6 @@ export const CreateModulesPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Cloud Provider:</span>
                   <span className="text-gray-200">{labConfig.cloudProvider}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Region:</span>
-                  <span className="text-gray-200">{labConfig.region}</span>
                 </div>
               </div>
             </div>
@@ -726,6 +821,46 @@ export const CreateModulesPage: React.FC = () => {
                               </div>
                             </div>
 
+                            {/* Service Selection for this Lab Exercise */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Required AWS Services
+                              </label>
+                              <div className="p-4 bg-dark-400/30 rounded-lg border border-primary-500/10">
+                                <p className="text-sm text-gray-400 mb-3">
+                                  Select the AWS services required for this lab exercise:
+                                </p>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                  {Object.entries(availableCategories).map(([category, services]) => (
+                                    <div key={category} className="mb-4">
+                                      <h5 className="text-sm font-medium text-gray-300 mb-2">{category}</h5>
+                                      <div className="space-y-1">
+                                        {services.map(service => (
+                                          <label 
+                                            key={service.name}
+                                            className="flex items-center space-x-2 cursor-pointer"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={exercise.labExercise?.services?.includes(service.name) || false}
+                                              onChange={() => toggleServiceForExercise(
+                                                currentModuleIndex,
+                                                exerciseIndex,
+                                                service.name
+                                              )}
+                                              className="rounded border-gray-500 text-primary-500 focus:ring-primary-500"
+                                            />
+                                            <span className="text-sm text-gray-300">{service.name}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
                             <div>
                               <label className="block text-sm font-medium text-gray-300 mb-2">
                                 Lab Instructions
@@ -897,6 +1032,124 @@ export const CreateModulesPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Lab Configuration Options */}
+      <div className="glass-panel">
+        <h3 className="text-lg font-semibold text-gray-200 mb-4">Lab Environment Configuration</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Region Selection */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-300">Region Selection</h4>
+            <div className="relative">
+              <button
+                onClick={() => setShowRegionDropdown(!showRegionDropdown)}
+                className="w-full flex items-center justify-between p-3 bg-dark-300/50 
+                         hover:bg-dark-300 rounded-lg transition-colors"
+              >
+                <span className="text-gray-200">
+                  {selectedRegion ? 
+                    regions.find(r => r.code === selectedRegion)?.name :
+                    'Select a region'
+                  }
+                </span>
+                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                  showRegionDropdown ? 'transform rotate-180' : ''
+                }`} />
+              </button>
+
+              {showRegionDropdown && (
+                <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                              border-primary-500/20 shadow-lg">
+                  <div className="p-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search regions..."
+                        value={regionSearch}
+                        onChange={(e) => setRegionSearch(e.target.value)}
+                        className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                    </div>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {filteredRegions.map(region => (
+                      <button
+                        key={region.code}
+                        onClick={() => {
+                          setSelectedRegion(region.code);
+                          setShowRegionDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                      >
+                        <p className="text-gray-200">{region.name}</p>
+                        <p className="text-sm text-gray-400">{region.location}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Cleanup Policy */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-gray-300">Cleanup Policy</h4>
+            <select
+              value={cleanupPolicy}
+              onChange={(e) => setCleanupPolicy(e.target.value)}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            >
+              <option value="1">1-day cleanup</option>
+              <option value="2">2-day cleanup</option>
+              <option value="3">3-day cleanup</option>
+              <option value="7">7-day cleanup</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Duration and Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Start Date
+            </label>
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              End Date
+            </label>
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || new Date().toISOString().slice(0, 16)}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+              <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
+            </div>
           </div>
         </div>
       </div>
