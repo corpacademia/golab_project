@@ -10,7 +10,8 @@ import {
   Loader, 
   Check, 
   Clock,
-  Layers
+  Layers,
+  XCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -262,7 +263,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           {error && (
             <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
               <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
+                <XCircle className="h-5 w-5 text-red-400" />
                 <span className="text-red-200">{error}</span>
               </div>
             </div>

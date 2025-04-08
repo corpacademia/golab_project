@@ -13,7 +13,10 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  Layers
+  Layers,
+  Database,
+  Server,
+  Cloud
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -52,6 +55,12 @@ interface Module {
   exercises: Exercise[];
 }
 
+interface Service {
+  name: string;
+  category: string;
+  description: string;
+}
+
 export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -72,6 +81,9 @@ export const CreateModulesPage: React.FC = () => {
     message: string;
   } | null>(null);
 
+  // Display selected services from lab config
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+
   useEffect(() => {
     // Check if we have lab config from previous step
     if (!labConfig) {
@@ -79,6 +91,14 @@ export const CreateModulesPage: React.FC = () => {
         type: 'error',
         message: 'No lab configuration found. Please go back and configure your lab first.'
       });
+    } else if (labConfig.services && Array.isArray(labConfig.services)) {
+      // Convert service names to service objects
+      const services = labConfig.services.map((serviceName: string) => ({
+        name: serviceName,
+        category: 'AWS Service',
+        description: 'AWS Cloud Service'
+      }));
+      setSelectedServices(services);
     }
   }, [labConfig]);
 
@@ -469,6 +489,47 @@ export const CreateModulesPage: React.FC = () => {
         </div>
       )}
 
+      {/* Lab Configuration Summary */}
+      {labConfig && (
+        <div className="glass-panel">
+          <h3 className="text-lg font-semibold text-gray-200 mb-4">Lab Configuration</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Lab Details</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Title:</span>
+                  <span className="text-gray-200">{labConfig.title}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Cloud Provider:</span>
+                  <span className="text-gray-200">{labConfig.cloudProvider}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Region:</span>
+                  <span className="text-gray-200">{labConfig.region}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedServices.map(service => (
+                  <div
+                    key={service.name}
+                    className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                             rounded-full text-sm"
+                  >
+                    {service.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Module Tabs */}
       <div className="flex space-x-2 overflow-x-auto pb-2">
         {modules.map((module, index) => (
@@ -837,6 +898,39 @@ export const CreateModulesPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Services Section */}
+      <div className="glass-panel">
+        <h3 className="text-lg font-semibold text-gray-200 mb-4">AWS Services for this Lab</h3>
+        <div className="space-y-4">
+          <p className="text-gray-400">
+            The following AWS services will be available in this lab environment:
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selectedServices.map(service => (
+              <div 
+                key={service.name}
+                className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10 flex items-start space-x-3"
+              >
+                <div className="p-2 rounded-lg bg-primary-500/10">
+                  {service.name.toLowerCase().includes('ec2') ? (
+                    <Server className="h-5 w-5 text-primary-400" />
+                  ) : service.name.toLowerCase().includes('s3') ? (
+                    <Database className="h-5 w-5 text-primary-400" />
+                  ) : (
+                    <Cloud className="h-5 w-5 text-primary-400" />
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-200">{service.name}</h4>
+                  <p className="text-sm text-gray-400">{service.description}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
