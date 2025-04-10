@@ -55,6 +55,7 @@ export interface Lab {
     services: string[];
     budget: number;
     duration: number;
+    labType?: 'without-modules' | 'with-modules';
   };
 }
 
@@ -78,4 +79,19 @@ export interface LearningPath {
   aiRecommended: boolean;
   completionRate?: number;
   enrollments?: number;
+}
+
+export interface CloudSlice {
+  id: string;
+  name: string;
+  description: string;
+  provider: CloudProvider;
+  region: string;
+  services: string[];
+  status: 'active' | 'inactive' | 'pending' | 'expired';
+  startDate: string;
+  endDate: string;
+  cleanupPolicy: string;
+  credits: number;
+  labType: 'without-modules' | 'with-modules';
 }

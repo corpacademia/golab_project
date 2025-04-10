@@ -144,7 +144,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           // For labs without modules, show success message
           setSuccess('Cloud slice created successfully!');
           setTimeout(() => {
-            setSuccess(null);
+            navigate('/dashboard/labs/cloud-slices');
           }, 3000);
         } else {
           setError('Failed to create cloud slice');

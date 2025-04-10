@@ -1,39 +1,135 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { CloudSliceConfig } from '../components/create/steps/CloudSliceConfig';
-import { Plus, Search, Filter, FolderX, Loader } from 'lucide-react';
+import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar } from 'lucide-react';
+import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
+import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
+import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 interface CloudSlice {
   id: string;
   name: string;
+  description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
   services: string[];
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'expired';
   startDate: string;
   endDate: string;
   cleanupPolicy: string;
   credits: number;
+  labType: 'without-modules' | 'with-modules';
 }
 
 export const CloudSlicePage: React.FC = () => {
+  const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
   const [cloudSlices, setCloudSlices] = useState<CloudSlice[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [filteredSlices, setFilteredSlices] = useState<CloudSlice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     provider: '',
     status: '',
-    level: ''
+    region: ''
   });
+  const [editSlice, setEditSlice] = useState<CloudSlice | null>(null);
+  const [deleteSlice, setDeleteSlice] = useState<{ id: string; name: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
 
-  const filteredSlices = cloudSlices.filter(slice => {
-    const matchesSearch = !filters.search || 
-      slice.name.toLowerCase().includes(filters.search.toLowerCase());
-    const matchesProvider = !filters.provider || slice.provider === filters.provider;
-    const matchesStatus = !filters.status || slice.status === filters.status;
-    return matchesSearch && matchesProvider && matchesStatus;
-  });
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  useEffect(() => {
+    const fetchCloudSlices = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
+          params: { userId: user.id }
+        });
+        
+        if (response.data.success) {
+          const slices = response.data.data || [];
+          setCloudSlices(slices);
+          setFilteredSlices(slices);
+        } else {
+          console.error('Failed to fetch cloud slices:', response.data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching cloud slices:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCloudSlices();
+  }, [user]);
+
+  useEffect(() => {
+    // Apply filters
+    const filtered = cloudSlices.filter(slice => {
+      const matchesSearch = !filters.search || 
+        slice.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        slice.description.toLowerCase().includes(filters.search.toLowerCase());
+      
+      const matchesProvider = !filters.provider || slice.provider === filters.provider;
+      const matchesStatus = !filters.status || slice.status === filters.status;
+      const matchesRegion = !filters.region || slice.region === filters.region;
+      
+      return matchesSearch && matchesProvider && matchesStatus && matchesRegion;
+    });
+    
+    setFilteredSlices(filtered);
+  }, [filters, cloudSlices]);
+
+  const handleEditSlice = (slice: CloudSlice) => {
+    setEditSlice(slice);
+  };
+
+  const handleDeleteSlice = (sliceId: string) => {
+    const slice = cloudSlices.find(s => s.id === sliceId);
+    if (slice) {
+      setDeleteSlice({ id: sliceId, name: slice.name });
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
+        params: { userId: user.id }
+      });
+      
+      if (response.data.success) {
+        const slices = response.data.data || [];
+        setCloudSlices(slices);
+        setFilteredSlices(slices);
+      }
+    } catch (error) {
+      console.error('Error refreshing cloud slices:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get unique regions and providers for filter dropdowns
+  const regions = [...new Set(cloudSlices.map(slice => slice.region))];
+  const providers = [...new Set(cloudSlices.map(slice => slice.provider))];
 
   return (
     <div className="space-y-6">
@@ -49,7 +145,7 @@ export const CloudSlicePage: React.FC = () => {
               </p>
             </div>
             <button 
-              onClick={() => setIsCreating(true)}
+              onClick={() => navigate('/dashboard/labs/create')}
               className="btn-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -79,12 +175,11 @@ export const CloudSlicePage: React.FC = () => {
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
                   <option value="">All Providers</option>
-                  <option value="aws">AWS</option>
-                  <option value="azure">Azure</option>
-                  <option value="gcp">GCP</option>
-                  <option value="oracle">Oracle</option>
-                  <option value="ibm">IBM</option>
-                  <option value="alibaba">Alibaba</option>
+                  {providers.map(provider => (
+                    <option key={provider} value={provider}>
+                      {provider.toUpperCase()}
+                    </option>
+                  ))}
                 </select>
 
                 <select
@@ -97,23 +192,27 @@ export const CloudSlicePage: React.FC = () => {
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                   <option value="pending">Pending</option>
+                  <option value="expired">Expired</option>
                 </select>
 
                 <select
-                  value={filters.level}
-                  onChange={(e) => setFilters(prev => ({ ...prev, level: e.target.value }))}
+                  value={filters.region}
+                  onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
                   className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
-                  <option value="">All Levels</option>
-                  <option value="basic">Basic</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
+                  <option value="">All Regions</option>
+                  {regions.map(region => (
+                    <option key={region} value={region}>{region}</option>
+                  ))}
                 </select>
 
-                <button className="btn-secondary">
+                <button 
+                  onClick={() => setFilters({ search: '', provider: '', status: '', region: '' })}
+                  className="btn-secondary"
+                >
                   <Filter className="h-4 w-4 mr-2" />
-                  More Filters
+                  Clear Filters
                 </button>
               </div>
             </div>
@@ -135,7 +234,7 @@ export const CloudSlicePage: React.FC = () => {
                       No Cloud Slices Found
                     </h3>
                     <p className="text-gray-400 max-w-md">
-                      {filters.search || filters.provider || filters.status
+                      {filters.search || filters.provider || filters.status || filters.region
                         ? "No cloud slices match your current filters. Try adjusting your search criteria."
                         : "You haven't created any cloud slices yet. Click 'New Cloud Slice' to get started."}
                     </p>
@@ -144,71 +243,48 @@ export const CloudSlicePage: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredSlices.map((slice) => (
-                    <div 
+                    <CloudSliceCard
                       key={slice.id}
-                      className="glass-panel hover:scale-[1.02] transition-transform cursor-pointer"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-200">{slice.name}</h3>
-                          <p className="text-sm text-gray-400">{slice.provider} • {slice.region}</p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          slice.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-                          slice.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-                          'bg-amber-500/20 text-amber-300'
-                        }`}>
-                          {slice.status}
-                        </span>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-gray-400 mb-2">Services:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {slice.services.map((service, index) => (
-                              <span 
-                                key={index}
-                                className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300"
-                              >
-                                {service}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-400">Start Date:</p>
-                            <p className="text-gray-200">
-                              {new Date(slice.startDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400">End Date:</p>
-                            <p className="text-gray-200">
-                              {new Date(slice.endDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400">Cleanup Policy:</p>
-                            <p className="text-gray-200">{slice.cleanupPolicy}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400">Credits:</p>
-                            <p className="text-gray-200">${slice.credits.toLocaleString()}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      slice={slice}
+                      onEdit={handleEditSlice}
+                      onDelete={handleDeleteSlice}
+                    />
                   ))}
                 </div>
               )}
             </>
           )}
+
+          <EditCloudSliceModal
+            isOpen={!!editSlice}
+            onClose={() => setEditSlice(null)}
+            slice={editSlice}
+            onSuccess={handleRefresh}
+          />
+
+          <DeleteCloudSliceModal
+            isOpen={!!deleteSlice}
+            onClose={() => setDeleteSlice(null)}
+            sliceId={deleteSlice?.id || null}
+            sliceName={deleteSlice?.name || null}
+            onSuccess={handleRefresh}
+          />
         </>
       ) : (
-        <CloudSliceConfig onBack={() => setIsCreating(false)} />
+        // This would be replaced with the actual cloud slice creation form
+        <div>
+          <button onClick={() => setIsCreating(false)} className="btn-secondary mb-4">
+            Back to Cloud Slices
+          </button>
+          <div className="glass-panel p-8 text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              <GradientText>Create New Cloud Slice</GradientText>
+            </h2>
+            <p className="text-gray-400">
+              This feature is currently being implemented. Please use the Lab Creation workflow to create a new Cloud Slice.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
