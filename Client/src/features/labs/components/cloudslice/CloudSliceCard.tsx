@@ -122,7 +122,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         <div className="flex justify-between items-start gap-4 mb-3">
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-1">
-              <GradientText>{slice.name}</GradientText>
+              <GradientText>{slice.title}</GradientText>
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
           </div>
