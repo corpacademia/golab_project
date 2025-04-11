@@ -17,7 +17,7 @@ import axios from 'axios';
 
 interface CloudSlice {
   id: string;
-  name: string;
+  title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
@@ -80,9 +80,25 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
+  function formatDateTime(dateString) {
+    const date = new Date(dateString);
+  
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+  
+    let hours = date.getHours();
+    const minutes = `${date.getMinutes()}`.padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12AM
+    hours = `${hours}`.padStart(1, '0');
+  
+    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+  }
+  
+  
+  
 
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -106,7 +122,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         <div className="flex justify-between items-start gap-4 mb-3">
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-1">
-              <GradientText>{slice.name}</GradientText>
+              <GradientText>{slice.title}</GradientText>
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
           </div>
@@ -145,11 +161,11 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Calendar className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Start: {formatDate(slice.startDate)}</span>
+            <span className="truncate">Start: {formatDateTime(slice.startdate)}</span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Calendar className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">End: {formatDate(slice.endDate)}</span>
+            <span className="truncate">End: {formatDateTime(slice.enddate)}</span>
           </div>
         </div>
 
@@ -167,7 +183,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <button
             onClick={handleLaunch}
-            disabled={isLaunching || slice.status !== 'active'}
+            // disabled={isLaunching || slice.status !== 'active'}
             className="w-full h-9 px-4 rounded-lg text-sm font-medium
                      bg-gradient-to-r from-primary-500 to-secondary-500
                      hover:from-primary-400 hover:to-secondary-400

@@ -175,11 +175,15 @@ export const CloudSlicePage: React.FC = () => {
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
                   <option value="">All Providers</option>
-                  {providers.map(provider => (
+                  <option value="aws">AWS</option>
+                  <option value="azure">Azure</option>
+                  <option value="gcp">GCP</option>
+                  <option value="oracle">Oracle</option>
+                  {/* {providers.map(provider => (
                     <option key={provider} value={provider}>
                       {provider.toUpperCase()}
                     </option>
-                  ))}
+                  ))} */}
                 </select>
 
                 <select
