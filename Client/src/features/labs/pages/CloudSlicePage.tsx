@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check } from 'lucide-react';
 import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
 import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
 import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
@@ -37,6 +37,9 @@ export const CloudSlicePage: React.FC = () => {
   const [editSlice, setEditSlice] = useState<CloudSlice | null>(null);
   const [deleteSlice, setDeleteSlice] = useState<{ id: string; name: string } | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [selectedSlices, setSelectedSlices] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -127,6 +130,62 @@ export const CloudSlicePage: React.FC = () => {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedSlices.length === filteredSlices.length) {
+      // If all are selected, deselect all
+      setSelectedSlices([]);
+    } else {
+      // Otherwise, select all
+      setSelectedSlices(filteredSlices.map(slice => slice.id));
+    }
+  };
+
+  const handleSelectSlice = (sliceId: string) => {
+    setSelectedSlices(prev => 
+      prev.includes(sliceId)
+        ? prev.filter(id => id !== sliceId)
+        : [...prev, sliceId]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedSlices.length === 0) return;
+    
+    setIsDeleting(true);
+    setNotification(null);
+    
+    try {
+      // Delete each selected slice
+      const promises = selectedSlices.map(sliceId => 
+        axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${sliceId}`)
+      );
+      
+      await Promise.all(promises);
+      
+      setNotification({ 
+        type: 'success', 
+        message: `Successfully deleted ${selectedSlices.length} cloud slice${selectedSlices.length > 1 ? 's' : ''}` 
+      });
+      
+      // Clear selection and refresh the list
+      setSelectedSlices([]);
+      handleRefresh();
+      
+      // Clear notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
+    } catch (error) {
+      setNotification({ 
+        type: 'error', 
+        message: 'Failed to delete selected cloud slices' 
+      });
+      
+      // Clear notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Get unique regions and providers for filter dropdowns
   const regions = [...new Set(cloudSlices.map(slice => slice.region))];
   const providers = [...new Set(cloudSlices.map(slice => slice.provider))];
@@ -144,13 +203,25 @@ export const CloudSlicePage: React.FC = () => {
                 Manage and configure cloud environment slices
               </p>
             </div>
-            <button 
-              onClick={() => navigate('/dashboard/labs/create')}
-              className="btn-primary"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Cloud Slice
-            </button>
+            <div className="flex space-x-4">
+              {selectedSlices.length > 0 && (
+                <button 
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  className="btn-secondary text-red-400 hover:text-red-300"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected ({selectedSlices.length})
+                </button>
+              )}
+              <button 
+                onClick={() => navigate('/dashboard/labs/create')}
+                className="btn-primary"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Cloud Slice
+              </button>
+            </div>
           </div>
 
           <div className="glass-panel p-6">
@@ -222,6 +293,25 @@ export const CloudSlicePage: React.FC = () => {
             </div>
           </div>
 
+          {notification && (
+            <div className={`p-4 rounded-lg flex items-center space-x-2 ${
+              notification.type === 'success' 
+                ? 'bg-emerald-500/20 border border-emerald-500/20' 
+                : 'bg-red-500/20 border border-red-500/20'
+            }`}>
+              {notification.type === 'success' ? (
+                <Check className="h-5 w-5 text-emerald-400" />
+              ) : (
+                <Trash2 className="h-5 w-5 text-red-400" />
+              )}
+              <span className={`text-sm ${
+                notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+              }`}>
+                {notification.message}
+              </span>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader className="h-8 w-8 text-primary-400 animate-spin" />
@@ -245,16 +335,39 @@ export const CloudSlicePage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredSlices.map((slice) => (
-                    <CloudSliceCard
-                      key={slice.id}
-                      slice={slice}
-                      onEdit={handleEditSlice}
-                      onDelete={handleDeleteSlice}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="flex items-center mb-4">
+                    <label className="flex items-center space-x-2 text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSlices.length === filteredSlices.length && filteredSlices.length > 0}
+                        onChange={handleSelectAll}
+                        className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
+                      />
+                      <span>Select All</span>
+                    </label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredSlices.map((slice) => (
+                      <div key={slice.id} className="relative">
+                        <div className="absolute top-4 left-4 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedSlices.includes(slice.id)}
+                            onChange={() => handleSelectSlice(slice.id)}
+                            className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
+                          />
+                        </div>
+                        <CloudSliceCard
+                          slice={slice}
+                          onEdit={handleEditSlice}
+                          onDelete={handleDeleteSlice}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </>
           )}
