@@ -96,7 +96,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   
     return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
-  
+
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                   hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -117,7 +117,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
       
       <div className="p-4 flex flex-col h-full">
         <div className="flex justify-between items-start gap-4 mb-3">
-          <div className="flex-1 pl-7 sm:pl-0"> {/* Add left padding on small screens to avoid checkbox overlap */}
+          <div className="flex-1 ml-8 sm:ml-0"> {/* Add left margin on small screens to avoid checkbox overlap */}
             <h3 className="text-lg font-semibold mb-1">
               <GradientText>{slice.title}</GradientText>
             </h3>
@@ -171,7 +171,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           <div className="flex flex-wrap gap-2">
             {slice.services.map((service, index) => (
               <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300 
-                                          inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                                          inline-block max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
                 {service}
               </span>
             ))}
