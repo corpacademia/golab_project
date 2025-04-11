@@ -34,12 +34,16 @@ interface CloudSliceCardProps {
   slice: CloudSlice;
   onEdit: (slice: CloudSlice) => void;
   onDelete: (sliceId: string) => void;
+  isSelected?: boolean;
+  onSelect?: (sliceId: string) => void;
 }
 
 export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ 
   slice,
   onEdit,
-  onDelete
+  onDelete,
+  isSelected = false,
+  onSelect
 }) => {
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -115,9 +119,21 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         </div>
       )}
       
+      {onSelect && (
+        <div className="absolute top-4 left-4 z-10">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onSelect(slice.id)}
+            className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+      
       <div className="p-4 flex flex-col h-full">
         <div className="flex justify-between items-start gap-4 mb-3">
-          <div className="flex-1 ml-8 sm:ml-0"> {/* Add left margin on small screens to avoid checkbox overlap */}
+          <div className={`flex-1 ${onSelect ? 'pl-8' : ''}`}>
             <h3 className="text-lg font-semibold mb-1">
               <GradientText>{slice.title}</GradientText>
             </h3>

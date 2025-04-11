@@ -350,21 +350,14 @@ export const CloudSlicePage: React.FC = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredSlices.map((slice) => (
-                      <div key={slice.id} className="relative">
-                        <div className="absolute top-4 left-4 z-10">
-                          <input
-                            type="checkbox"
-                            checked={selectedSlices.includes(slice.id)}
-                            onChange={() => handleSelectSlice(slice.id)}
-                            className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
-                          />
-                        </div>
-                        <CloudSliceCard
-                          slice={slice}
-                          onEdit={handleEditSlice}
-                          onDelete={handleDeleteSlice}
-                        />
-                      </div>
+                      <CloudSliceCard
+                        key={slice.id}
+                        slice={slice}
+                        onEdit={handleEditSlice}
+                        onDelete={handleDeleteSlice}
+                        isSelected={selectedSlices.includes(slice.id)}
+                        onSelect={handleSelectSlice}
+                      />
                     ))}
                   </div>
                 </>
