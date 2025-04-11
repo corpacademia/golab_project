@@ -128,9 +128,9 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
       
       <div className="p-4 flex flex-col h-full">
         <div className="flex justify-between items-start gap-4 mb-3">
-          <div className="flex items-center">
+          <div className="flex items-start">
             {onSelect && (
-              <div className="mr-3" onClick={handleSelectClick}>
+              <div className="flex-shrink-0 mt-1 mr-3" onClick={handleSelectClick}>
                 <input
                   type="checkbox"
                   checked={isSelected}
@@ -139,14 +139,14 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                 />
               </div>
             )}
-            <div className="flex-1">
+            <div>
               <h3 className="text-lg font-semibold mb-1">
                 <GradientText>{slice.name}</GradientText>
               </h3>
               <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <button
               onClick={() => onEdit(slice)}
               className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
