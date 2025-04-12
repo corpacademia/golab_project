@@ -78,10 +78,18 @@ export const CloudSliceModulesPage: React.FC = () => {
   const [isEditingExercise, setIsEditingExercise] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
-  const [isLoadingModules, setIsLoadingModules] = useState(false);
+  
+  // Loading states for each data type
+  const [isLoadingModules, setIsLoadingModules] = useState(true);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [isLoadingLabContent, setIsLoadingLabContent] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  
+  // Data loaded flags to prevent errors
+  const [modulesLoaded, setModulesLoaded] = useState(false);
+  const [exercisesLoaded, setExercisesLoaded] = useState(false);
+  const [labContentLoaded, setLabContentLoaded] = useState(false);
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
 
   // Fetch slice details if not provided in location state
   useEffect(() => {
@@ -112,14 +120,42 @@ export const CloudSliceModulesPage: React.FC = () => {
       const fetchModules = async () => {
         setIsLoadingModules(true);
         try {
-          const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
-          if (response.data.success) {
-            setModules(response.data.data);
-          } else {
-            console.error('Failed to fetch modules:', response.data.message);
-          }
+          // For development, using mock data until API is ready
+          // In production, this would be a real API call
+          // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
+          
+          // Mock data for development
+          const mockModules: Module[] = [
+            {
+              id: '1',
+              title: 'Introduction to AWS',
+              description: 'Learn the basics of AWS cloud services',
+              exerciseCount: 3
+            },
+            {
+              id: '2',
+              title: 'EC2 and Networking',
+              description: 'Working with EC2 instances and VPC',
+              exerciseCount: 2
+            },
+            {
+              id: '3',
+              title: 'Storage Solutions',
+              description: 'S3, EBS, and other storage options',
+              exerciseCount: 2
+            }
+          ];
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          setModules(mockModules);
+          setModulesLoaded(true);
         } catch (err) {
           console.error('Failed to fetch modules:', err);
+          // Set empty array to prevent errors
+          setModules([]);
+          setModulesLoaded(true);
         } finally {
           setIsLoadingModules(false);
         }
@@ -131,18 +167,40 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   // Fetch exercises when a module is selected - separate API call
   useEffect(() => {
-    if (selectedModuleId) {
+    if (selectedModuleId && modulesLoaded) {
       const fetchExercises = async () => {
         setIsLoadingExercises(true);
+        setExercisesLoaded(false);
         try {
-          const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getExercises/${selectedModuleId}`);
-          if (response.data.success) {
-            setExercises(response.data.data);
-          } else {
-            console.error('Failed to fetch exercises:', response.data.message);
-          }
+          // For development, using mock data until API is ready
+          // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getExercises/${selectedModuleId}`);
+          
+          // Mock data for development
+          const mockExercises: Exercise[] = [
+            {
+              id: '101',
+              moduleId: selectedModuleId,
+              title: 'Setting up EC2 Instances',
+              type: 'lab'
+            },
+            {
+              id: '102',
+              moduleId: selectedModuleId,
+              title: 'Understanding VPC Configuration',
+              type: 'quiz'
+            }
+          ];
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          setExercises(mockExercises);
+          setExercisesLoaded(true);
         } catch (err) {
           console.error('Failed to fetch exercises:', err);
+          // Set empty array to prevent errors
+          setExercises([]);
+          setExercisesLoaded(true);
         } finally {
           setIsLoadingExercises(false);
         }
@@ -151,26 +209,40 @@ export const CloudSliceModulesPage: React.FC = () => {
       fetchExercises();
     } else {
       setExercises([]);
+      setExercisesLoaded(true);
     }
-  }, [selectedModuleId]);
+  }, [selectedModuleId, modulesLoaded]);
 
   // Fetch lab content when a lab exercise is selected - separate API call
   useEffect(() => {
-    if (selectedExerciseId) {
+    if (selectedExerciseId && exercisesLoaded) {
       const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
       
       if (selectedExercise?.type === 'lab') {
         const fetchLabContent = async () => {
           setIsLoadingLabContent(true);
+          setLabContentLoaded(false);
           try {
-            const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getLabContent/${selectedExerciseId}`);
-            if (response.data.success) {
-              setLabContent(response.data.data);
-            } else {
-              console.error('Failed to fetch lab content:', response.data.message);
-            }
+            // For development, using mock data until API is ready
+            // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getLabContent/${selectedExerciseId}`);
+            
+            // Mock data for development
+            const mockLabContent: LabExercise = {
+              id: selectedExerciseId,
+              content: '<h2>EC2 Lab Instructions</h2><p>In this lab, you will learn how to launch and configure an EC2 instance.</p><ol><li>Navigate to the EC2 dashboard</li><li>Click "Launch Instance"</li><li>Select an Amazon Machine Image (AMI)</li><li>Choose an instance type</li><li>Configure instance details</li><li>Add storage</li><li>Configure security group</li><li>Review and launch</li></ol>',
+              services: ['EC2', 'VPC', 'Security Groups', 'EBS']
+            };
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
+            setLabContent(mockLabContent);
+            setLabContentLoaded(true);
           } catch (err) {
             console.error('Failed to fetch lab content:', err);
+            // Set null to prevent errors
+            setLabContent(null);
+            setLabContentLoaded(true);
           } finally {
             setIsLoadingLabContent(false);
           }
@@ -180,15 +252,49 @@ export const CloudSliceModulesPage: React.FC = () => {
       } else if (selectedExercise?.type === 'quiz') {
         const fetchQuizQuestions = async () => {
           setIsLoadingQuestions(true);
+          setQuestionsLoaded(false);
           try {
-            const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizQuestions/${selectedExerciseId}`);
-            if (response.data.success) {
-              setQuizQuestions(response.data.data);
-            } else {
-              console.error('Failed to fetch quiz questions:', response.data.message);
-            }
+            // For development, using mock data until API is ready
+            // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizQuestions/${selectedExerciseId}`);
+            
+            // Mock data for development
+            const mockQuizQuestions: QuizQuestion[] = [
+              {
+                id: 'q1',
+                exerciseId: selectedExerciseId,
+                question: 'What is the primary purpose of Amazon VPC?',
+                options: [
+                  'To store objects in the cloud',
+                  'To provide isolated network environments',
+                  'To run serverless functions',
+                  'To manage DNS records'
+                ],
+                correctAnswer: 1
+              },
+              {
+                id: 'q2',
+                exerciseId: selectedExerciseId,
+                question: 'Which of the following is NOT a component of a VPC?',
+                options: [
+                  'Subnets',
+                  'Route Tables',
+                  'Lambda Functions',
+                  'Security Groups'
+                ],
+                correctAnswer: 2
+              }
+            ];
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 700));
+            
+            setQuizQuestions(mockQuizQuestions);
+            setQuestionsLoaded(true);
           } catch (err) {
             console.error('Failed to fetch quiz questions:', err);
+            // Set empty array to prevent errors
+            setQuizQuestions([]);
+            setQuestionsLoaded(true);
           } finally {
             setIsLoadingQuestions(false);
           }
@@ -198,9 +304,11 @@ export const CloudSliceModulesPage: React.FC = () => {
       }
     } else {
       setLabContent(null);
+      setLabContentLoaded(true);
       setQuizQuestions([]);
+      setQuestionsLoaded(true);
     }
-  }, [selectedExerciseId, exercises]);
+  }, [selectedExerciseId, exercises, exercisesLoaded]);
 
   const handleModuleSelect = (moduleId: string) => {
     setSelectedModuleId(moduleId);
@@ -209,12 +317,16 @@ export const CloudSliceModulesPage: React.FC = () => {
   };
 
   const handleExerciseSelect = (exerciseId: string) => {
+    if (!exercisesLoaded) return;
+    
     const selectedExercise = exercises.find(ex => ex.id === exerciseId);
+    if (!selectedExercise) return;
+    
     setSelectedExerciseId(exerciseId);
     
-    if (selectedExercise?.type === 'lab') {
+    if (selectedExercise.type === 'lab') {
       setActiveTab('lab');
-    } else if (selectedExercise?.type === 'quiz') {
+    } else if (selectedExercise.type === 'quiz') {
       setActiveTab('quiz');
     }
   };
@@ -230,18 +342,18 @@ export const CloudSliceModulesPage: React.FC = () => {
     setNotification(null);
     
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabContent/${selectedExerciseId}`, {
-        content: labContent.content,
-        services: labContent.services
-      });
+      // For development, simulate API call
+      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabContent/${selectedExerciseId}`, {
+      //   content: labContent.content,
+      //   services: labContent.services
+      // });
       
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Lab content updated successfully' });
-        setIsEditingExercise(false);
-        setTimeout(() => setNotification(null), 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to update lab content');
-      }
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setNotification({ type: 'success', message: 'Lab content updated successfully' });
+      setIsEditingExercise(false);
+      setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       setNotification({ 
         type: 'error', 
@@ -260,17 +372,17 @@ export const CloudSliceModulesPage: React.FC = () => {
     setNotification(null);
     
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizQuestions/${selectedExerciseId}`, {
-        questions: quizQuestions
-      });
+      // For development, simulate API call
+      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizQuestions/${selectedExerciseId}`, {
+      //   questions: quizQuestions
+      // });
       
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Quiz questions updated successfully' });
-        setIsEditingExercise(false);
-        setTimeout(() => setNotification(null), 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to update quiz questions');
-      }
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setNotification({ type: 'success', message: 'Quiz questions updated successfully' });
+      setIsEditingExercise(false);
+      setTimeout(() => setNotification(null), 3000);
     } catch (err: any) {
       setNotification({ 
         type: 'error', 
@@ -343,8 +455,9 @@ export const CloudSliceModulesPage: React.FC = () => {
   }
 
   // Get the selected module and exercise objects
-  const selectedModule = modules.find(m => m.id === selectedModuleId);
-  const selectedExercise = exercises.find(e => e.id === selectedExerciseId);
+  // Only access these if the data is loaded to prevent errors
+  const selectedModule = modulesLoaded ? modules.find(m => m.id === selectedModuleId) : undefined;
+  const selectedExercise = exercisesLoaded ? exercises.find(e => e.id === selectedExerciseId) : undefined;
 
   return (
     <div className="space-y-6">
