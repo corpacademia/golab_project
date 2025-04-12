@@ -10,9 +10,13 @@ import {
   Loader,
   AlertCircle,
   Check,
-  X
+  X,
+  ExternalLink,
+  List,
+  FileText
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface CloudSlice {
@@ -45,26 +49,35 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   isSelected = false,
   onSelect
 }) => {
+  const navigate = useNavigate();
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  const handleLaunch = async () => {
+  const handleLaunch = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsLaunching(true);
     setNotification(null);
 
     try {
-      // Call the API endpoint to launch the cloud slice
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/launchCloudSlice/${slice.id}`);
+      // Call the API endpoint to get lab details
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.id}`);
       
       if (response.data.success) {
-        setNotification({ 
-          type: 'success', 
-          message: 'Cloud slice launched successfully' 
-        });
-        
-        // If there's a URL to open, open it in a new tab
-        if (response.data.consoleUrl) {
-          window.open(response.data.consoleUrl, '_blank');
+        // Navigate to the appropriate page based on labType
+        if (slice.labType === 'without-modules') {
+          navigate(`/dashboard/labs/cloud-slices/${slice.id}/lab`, { 
+            state: { 
+              sliceDetails: response.data.data,
+              labType: 'without-modules'
+            } 
+          });
+        } else {
+          navigate(`/dashboard/labs/cloud-slices/${slice.id}/modules`, { 
+            state: { 
+              sliceDetails: response.data.data,
+              labType: 'with-modules'
+            } 
+          });
         }
       } else {
         throw new Error(response.data.message || 'Failed to launch cloud slice');
@@ -74,13 +87,13 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         type: 'error', 
         message: error.response?.data?.message || 'Failed to launch cloud slice' 
       });
-    } finally {
-      setIsLaunching(false);
       
       // Clear notification after 3 seconds
       setTimeout(() => {
         setNotification(null);
       }, 3000);
+    } finally {
+      setIsLaunching(false);
     }
   };
 
@@ -106,6 +119,15 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     e.stopPropagation();
     if (onSelect) {
       onSelect(slice.id);
+    }
+  };
+
+  // Get the appropriate icon based on lab type
+  const getLabTypeIcon = () => {
+    if (slice.labType === 'without-modules') {
+      return <Server className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
+    } else {
+      return <List className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
     }
   };
 
@@ -194,12 +216,19 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Start: {new Date(slice.startdate).toLocaleDateString()}</span>
+            <span className="truncate">Start: {new Date(slice.startDate).toLocaleDateString()}</span>
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">End: {new Date(slice.enddate).toLocaleDateString()}</span>
+            <span className="truncate">End: {new Date(slice.endDate).toLocaleDateString()}</span>
           </div>
+        </div>
+
+        <div className="flex items-center text-xs text-gray-400 mb-2">
+          {getLabTypeIcon()}
+          <span className="truncate">
+            {slice.labType === 'without-modules' ? 'Standard Lab' : 'Modular Lab'}
+          </span>
         </div>
 
         <div className="mb-2 overflow-y-auto max-h-[60px]">
@@ -216,10 +245,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
 
         <div className="mt-auto pt-2 border-t border-primary-500/10">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLaunch();
-            }}
+            onClick={handleLaunch}
             className="w-full h-8 px-3 rounded-lg text-xs font-medium
                      bg-gradient-to-r from-primary-500 to-secondary-500
                      hover:from-primary-400 hover:to-secondary-400
