@@ -101,7 +101,8 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
 
-  const handleSelectClick = (e: React.MouseEvent) => {
+  // Fixed the checkbox selection handler to properly stop propagation
+  const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSelect) {
       onSelect(slice.id);
@@ -130,11 +131,17 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         <div className="flex justify-between items-start gap-2 mb-2">
           <div className="flex items-start">
             {onSelect && (
-              <div className="flex-shrink-0 mt-1 mr-2" onClick={handleSelectClick}>
+              <div className="flex-shrink-0 mt-1 mr-2">
                 <input
                   type="checkbox"
                   checked={isSelected}
-                  onChange={() => {}}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    if (onSelect) {
+                      onSelect(slice.id);
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
                   className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
                 />
               </div>
@@ -148,13 +155,19 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
           <div className="flex items-center space-x-1 flex-shrink-0">
             <button
-              onClick={() => onEdit(slice)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(slice);
+              }}
               className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
             >
               <Pencil className="h-3.5 w-3.5 text-primary-400" />
             </button>
             <button
-              onClick={() => onDelete(slice.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(slice.id);
+              }}
               className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5 text-red-400" />
@@ -203,7 +216,10 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
 
         <div className="mt-auto pt-2 border-t border-primary-500/10">
           <button
-            onClick={handleLaunch}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLaunch();
+            }}
             className="w-full h-8 px-3 rounded-lg text-xs font-medium
                      bg-gradient-to-r from-primary-500 to-secondary-500
                      hover:from-primary-400 hover:to-secondary-400

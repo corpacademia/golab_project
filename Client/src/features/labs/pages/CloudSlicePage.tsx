@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface CloudSlice {
   id: string;
-  name: string;
+  title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
@@ -105,7 +105,7 @@ export const CloudSlicePage: React.FC = () => {
   const handleDeleteSlice = (sliceId: string) => {
     const slice = cloudSlices.find(s => s.id === sliceId);
     if (slice) {
-      setDeleteSlice({ id: sliceId, name: slice.name });
+      setDeleteSlice({ id: sliceId, name: slice.title });
     }
   };
 
