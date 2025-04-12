@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check } from 'lucide-react';
+import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check, AlertCircle } from 'lucide-react';
 import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
 import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
 import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface CloudSlice {
   id: string;
-  name: string;
+  title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
@@ -85,7 +85,7 @@ export const CloudSlicePage: React.FC = () => {
     // Apply filters
     const filtered = cloudSlices.filter(slice => {
       const matchesSearch = !filters.search || 
-        slice.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        slice.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         slice.description.toLowerCase().includes(filters.search.toLowerCase());
       
       const matchesProvider = !filters.provider || slice.provider === filters.provider;
@@ -302,7 +302,7 @@ export const CloudSlicePage: React.FC = () => {
               {notification.type === 'success' ? (
                 <Check className="h-5 w-5 text-emerald-400" />
               ) : (
-                <Trash2 className="h-5 w-5 text-red-400" />
+                <AlertCircle className="h-5 w-5 text-red-400" />
               )}
               <span className={`text-sm ${
                 notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'

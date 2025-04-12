@@ -101,6 +101,13 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
 
+  const handleSelectClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(slice.id);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
                   hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -119,27 +126,34 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         </div>
       )}
       
-      {onSelect && (
-        <div className="absolute top-4 left-4 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onSelect(slice.id)}
-            className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-      
       <div className="p-4 flex flex-col h-full">
         <div className="flex justify-between items-start gap-4 mb-3">
+{/* <<<<<<< HEAD
           <div className={`flex-1 ${onSelect ? 'pl-8' : ''}`}>
             <h3 className="text-lg font-semibold mb-1">
               <GradientText>{slice.title}</GradientText>
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
+======= */}
+          <div className="flex items-start">
+            {onSelect && (
+              <div className="flex-shrink-0 mt-1 mr-3" onClick={handleSelectClick}>
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => {}}
+                  className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
+                />
+              </div>
+            )}
+            <div>
+              <h3 className="text-lg font-semibold mb-1">
+                <GradientText>{slice.title}</GradientText>
+              </h3>
+              <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <button
               onClick={() => onEdit(slice)}
               className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
@@ -197,7 +211,6 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         <div className="mt-auto pt-3 border-t border-primary-500/10">
           <button
             onClick={handleLaunch}
-            // disabled={isLaunching || slice.status !== 'active'}
             className="w-full h-9 px-4 rounded-lg text-sm font-medium
                      bg-gradient-to-r from-primary-500 to-secondary-500
                      hover:from-primary-400 hover:to-secondary-400
@@ -211,7 +224,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Launch Console
+                Launch Lab
               </>
             )}
           </button>
