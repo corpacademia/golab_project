@@ -14,7 +14,7 @@ import {
   AlertCircle, 
   Check,
   ChevronDown,
-  Search
+  Search,X
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -73,16 +73,28 @@ export const CloudSliceLabPage: React.FC = () => {
     }
   }, [sliceId, sliceDetails]);
 
+   //extract the aws services
+ const extractAwsServices = async (awsServices: { services: string; description: string; category: string }[]): Promise<CategorizedServices> => {
+  const servicess: CategorizedServices = {};
+  awsServices.forEach(({ services, description, category }) => {
+    if (servicess[category]) {
+      servicess[category].push({ name: services, category: category, description: description });
+    } else {
+      servicess[category] = [{ name: services, category: category, description: description }];
+    }
+  });
+
+  return servicess;
+};
+
   // Fetch service categories
   useEffect(() => {
     const fetchServiceCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getServiceCategories', {
-          params: { provider: sliceDetails?.provider || 'aws' }
-        });
-        
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
         if (response.data.success) {
-          setServiceCategories(response.data.data);
+          const awsServiceCategories = await extractAwsServices(response.data.data);
+          setServiceCategories(awsServiceCategories);
         }
       } catch (err) {
         console.error('Failed to fetch service categories:', err);
@@ -145,18 +157,16 @@ export const CloudSliceLabPage: React.FC = () => {
   };
 
   // Filter categories and services based on search
-  const filteredCategories = serviceCategories
-    .filter(category => category.name.toLowerCase().includes(categorySearch.toLowerCase()))
-    .map(category => category.name);
+  const filteredCategories = Object.keys(serviceCategories).filter(category =>
+    category.toLowerCase().includes(categorySearch.toLowerCase())
+  );
 
   const filteredServices = selectedCategory 
-    ? serviceCategories
-        .find(category => category.name === selectedCategory)
-        ?.services.filter(service => 
-          service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-          service.description.toLowerCase().includes(serviceSearch.toLowerCase())
-        ) || []
-    : [];
+  ? serviceCategories[selectedCategory].filter(service =>
+      service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+      service.description.toLowerCase().includes(serviceSearch.toLowerCase())
+    )
+  : [];
 
   if (isLoading) {
     return (

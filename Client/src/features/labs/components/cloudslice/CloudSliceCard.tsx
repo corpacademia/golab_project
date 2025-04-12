@@ -20,18 +20,18 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface CloudSlice {
-  id: string;
+  labid: string;
   title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
   services: string[];
   status: 'active' | 'inactive' | 'pending' | 'expired';
-  startDate: string;
-  endDate: string;
+  startdate: string;
+  enddate: string;
   cleanupPolicy: string;
   credits: number;
-  labType: 'without-modules' | 'with-modules';
+  modules: 'without-modules' | 'with-modules';
 }
 
 interface CloudSliceCardProps {
@@ -60,22 +60,22 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
 
     try {
       // Call the API endpoint to get lab details
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.id}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
       
       if (response.data.success) {
         // Navigate to the appropriate page based on labType
-        if (slice.labType === 'without-modules') {
-          navigate(`/dashboard/labs/cloud-slices/${slice.id}/lab`, { 
+        if (slice.modules === 'without-modules') {
+          navigate(`/dashboard/labs/cloud-slices/${slice.labid}/lab`, { 
             state: { 
               sliceDetails: response.data.data,
-              labType: 'without-modules'
+              modules: 'without-modules'
             } 
           });
         } else {
-          navigate(`/dashboard/labs/cloud-slices/${slice.id}/modules`, { 
+          navigate(`/dashboard/labs/cloud-slices/${slice.labid}/modules`, { 
             state: { 
               sliceDetails: response.data.data,
-              labType: 'with-modules'
+              modules: 'with-modules'
             } 
           });
         }
@@ -118,13 +118,13 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSelect) {
-      onSelect(slice.id);
+      onSelect(slice.labid);
     }
   };
 
   // Get the appropriate icon based on lab type
   const getLabTypeIcon = () => {
-    if (slice.labType === 'without-modules') {
+    if (slice.modules === 'without-modules') {
       return <Server className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
     } else {
       return <List className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
@@ -160,7 +160,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                   onChange={(e) => {
                     e.stopPropagation();
                     if (onSelect) {
-                      onSelect(slice.id);
+                      onSelect(slice.labid);
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
@@ -216,18 +216,18 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Start: {new Date(slice.startDate).toLocaleDateString()}</span>
+            <span className="truncate">Start: {formatDateTime(slice.startdate)}</span>
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">End: {new Date(slice.endDate).toLocaleDateString()}</span>
+            <span className="truncate">End: {formatDateTime(slice.enddate)}</span>
           </div>
         </div>
 
         <div className="flex items-center text-xs text-gray-400 mb-2">
           {getLabTypeIcon()}
           <span className="truncate">
-            {slice.labType === 'without-modules' ? 'Standard Lab' : 'Modular Lab'}
+            {slice.modules === 'without-modules' ? 'Standard Lab' : 'Modular Lab'}
           </span>
         </div>
 

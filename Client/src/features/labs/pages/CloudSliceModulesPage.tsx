@@ -60,6 +60,7 @@ export const CloudSliceModulesPage: React.FC = () => {
   const [exerciseContent, setExerciseContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isModulesLoading, setIsModulesLoading] = useState(false);
   
   // Quiz editing state
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -96,6 +97,9 @@ export const CloudSliceModulesPage: React.FC = () => {
           const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
           if (response.data.success) {
             setModules(response.data.data);
+
+            setIsModulesLoading(true);
+
             // Expand the first module by default
             if (response.data.data.length > 0) {
               setExpandedModules([response.data.data[0].id]);
@@ -103,6 +107,9 @@ export const CloudSliceModulesPage: React.FC = () => {
           }
         } catch (err) {
           console.error('Failed to fetch modules:', err);
+        }
+        finally {
+          setIsModulesLoading(true);
         }
       };
       
@@ -230,6 +237,13 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
+  if(!isModulesLoading){
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -257,7 +271,6 @@ export const CloudSliceModulesPage: React.FC = () => {
   };
 
   const currentExercise = getActiveExercise();
-
   return (
     <div className="space-y-6">
       {/* Header */}
