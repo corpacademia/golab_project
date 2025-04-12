@@ -19,7 +19,9 @@ import {
   List,
   Plus,
   Trash2,
-  X
+  X,
+  PenTool,
+  Eye
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -27,19 +29,26 @@ interface Module {
   id: string;
   title: string;
   description: string;
-  exercises: Exercise[];
+  exerciseCount?: number;
 }
 
 interface Exercise {
   id: string;
+  moduleId: string;
   title: string;
   type: 'lab' | 'quiz';
+  content?: string;
+}
+
+interface LabExercise {
+  id: string;
   content: string;
-  questions?: QuizQuestion[];
+  services?: string[];
 }
 
 interface QuizQuestion {
   id: string;
+  exerciseId: string;
   question: string;
   options: string[];
   correctAnswer: number;
@@ -50,21 +59,30 @@ export const CloudSliceModulesPage: React.FC = () => {
   const { sliceId } = useParams();
   const navigate = useNavigate();
   
+  // Basic state
   const [sliceDetails, setSliceDetails] = useState<any>(location.state?.sliceDetails || null);
   const [isLoading, setIsLoading] = useState(!location.state?.sliceDetails);
   const [error, setError] = useState<string | null>(null);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [expandedModules, setExpandedModules] = useState<string[]>([]);
-  const [activeExercise, setActiveExercise] = useState<{moduleId: string, exerciseId: string} | null>(null);
-  const [isEditingExercise, setIsEditingExercise] = useState(false);
-  const [exerciseContent, setExerciseContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isModulesLoading, setIsModulesLoading] = useState(false);
   
-  // Quiz editing state
+  // Data state - each entity has its own state
+  const [modules, setModules] = useState<Module[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [labContent, setLabContent] = useState<LabExercise | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  
+  // UI state
+  const [activeTab, setActiveTab] = useState<'modules' | 'exercises' | 'lab' | 'quiz'>('modules');
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [isEditingExercise, setIsEditingExercise] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
+  const [isLoadingModules, setIsLoadingModules] = useState(false);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+  const [isLoadingLabContent, setIsLoadingLabContent] = useState(false);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
 
   // Fetch slice details if not provided in location state
   useEffect(() => {
@@ -89,27 +107,24 @@ export const CloudSliceModulesPage: React.FC = () => {
     }
   }, [sliceId, sliceDetails]);
 
-  // Fetch modules
+  // Fetch modules - separate API call
   useEffect(() => {
     if (sliceId) {
       const fetchModules = async () => {
+        setIsLoadingModules(true);
         try {
           const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
           if (response.data.success) {
             setModules(response.data.data);
 
             setIsModulesLoading(true);
-
-            // Expand the first module by default
-            if (response.data.data.length > 0) {
-              setExpandedModules([response.data.data[0].id]);
-            }
+          } else {
+            console.error('Failed to fetch modules:', response.data.message);
           }
         } catch (err) {
           console.error('Failed to fetch modules:', err);
-        }
-        finally {
-          setIsModulesLoading(true);
+        } finally {
+          setIsLoadingModules(false);
         }
       };
       
@@ -117,22 +132,93 @@ export const CloudSliceModulesPage: React.FC = () => {
     }
   }, [sliceId]);
 
-  const toggleModuleExpansion = (moduleId: string) => {
-    setExpandedModules(prev => 
-      prev.includes(moduleId)
-        ? prev.filter(id => id !== moduleId)
-        : [...prev, moduleId]
-    );
+  // Fetch exercises when a module is selected - separate API call
+  useEffect(() => {
+    if (selectedModuleId) {
+      const fetchExercises = async () => {
+        setIsLoadingExercises(true);
+        try {
+          const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getExercises/${selectedModuleId}`);
+          if (response.data.success) {
+            setExercises(response.data.data);
+          } else {
+            console.error('Failed to fetch exercises:', response.data.message);
+          }
+        } catch (err) {
+          console.error('Failed to fetch exercises:', err);
+        } finally {
+          setIsLoadingExercises(false);
+        }
+      };
+      
+      fetchExercises();
+    } else {
+      setExercises([]);
+    }
+  }, [selectedModuleId]);
+
+  // Fetch lab content when a lab exercise is selected - separate API call
+  useEffect(() => {
+    if (selectedExerciseId) {
+      const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
+      
+      if (selectedExercise?.type === 'lab') {
+        const fetchLabContent = async () => {
+          setIsLoadingLabContent(true);
+          try {
+            const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getLabContent/${selectedExerciseId}`);
+            if (response.data.success) {
+              setLabContent(response.data.data);
+            } else {
+              console.error('Failed to fetch lab content:', response.data.message);
+            }
+          } catch (err) {
+            console.error('Failed to fetch lab content:', err);
+          } finally {
+            setIsLoadingLabContent(false);
+          }
+        };
+        
+        fetchLabContent();
+      } else if (selectedExercise?.type === 'quiz') {
+        const fetchQuizQuestions = async () => {
+          setIsLoadingQuestions(true);
+          try {
+            const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizQuestions/${selectedExerciseId}`);
+            if (response.data.success) {
+              setQuizQuestions(response.data.data);
+            } else {
+              console.error('Failed to fetch quiz questions:', response.data.message);
+            }
+          } catch (err) {
+            console.error('Failed to fetch quiz questions:', err);
+          } finally {
+            setIsLoadingQuestions(false);
+          }
+        };
+        
+        fetchQuizQuestions();
+      }
+    } else {
+      setLabContent(null);
+      setQuizQuestions([]);
+    }
+  }, [selectedExerciseId, exercises]);
+
+  const handleModuleSelect = (moduleId: string) => {
+    setSelectedModuleId(moduleId);
+    setSelectedExerciseId(null);
+    setActiveTab('exercises');
   };
 
-  const handleExerciseClick = (moduleId: string, exercise: Exercise) => {
-    setActiveExercise({ moduleId, exerciseId: exercise.id });
-    setIsEditingExercise(false);
+  const handleExerciseSelect = (exerciseId: string) => {
+    const selectedExercise = exercises.find(ex => ex.id === exerciseId);
+    setSelectedExerciseId(exerciseId);
     
-    if (exercise.type === 'lab') {
-      setExerciseContent(exercise.content);
-    } else if (exercise.type === 'quiz') {
-      setQuizQuestions(exercise.questions || []);
+    if (selectedExercise?.type === 'lab') {
+      setActiveTab('lab');
+    } else if (selectedExercise?.type === 'quiz') {
+      setActiveTab('quiz');
     }
   };
 
@@ -140,57 +226,58 @@ export const CloudSliceModulesPage: React.FC = () => {
     setIsEditingExercise(true);
   };
 
-  const handleSaveExercise = async () => {
-    if (!activeExercise) return;
+  const handleSaveLabContent = async () => {
+    if (!selectedExerciseId || !labContent) return;
     
     setIsSaving(true);
     setNotification(null);
     
     try {
-      const exercise = modules
-        .find(m => m.id === activeExercise.moduleId)
-        ?.exercises.find(e => e.id === activeExercise.exerciseId);
-      
-      if (!exercise) throw new Error('Exercise not found');
-      
-      const updatedExercise = {
-        ...exercise,
-        content: exercise.type === 'lab' ? exerciseContent : exercise.content,
-        questions: exercise.type === 'quiz' ? quizQuestions : exercise.questions
-      };
-      
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateExercise`, {
-        sliceId,
-        moduleId: activeExercise.moduleId,
-        exerciseId: activeExercise.exerciseId,
-        exercise: updatedExercise
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabContent/${selectedExerciseId}`, {
+        content: labContent.content,
+        services: labContent.services
       });
       
       if (response.data.success) {
-        setNotification({ type: 'success', message: 'Exercise updated successfully' });
-        
-        // Update local state
-        setModules(prev => prev.map(module => {
-          if (module.id === activeExercise.moduleId) {
-            return {
-              ...module,
-              exercises: module.exercises.map(ex => 
-                ex.id === activeExercise.exerciseId ? updatedExercise : ex
-              )
-            };
-          }
-          return module;
-        }));
-        
+        setNotification({ type: 'success', message: 'Lab content updated successfully' });
         setIsEditingExercise(false);
         setTimeout(() => setNotification(null), 3000);
       } else {
-        throw new Error(response.data.message || 'Failed to update exercise');
+        throw new Error(response.data.message || 'Failed to update lab content');
       }
     } catch (err: any) {
       setNotification({ 
         type: 'error', 
-        message: err.response?.data?.message || 'Failed to update exercise' 
+        message: err.response?.data?.message || 'Failed to update lab content' 
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveQuizQuestions = async () => {
+    if (!selectedExerciseId) return;
+    
+    setIsSaving(true);
+    setNotification(null);
+    
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizQuestions/${selectedExerciseId}`, {
+        questions: quizQuestions
+      });
+      
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Quiz questions updated successfully' });
+        setIsEditingExercise(false);
+        setTimeout(() => setNotification(null), 3000);
+      } else {
+        throw new Error(response.data.message || 'Failed to update quiz questions');
+      }
+    } catch (err: any) {
+      setNotification({ 
+        type: 'error', 
+        message: err.response?.data?.message || 'Failed to update quiz questions' 
       });
       setTimeout(() => setNotification(null), 3000);
     } finally {
@@ -199,8 +286,11 @@ export const CloudSliceModulesPage: React.FC = () => {
   };
 
   const handleAddQuestion = () => {
+    if (!selectedExerciseId) return;
+    
     const newQuestion: QuizQuestion = {
       id: `q-${Date.now()}`,
+      exerciseId: selectedExerciseId,
       question: '',
       options: ['', '', '', ''],
       correctAnswer: 0
@@ -261,16 +351,8 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-
-  const getActiveExercise = () => {
-    if (!activeExercise) return null;
-    
-    return modules
-      .find(m => m.id === activeExercise.moduleId)
-      ?.exercises.find(e => e.id === activeExercise.exerciseId);
-  };
-
-  const currentExercise = getActiveExercise();
+  const selectedModule = modules.find(m => m.id === selectedModuleId);
+  const selectedExercise = exercises.find(e => e.id === selectedExerciseId);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -324,318 +406,617 @@ export const CloudSliceModulesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Modules & Exercises */}
-        <div className="glass-panel">
-          <h2 className="text-xl font-semibold mb-6">
-            <GradientText>Modules</GradientText>
-          </h2>
-          
-          <div className="space-y-4">
-            {modules.map(module => (
-              <div key={module.id} className="border border-primary-500/10 rounded-lg overflow-hidden">
-                <div 
-                  className="flex items-center justify-between p-3 bg-dark-300/50 cursor-pointer"
-                  onClick={() => toggleModuleExpansion(module.id)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <ChevronDown 
-                      className={`h-4 w-4 text-primary-400 transition-transform ${
-                        expandedModules.includes(module.id) ? 'transform rotate-180' : ''
-                      }`} 
-                    />
-                    <h3 className="font-medium text-gray-200">{module.title}</h3>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    {module.exercises.length} exercise{module.exercises.length !== 1 ? 's' : ''}
-                  </span>
+      {/* Navigation Tabs */}
+      <div className="border-b border-primary-500/10">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('modules')}
+            className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
+              ${activeTab === 'modules'
+                ? 'border-primary-500 text-primary-400'
+                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
+              }`}
+          >
+            <List className="h-4 w-4 mr-2" />
+            Modules
+          </button>
+          {selectedModuleId && (
+            <button
+              onClick={() => setActiveTab('exercises')}
+              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
+                ${activeTab === 'exercises'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
+                }`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Exercises
+            </button>
+          )}
+          {selectedExerciseId && selectedExercise?.type === 'lab' && (
+            <button
+              onClick={() => setActiveTab('lab')}
+              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
+                ${activeTab === 'lab'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
+                }`}
+            >
+              <Server className="h-4 w-4 mr-2" />
+              Lab Content
+            </button>
+          )}
+          {selectedExerciseId && selectedExercise?.type === 'quiz' && (
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
+                ${activeTab === 'quiz'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
+                }`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Quiz Questions
+            </button>
+          )}
+        </nav>
+      </div>
+
+      {/* Content based on active tab */}
+      <div className="glass-panel">
+        {/* MODULES TABLE */}
+        {activeTab === 'modules' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">
+                <GradientText>Modules</GradientText>
+              </h2>
+              <button className="btn-secondary text-sm py-1.5 px-3">
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Module
+              </button>
+            </div>
+            
+            {isLoadingModules ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
+                <span className="ml-3 text-gray-400">Loading modules...</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
+                      <th className="pb-4 pl-4">Module Title</th>
+                      <th className="pb-4">Description</th>
+                      <th className="pb-4">Exercises</th>
+                      <th className="pb-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modules.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-gray-400">
+                          No modules found for this cloud slice.
+                        </td>
+                      </tr>
+                    ) : (
+                      modules.map((module) => (
+                        <tr 
+                          key={module.id}
+                          className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
+                          onClick={() => handleModuleSelect(module.id)}
+                        >
+                          <td className="py-4 pl-4">
+                            <div className="flex items-center space-x-2">
+                              <List className="h-4 w-4 text-primary-400" />
+                              <span className="font-medium text-gray-200">{module.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 text-gray-400 max-w-xs truncate">{module.description}</td>
+                          <td className="py-4">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                              {module.exerciseCount || 0} exercise{(module.exerciseCount || 0) !== 1 ? 's' : ''}
+                            </span>
+                          </td>
+                          <td className="py-4">
+                            <div className="flex items-center space-x-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleModuleSelect(module.id);
+                                }}
+                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                              >
+                                <Eye className="h-4 w-4 text-primary-400" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Edit module logic
+                                }}
+                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                              >
+                                <Edit className="h-4 w-4 text-primary-400" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Delete module logic
+                                }}
+                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-400" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* EXERCISES TABLE */}
+        {activeTab === 'exercises' && selectedModuleId && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  <GradientText>Exercises for {selectedModule?.title}</GradientText>
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">{selectedModule?.description}</p>
+              </div>
+              <button className="btn-secondary text-sm py-1.5 px-3">
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Exercise
+              </button>
+            </div>
+            
+            {isLoadingExercises ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
+                <span className="ml-3 text-gray-400">Loading exercises...</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
+                      <th className="pb-4 pl-4">Exercise Title</th>
+                      <th className="pb-4">Type</th>
+                      <th className="pb-4">Content</th>
+                      <th className="pb-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {exercises.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-gray-400">
+                          No exercises found for this module.
+                        </td>
+                      </tr>
+                    ) : (
+                      exercises.map((exercise) => (
+                        <tr 
+                          key={exercise.id}
+                          className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
+                          onClick={() => handleExerciseSelect(exercise.id)}
+                        >
+                          <td className="py-4 pl-4">
+                            <div className="flex items-center space-x-2">
+                              {exercise.type === 'lab' ? (
+                                <Server className="h-4 w-4 text-primary-400" />
+                              ) : (
+                                <FileText className="h-4 w-4 text-primary-400" />
+                              )}
+                              <span className="font-medium text-gray-200">{exercise.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              exercise.type === 'lab' 
+                                ? 'bg-primary-500/20 text-primary-300'
+                                : 'bg-secondary-500/20 text-secondary-300'
+                            }`}>
+                              {exercise.type === 'lab' ? 'Lab Exercise' : 'Quiz'}
+                            </span>
+                          </td>
+                          <td className="py-4 text-gray-400">
+                            {exercise.type === 'lab' 
+                              ? 'Hands-on lab practice'
+                              : 'Multiple choice questions'
+                            }
+                          </td>
+                          <td className="py-4">
+                            <div className="flex items-center space-x-2">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExerciseSelect(exercise.id);
+                                }}
+                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                              >
+                                <Eye className="h-4 w-4 text-primary-400" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExerciseSelect(exercise.id);
+                                  setIsEditingExercise(true);
+                                }}
+                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                              >
+                                <Edit className="h-4 w-4 text-primary-400" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Delete exercise logic
+                                }}
+                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-400" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* LAB CONTENT TABLE */}
+        {activeTab === 'lab' && selectedExerciseId && selectedExercise?.type === 'lab' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  <GradientText>Lab: {selectedExercise.title}</GradientText>
+                </h2>
+                <div className="flex items-center mt-1">
+                  <Server className="h-4 w-4 mr-1 text-primary-400" />
+                  <span className="text-sm text-gray-400">Lab Exercise</span>
                 </div>
-                
-                {expandedModules.includes(module.id) && (
-                  <div className="p-3 space-y-2">
-                    {module.exercises.map(exercise => (
-                      <div 
-                        key={exercise.id}
-                        onClick={() => handleExerciseClick(module.id, exercise)}
-                        className={`flex items-center p-2 rounded-lg cursor-pointer ${
-                          activeExercise?.exerciseId === exercise.id
-                            ? 'bg-primary-500/20 text-primary-300'
-                            : 'hover:bg-dark-300/50 text-gray-300'
-                        }`}
-                      >
-                        <ChevronRight className="h-4 w-4 mr-2" />
-                        <div>
-                          <p className="text-sm font-medium">{exercise.title}</p>
-                          <div className="flex items-center mt-1">
-                            {exercise.type === 'lab' ? (
-                              <Server className="h-3 w-3 mr-1 text-gray-400" />
-                            ) : (
-                              <FileText className="h-3 w-3 mr-1 text-gray-400" />
-                            )}
-                            <span className="text-xs text-gray-400 capitalize">{exercise.type}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+              </div>
+              
+              {isEditingExercise ? (
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => {
+                      setIsEditingExercise(false);
+                    }}
+                    className="btn-secondary text-sm py-1.5 px-3"
+                  >
+                    <X className="h-4 w-4 mr-1.5" />
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSaveLabContent}
+                    disabled={isSaving}
+                    className="btn-primary text-sm py-1.5 px-3"
+                  >
+                    {isSaving ? (
+                      <Loader className="animate-spin h-4 w-4" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-1.5" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleEditExercise}
+                  className="btn-secondary text-sm py-1.5 px-3"
+                >
+                  <Edit className="h-4 w-4 mr-1.5" />
+                  Edit Lab Content
+                </button>
+              )}
+            </div>
+
+            {isLoadingLabContent ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
+                <span className="ml-3 text-gray-400">Loading lab content...</span>
+              </div>
+            ) : (
+              <>
+                {isEditingExercise ? (
+                  <textarea
+                    value={labContent?.content || ''}
+                    onChange={(e) => setLabContent(prev => ({ ...prev!, content: e.target.value }))}
+                    className="w-full h-64 px-4 py-3 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none
+                             font-mono text-sm"
+                  />
+                ) : (
+                  <div className="prose prose-invert max-w-none">
+                    <div 
+                      className="p-4 bg-dark-300/50 rounded-lg text-gray-300"
+                      dangerouslySetInnerHTML={{ __html: labContent?.content || 'No content available' }}
+                    />
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Middle Column - Exercise Content */}
-        <div className="lg:col-span-2">
-          {currentExercise ? (
-            <div className="glass-panel">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    <GradientText>{currentExercise.title}</GradientText>
-                  </h2>
-                  <div className="flex items-center mt-1">
-                    {currentExercise.type === 'lab' ? (
-                      <Server className="h-4 w-4 mr-1 text-primary-400" />
-                    ) : (
-                      <FileText className="h-4 w-4 mr-1 text-primary-400" />
-                    )}
-                    <span className="text-sm text-gray-400 capitalize">{currentExercise.type}</span>
-                  </div>
+                {/* Services used in this lab */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">
+                    <GradientText>Services Used</GradientText>
+                  </h3>
+                  
+                  {labContent?.services && labContent.services.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {labContent.services.map((service, index) => (
+                        <div 
+                          key={index}
+                          className="p-3 bg-dark-300/50 rounded-lg flex items-center space-x-2"
+                        >
+                          <Cloud className="h-4 w-4 text-primary-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-300 truncate">{service}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-center py-4">
+                      No specific services defined for this lab.
+                    </p>
+                  )}
                 </div>
-                
-                {isEditingExercise ? (
-                  <div className="flex space-x-3">
-                    <button 
-                      onClick={() => {
-                        setIsEditingExercise(false);
-                        // Reset to original content
-                        if (currentExercise.type === 'lab') {
-                          setExerciseContent(currentExercise.content);
-                        } else {
-                          setQuizQuestions(currentExercise.questions || []);
-                        }
-                      }}
-                      className="btn-secondary text-sm py-1.5 px-3"
-                    >
-                      <X className="h-4 w-4 mr-1.5" />
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={handleSaveExercise}
-                      disabled={isSaving}
-                      className="btn-primary text-sm py-1.5 px-3"
-                    >
-                      {isSaving ? (
-                        <Loader className="animate-spin h-4 w-4" />
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4 mr-1.5" />
-                          Save Changes
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : (
+              </>
+            )}
+          </>
+        )}
+
+        {/* QUIZ QUESTIONS TABLE */}
+        {activeTab === 'quiz' && selectedExerciseId && selectedExercise?.type === 'quiz' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  <GradientText>Quiz: {selectedExercise.title}</GradientText>
+                </h2>
+                <div className="flex items-center mt-1">
+                  <FileText className="h-4 w-4 mr-1 text-primary-400" />
+                  <span className="text-sm text-gray-400">Quiz Exercise</span>
+                </div>
+              </div>
+              
+              {isEditingExercise ? (
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => {
+                      setIsEditingExercise(false);
+                    }}
+                    className="btn-secondary text-sm py-1.5 px-3"
+                  >
+                    <X className="h-4 w-4 mr-1.5" />
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSaveQuizQuestions}
+                    disabled={isSaving}
+                    className="btn-primary text-sm py-1.5 px-3"
+                  >
+                    {isSaving ? (
+                      <Loader className="animate-spin h-4 w-4" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-1.5" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex space-x-3">
                   <button 
                     onClick={handleEditExercise}
                     className="btn-secondary text-sm py-1.5 px-3"
                   >
                     <Edit className="h-4 w-4 mr-1.5" />
-                    Edit Exercise
+                    Edit Questions
                   </button>
-                )}
-              </div>
-
-              {currentExercise.type === 'lab' ? (
-                <div className="space-y-4">
-                  {isEditingExercise ? (
-                    <textarea
-                      value={exerciseContent}
-                      onChange={(e) => setExerciseContent(e.target.value)}
-                      className="w-full h-64 px-4 py-3 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                               text-gray-300 focus:border-primary-500/40 focus:outline-none
-                               font-mono text-sm"
-                    />
-                  ) : (
-                    <div className="prose prose-invert max-w-none">
-                      <div 
-                        className="p-4 bg-dark-300/50 rounded-lg text-gray-300"
-                        dangerouslySetInnerHTML={{ __html: currentExercise.content }}
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {isEditingExercise ? (
-                    <div className="space-y-6">
-                      {quizQuestions.map((question, index) => (
-                        <div 
-                          key={question.id}
-                          className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="text-sm font-medium text-gray-300">Question {index + 1}</h3>
-                            <button
-                              onClick={() => handleDeleteQuestion(question.id)}
-                              className="p-1 hover:bg-red-500/10 rounded-lg text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                          
-                          {editingQuestion?.id === question.id ? (
-                            <div className="space-y-3">
-                              <div>
-                                <label className="block text-xs text-gray-400 mb-1">Question</label>
-                                <input
-                                  type="text"
-                                  value={editingQuestion.question}
-                                  onChange={(e) => setEditingQuestion({
-                                    ...editingQuestion,
-                                    question: e.target.value
-                                  })}
-                                  className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                                />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <label className="block text-xs text-gray-400">Options</label>
-                                {editingQuestion.options.map((option, optIndex) => (
-                                  <div key={optIndex} className="flex items-center space-x-2">
-                                    <input
-                                      type="radio"
-                                      checked={editingQuestion.correctAnswer === optIndex}
-                                      onChange={() => setEditingQuestion({
-                                        ...editingQuestion,
-                                        correctAnswer: optIndex
-                                      })}
-                                      className="form-radio h-4 w-4 text-primary-500"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={option}
-                                      onChange={(e) => {
-                                        const newOptions = [...editingQuestion.options];
-                                        newOptions[optIndex] = e.target.value;
-                                        setEditingQuestion({
-                                          ...editingQuestion,
-                                          options: newOptions
-                                        });
-                                      }}
-                                      className="flex-1 px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                               text-gray-300 focus:border-primary-500/40 focus:outline-none text-sm"
-                                      placeholder={`Option ${optIndex + 1}`}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                              
-                              <div className="flex justify-end space-x-3">
-                                <button
-                                  onClick={() => setEditingQuestion(null)}
-                                  className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-300"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleUpdateQuestion(editingQuestion)}
-                                  className="px-3 py-1.5 text-xs bg-primary-500/20 text-primary-300 rounded-lg
-                                           hover:bg-primary-500/30"
-                                >
-                                  Save Question
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <p className="text-gray-300">{question.question}</p>
-                              <div className="space-y-2">
-                                {question.options.map((option, optIndex) => (
-                                  <div 
-                                    key={optIndex}
-                                    className={`flex items-center space-x-2 p-2 rounded-lg ${
-                                      question.correctAnswer === optIndex
-                                        ? 'bg-primary-500/10 text-primary-300'
-                                        : 'text-gray-300'
-                                    }`}
-                                  >
-                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                      question.correctAnswer === optIndex
-                                        ? 'bg-primary-500/20 border border-primary-500'
-                                        : 'border border-gray-500'
-                                    }`}>
-                                      {question.correctAnswer === optIndex && (
-                                        <div className="w-2 h-2 rounded-full bg-primary-400" />
-                                      )}
-                                    </div>
-                                    <span>{option}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <button
-                                onClick={() => setEditingQuestion(question)}
-                                className="text-xs text-primary-400 hover:text-primary-300"
-                              >
-                                Edit Question
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      
-                      <button
-                        onClick={handleAddQuestion}
-                        className="w-full p-3 border border-dashed border-primary-500/20 rounded-lg
-                                 text-primary-400 hover:text-primary-300 hover:border-primary-500/40
-                                 flex items-center justify-center"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Question
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {(currentExercise.questions || []).map((question, index) => (
-                        <div 
-                          key={question.id}
-                          className="p-4 bg-dark-300/50 rounded-lg"
-                        >
-                          <h3 className="text-sm font-medium text-gray-300 mb-3">Question {index + 1}</h3>
-                          <p className="text-gray-300 mb-3">{question.question}</p>
-                          <div className="space-y-2">
-                            {question.options.map((option, optIndex) => (
-                              <div 
-                                key={optIndex}
-                                className="flex items-center space-x-2 p-2 rounded-lg"
-                              >
-                                <div className="w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center">
-                                  {question.correctAnswer === optIndex && (
-                                    <div className="w-2 h-2 rounded-full bg-primary-400" />
-                                  )}
-                                </div>
-                                <span className="text-gray-300">{option}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
-          ) : (
-            <div className="glass-panel flex flex-col items-center justify-center py-12">
-              <List className="h-12 w-12 text-primary-400 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-200 mb-2">Select an Exercise</h2>
-              <p className="text-gray-400 text-center max-w-md">
-                Choose an exercise from the modules list to view its content.
-              </p>
-            </div>
-          )}
-        </div>
+
+            {isLoadingQuestions ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
+                <span className="ml-3 text-gray-400">Loading quiz questions...</span>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
+                        <th className="pb-4 pl-4">Question</th>
+                        <th className="pb-4">Options</th>
+                        <th className="pb-4">Correct Answer</th>
+                        <th className="pb-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {quizQuestions.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-gray-400">
+                            No questions found for this quiz.
+                          </td>
+                        </tr>
+                      ) : (
+                        quizQuestions.map((question, index) => (
+                          <tr 
+                            key={question.id}
+                            className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
+                          >
+                            <td className="py-4 pl-4">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-medium bg-dark-400/50 px-2 py-1 rounded-full text-gray-400">
+                                  Q{index + 1}
+                                </span>
+                                <span className="text-gray-300">{question.question}</span>
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex flex-wrap gap-2">
+                                {question.options.map((option, optIndex) => (
+                                  <span 
+                                    key={optIndex} 
+                                    className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                      question.correctAnswer === optIndex
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : 'bg-dark-400/50 text-gray-400'
+                                    }`}
+                                  >
+                                    {option}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="py-4 text-emerald-300">
+                              {question.options[question.correctAnswer]}
+                            </td>
+                            <td className="py-4">
+                              {isEditingExercise && (
+                                <div className="flex items-center space-x-2">
+                                  <button 
+                                    onClick={() => setEditingQuestion(question)}
+                                    className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                                  >
+                                    <PenTool className="h-4 w-4 text-primary-400" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteQuestion(question.id)}
+                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-400" />
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {isEditingExercise && (
+                  <div className="mt-6">
+                    <button
+                      onClick={handleAddQuestion}
+                      className="w-full p-3 border border-dashed border-primary-500/20 rounded-lg
+                               text-primary-400 hover:text-primary-300 hover:border-primary-500/40
+                               flex items-center justify-center"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Question
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Question Editor Modal */}
+            {editingQuestion && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold">
+                      <GradientText>Edit Question</GradientText>
+                    </h3>
+                    <button 
+                      onClick={() => setEditingQuestion(null)}
+                      className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+                    >
+                      <X className="h-5 w-5 text-gray-400" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Question
+                      </label>
+                      <input
+                        type="text"
+                        value={editingQuestion.question}
+                        onChange={(e) => setEditingQuestion({
+                          ...editingQuestion,
+                          question: e.target.value
+                        })}
+                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Options
+                      </label>
+                      <div className="space-y-3">
+                        {editingQuestion.options.map((option, optIndex) => (
+                          <div key={optIndex} className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              checked={editingQuestion.correctAnswer === optIndex}
+                              onChange={() => setEditingQuestion({
+                                ...editingQuestion,
+                                correctAnswer: optIndex
+                              })}
+                              className="form-radio h-4 w-4 text-primary-500"
+                            />
+                            <input
+                              type="text"
+                              value={option}
+                              onChange={(e) => {
+                                const newOptions = [...editingQuestion.options];
+                                newOptions[optIndex] = e.target.value;
+                                setEditingQuestion({
+                                  ...editingQuestion,
+                                  options: newOptions
+                                });
+                              }}
+                              className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                              placeholder={`Option ${optIndex + 1}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={() => setEditingQuestion(null)}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleUpdateQuestion(editingQuestion)}
+                      className="btn-primary"
+                    >
+                      Save Question
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Credentials & Console Access */}
