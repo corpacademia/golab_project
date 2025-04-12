@@ -109,7 +109,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[280px] overflow-hidden rounded-xl border border-primary-500/10 
+    <div className="flex flex-col h-[240px] overflow-hidden rounded-xl border border-primary-500/10 
                   hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                   transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                   hover:translate-y-[-2px] group relative">
@@ -143,7 +143,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
               <h3 className="text-base font-semibold mb-1 truncate">
                 <GradientText>{slice.title}</GradientText>
               </h3>
-              <p className="text-xs text-gray-400 line-clamp-2">{slice.description}</p>
+              <p className="text-xs text-gray-400 line-clamp-1">{slice.description}</p>
             </div>
           </div>
           <div className="flex items-center space-x-1 flex-shrink-0">
@@ -189,7 +189,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
         </div>
 
-        <div className="mb-2 overflow-y-auto max-h-[70px]">
+        <div className="mb-2 overflow-y-auto max-h-[60px]">
           <h4 className="text-xs font-medium text-gray-400 mb-1">Services:</h4>
           <div className="flex flex-wrap gap-1.5">
             {slice.services.map((service, index) => (

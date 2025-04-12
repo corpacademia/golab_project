@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../components/ui/GradientText';
-import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check, AlertCircle } from 'lucide-react';
 import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
 import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
 import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
+import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 interface CloudSlice {
   id: string;
-  title: string;
+  name: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
