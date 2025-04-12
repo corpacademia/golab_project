@@ -61,7 +61,7 @@ export const CloudSliceModulesPage: React.FC = () => {
   
   // Basic state
   const [sliceDetails, setSliceDetails] = useState<any>(location.state?.sliceDetails || null);
-  const [isLoading, setIsLoading] = useState(!location.state?.sliceDetails);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   
@@ -80,7 +80,7 @@ export const CloudSliceModulesPage: React.FC = () => {
   const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
   
   // Loading states for each data type
-  const [isLoadingModules, setIsLoadingModules] = useState(true);
+  const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
   const [isLoadingLabContent, setIsLoadingLabContent] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -93,30 +93,55 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   // Fetch slice details if not provided in location state
   useEffect(() => {
-    if (!sliceDetails && sliceId) {
-      const fetchSliceDetails = async () => {
+    const fetchSliceDetails = async () => {
+      if (!sliceDetails && sliceId) {
         setIsLoading(true);
         try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
-          if (response.data.success) {
-            setSliceDetails(response.data.data);
-          } else {
-            setError('Failed to load cloud slice details');
-          }
+          // In a real app, this would be an API call
+          // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
+          
+          // For development, using mock data
+          const mockSliceDetails = {
+            id: sliceId,
+            title: 'AWS Cloud Architecture Lab',
+            description: 'Learn to design scalable and resilient cloud architectures on AWS',
+            provider: 'aws',
+            region: 'us-east-1',
+            services: ['EC2', 'S3', 'VPC', 'RDS', 'Lambda'],
+            status: 'active',
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            cleanupPolicy: '3',
+            labType: 'with-modules',
+            credentials: {
+              username: 'lab-user',
+              accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+              secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+            },
+            consoleUrl: 'https://console.aws.amazon.com'
+          };
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          setSliceDetails(mockSliceDetails);
         } catch (err) {
+          console.error('Failed to fetch slice details:', err);
           setError('Failed to load cloud slice details');
         } finally {
           setIsLoading(false);
         }
-      };
-      
-      fetchSliceDetails();
-    }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSliceDetails();
   }, [sliceId, sliceDetails]);
 
   // Fetch modules - separate API call
   useEffect(() => {
-    if (sliceId) {
+    if (sliceId && !isLoading) {
       const fetchModules = async () => {
         setIsLoadingModules(true);
         try {
@@ -147,23 +172,25 @@ export const CloudSliceModulesPage: React.FC = () => {
           ];
           
           // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           setModules(mockModules);
-          setModulesLoaded(true);
         } catch (err) {
           console.error('Failed to fetch modules:', err);
           // Set empty array to prevent errors
           setModules([]);
-          setModulesLoaded(true);
         } finally {
           setIsLoadingModules(false);
+          setModulesLoaded(true);
         }
       };
       
       fetchModules();
+    } else {
+      // If we're still loading the slice details, mark modules as not loaded
+      setModulesLoaded(false);
     }
-  }, [sliceId]);
+  }, [sliceId, isLoading]);
 
   // Fetch exercises when a module is selected - separate API call
   useEffect(() => {
@@ -192,24 +219,24 @@ export const CloudSliceModulesPage: React.FC = () => {
           ];
           
           // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise(resolve => setTimeout(resolve, 600));
           
           setExercises(mockExercises);
-          setExercisesLoaded(true);
         } catch (err) {
           console.error('Failed to fetch exercises:', err);
           // Set empty array to prevent errors
           setExercises([]);
-          setExercisesLoaded(true);
         } finally {
           setIsLoadingExercises(false);
+          setExercisesLoaded(true);
         }
       };
       
       fetchExercises();
     } else {
+      // If no module is selected or modules aren't loaded yet, reset exercises
       setExercises([]);
-      setExercisesLoaded(true);
+      setExercisesLoaded(false);
     }
   }, [selectedModuleId, modulesLoaded]);
 
@@ -234,17 +261,16 @@ export const CloudSliceModulesPage: React.FC = () => {
             };
             
             // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 600));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             setLabContent(mockLabContent);
-            setLabContentLoaded(true);
           } catch (err) {
             console.error('Failed to fetch lab content:', err);
             // Set null to prevent errors
             setLabContent(null);
-            setLabContentLoaded(true);
           } finally {
             setIsLoadingLabContent(false);
+            setLabContentLoaded(true);
           }
         };
         
@@ -286,27 +312,27 @@ export const CloudSliceModulesPage: React.FC = () => {
             ];
             
             // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 700));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             setQuizQuestions(mockQuizQuestions);
-            setQuestionsLoaded(true);
           } catch (err) {
             console.error('Failed to fetch quiz questions:', err);
             // Set empty array to prevent errors
             setQuizQuestions([]);
-            setQuestionsLoaded(true);
           } finally {
             setIsLoadingQuestions(false);
+            setQuestionsLoaded(true);
           }
         };
         
         fetchQuizQuestions();
       }
     } else {
+      // If no exercise is selected or exercises aren't loaded yet, reset content
       setLabContent(null);
-      setLabContentLoaded(true);
+      setLabContentLoaded(false);
       setQuizQuestions([]);
-      setQuestionsLoaded(true);
+      setQuestionsLoaded(false);
     }
   }, [selectedExerciseId, exercises, exercisesLoaded]);
 
@@ -433,6 +459,7 @@ export const CloudSliceModulesPage: React.FC = () => {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+        <span className="ml-3 text-gray-400">Loading cloud slice details...</span>
       </div>
     );
   }
@@ -456,8 +483,13 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   // Get the selected module and exercise objects
   // Only access these if the data is loaded to prevent errors
-  const selectedModule = modulesLoaded ? modules.find(m => m.id === selectedModuleId) : undefined;
-  const selectedExercise = exercisesLoaded ? exercises.find(e => e.id === selectedExerciseId) : undefined;
+  const selectedModule = modulesLoaded && selectedModuleId ? 
+    modules.find(m => m.id === selectedModuleId) : 
+    undefined;
+    
+  const selectedExercise = exercisesLoaded && selectedExerciseId ? 
+    exercises.find(e => e.id === selectedExerciseId) : 
+    undefined;
 
   return (
     <div className="space-y-6">
