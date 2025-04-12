@@ -109,57 +109,57 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
+    <div className="flex flex-col h-[280px] overflow-hidden rounded-xl border border-primary-500/10 
                   hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
                   transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
                   hover:translate-y-[-2px] group relative">
       {notification && (
-        <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+        <div className={`absolute top-2 right-2 px-3 py-1 rounded-lg flex items-center space-x-1 z-50 ${
           notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
         }`}>
           {notification.type === 'success' ? (
-            <Check className="h-4 w-4" />
+            <Check className="h-3 w-3" />
           ) : (
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-3 w-3" />
           )}
-          <span className="text-sm">{notification.message}</span>
+          <span className="text-xs">{notification.message}</span>
         </div>
       )}
       
-      <div className="p-4 flex flex-col h-full">
-        <div className="flex justify-between items-start gap-4 mb-3">
+      <div className="p-3 flex flex-col h-full">
+        <div className="flex justify-between items-start gap-2 mb-2">
           <div className="flex items-start">
             {onSelect && (
-              <div className="flex-shrink-0 mt-1 mr-3" onClick={handleSelectClick}>
+              <div className="flex-shrink-0 mt-1 mr-2" onClick={handleSelectClick}>
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => {}}
-                  className="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-500/20"
+                  className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
                 />
               </div>
             )}
-            <div>
-              <h3 className="text-lg font-semibold mb-1">
+            <div className="min-w-0">
+              <h3 className="text-base font-semibold mb-1 truncate">
                 <GradientText>{slice.name}</GradientText>
               </h3>
-              <p className="text-sm text-gray-400 line-clamp-2">{slice.description}</p>
+              <p className="text-xs text-gray-400 line-clamp-2">{slice.description}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-1 flex-shrink-0">
             <button
               onClick={() => onEdit(slice)}
-              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
             >
-              <Pencil className="h-4 w-4 text-primary-400" />
+              <Pencil className="h-3.5 w-3.5 text-primary-400" />
             </button>
             <button
               onClick={() => onDelete(slice.id)}
-              className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
             >
-              <Trash2 className="h-4 w-4 text-red-400" />
+              <Trash2 className="h-3.5 w-3.5 text-red-400" />
             </button>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
               slice.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
               slice.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
               slice.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
@@ -170,41 +170,41 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="flex items-center text-sm text-gray-400">
-            <Cloud className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="flex items-center text-xs text-gray-400">
+            <Cloud className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
             <span className="truncate">{slice.provider.toUpperCase()}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <MapPin className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Region: {slice.region}</span>
+          <div className="flex items-center text-xs text-gray-400">
+            <MapPin className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
+            <span className="truncate">{slice.region}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Calendar className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Start: {formatDateTime(slice.startdate)}</span>
+          <div className="flex items-center text-xs text-gray-400">
+            <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
+            <span className="truncate">Start: {new Date(slice.startdate).toLocaleDateString()}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Calendar className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-            <span className="truncate">End: {formatDateTime(slice.enddate)}</span>
+          <div className="flex items-center text-xs text-gray-400">
+            <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
+            <span className="truncate">End: {new Date(slice.enddate).toLocaleDateString()}</span>
           </div>
         </div>
 
-        <div className="mb-4 overflow-y-auto max-h-[80px]">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Services:</h4>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-2 overflow-y-auto max-h-[70px]">
+          <h4 className="text-xs font-medium text-gray-400 mb-1">Services:</h4>
+          <div className="flex flex-wrap gap-1.5">
             {slice.services.map((service, index) => (
-              <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300 
-                                          inline-block max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">
+              <span key={index} className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300 
+                                          inline-block max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
                 {service}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="mt-auto pt-3 border-t border-primary-500/10">
+        <div className="mt-auto pt-2 border-t border-primary-500/10">
           <button
             onClick={handleLaunch}
-            className="w-full h-9 px-4 rounded-lg text-sm font-medium
+            className="w-full h-8 px-3 rounded-lg text-xs font-medium
                      bg-gradient-to-r from-primary-500 to-secondary-500
                      hover:from-primary-400 hover:to-secondary-400
                      transform hover:scale-105 transition-all duration-300
@@ -213,10 +213,10 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                      flex items-center justify-center"
           >
             {isLaunching ? (
-              <Loader className="animate-spin h-4 w-4" />
+              <Loader className="animate-spin h-3.5 w-3.5" />
             ) : (
               <>
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-3.5 w-3.5 mr-1.5" />
                 Launch Console
               </>
             )}
