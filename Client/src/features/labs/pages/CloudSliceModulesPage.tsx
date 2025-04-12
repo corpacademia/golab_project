@@ -1,27 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { 
-  ArrowLeft, 
-  Cloud, 
-  Server, 
-  Key, 
-  User, 
-  ExternalLink, 
-  Edit, 
-  Save, 
-  Loader, 
-  AlertCircle, 
-  Check,
+  Layers, 
+  BookOpen, 
+  CheckCircle, 
+  Clock, 
+  Award, 
+  ChevronRight, 
   ChevronDown,
-  ChevronRight,
-  FileText,
-  List,
-  Plus,
-  Trash2,
-  X,
-  PenTool,
-  Eye
+  AlertCircle,
+  Loader
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -29,1197 +18,673 @@ interface Module {
   id: string;
   title: string;
   description: string;
-  exerciseCount?: number;
+  order: number;
+  duration: number;
+  exercises: Exercise[];
 }
 
 interface Exercise {
   id: string;
-  moduleId: string;
   title: string;
   type: 'lab' | 'quiz';
-  content?: string;
+  description: string;
+  order: number;
+  duration: number;
 }
 
 interface LabExercise {
   id: string;
-  content: string;
-  services?: string[];
+  exerciseId: string;
+  instructions: string;
+  resources: string[];
+  tasks: {
+    id: string;
+    description: string;
+    completed: boolean;
+  }[];
 }
 
-interface QuizQuestion {
+interface QuizExercise {
   id: string;
   exerciseId: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
+  questions: {
+    id: string;
+    text: string;
+    options: {
+      id: string;
+      text: string;
+      isCorrect: boolean;
+    }[];
+  }[];
 }
 
+// Mock data for testing
+const mockModules: Module[] = [
+  {
+    id: 'module-1',
+    title: 'Introduction to AWS',
+    description: 'Learn the basics of AWS cloud services and infrastructure',
+    order: 1,
+    duration: 60,
+    exercises: [
+      {
+        id: 'exercise-1',
+        title: 'AWS Console Overview',
+        type: 'lab',
+        description: 'Navigate and understand the AWS Management Console',
+        order: 1,
+        duration: 30
+      },
+      {
+        id: 'exercise-2',
+        title: 'AWS Services Quiz',
+        type: 'quiz',
+        description: 'Test your knowledge of core AWS services',
+        order: 2,
+        duration: 15
+      }
+    ]
+  },
+  {
+    id: 'module-2',
+    title: 'EC2 and Virtual Machines',
+    description: 'Deep dive into EC2 instances and virtual machine management',
+    order: 2,
+    duration: 90,
+    exercises: [
+      {
+        id: 'exercise-3',
+        title: 'Launch an EC2 Instance',
+        type: 'lab',
+        description: 'Create and configure your first EC2 instance',
+        order: 1,
+        duration: 45
+      },
+      {
+        id: 'exercise-4',
+        title: 'EC2 Configuration Quiz',
+        type: 'quiz',
+        description: 'Test your knowledge of EC2 configuration options',
+        order: 2,
+        duration: 20
+      }
+    ]
+  }
+];
+
+const mockLabExercises: Record<string, LabExercise> = {
+  'exercise-1': {
+    id: 'lab-1',
+    exerciseId: 'exercise-1',
+    instructions: 'In this lab, you will explore the AWS Management Console and learn how to navigate between different services. Follow the steps below to complete the lab.',
+    resources: [
+      'https://docs.aws.amazon.com/awsconsolehelpdocs/latest/gsg/getting-started.html',
+      'https://aws.amazon.com/console/getting-started/'
+    ],
+    tasks: [
+      {
+        id: 'task-1',
+        description: 'Log in to the AWS Management Console',
+        completed: false
+      },
+      {
+        id: 'task-2',
+        description: 'Navigate to the EC2 service dashboard',
+        completed: false
+      },
+      {
+        id: 'task-3',
+        description: 'Explore the S3 service dashboard',
+        completed: false
+      }
+    ]
+  },
+  'exercise-3': {
+    id: 'lab-2',
+    exerciseId: 'exercise-3',
+    instructions: 'In this lab, you will launch an EC2 instance and connect to it using SSH. You will also configure security groups and learn about instance types.',
+    resources: [
+      'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html',
+      'https://aws.amazon.com/ec2/getting-started/'
+    ],
+    tasks: [
+      {
+        id: 'task-4',
+        description: 'Launch a t2.micro EC2 instance with Amazon Linux 2',
+        completed: false
+      },
+      {
+        id: 'task-5',
+        description: 'Configure security groups to allow SSH access',
+        completed: false
+      },
+      {
+        id: 'task-6',
+        description: 'Connect to your instance using SSH',
+        completed: false
+      },
+      {
+        id: 'task-7',
+        description: 'Install a web server and deploy a simple website',
+        completed: false
+      }
+    ]
+  }
+};
+
+const mockQuizExercises: Record<string, QuizExercise> = {
+  'exercise-2': {
+    id: 'quiz-1',
+    exerciseId: 'exercise-2',
+    questions: [
+      {
+        id: 'question-1',
+        text: 'Which AWS service is used for object storage?',
+        options: [
+          { id: 'option-1', text: 'EC2', isCorrect: false },
+          { id: 'option-2', text: 'S3', isCorrect: true },
+          { id: 'option-3', text: 'RDS', isCorrect: false },
+          { id: 'option-4', text: 'Lambda', isCorrect: false }
+        ]
+      },
+      {
+        id: 'question-2',
+        text: 'Which AWS service is used for relational databases?',
+        options: [
+          { id: 'option-5', text: 'DynamoDB', isCorrect: false },
+          { id: 'option-6', text: 'S3', isCorrect: false },
+          { id: 'option-7', text: 'RDS', isCorrect: true },
+          { id: 'option-8', text: 'SQS', isCorrect: false }
+        ]
+      }
+    ]
+  },
+  'exercise-4': {
+    id: 'quiz-2',
+    exerciseId: 'exercise-4',
+    questions: [
+      {
+        id: 'question-3',
+        text: 'Which EC2 instance type is optimized for memory-intensive applications?',
+        options: [
+          { id: 'option-9', text: 'C5', isCorrect: false },
+          { id: 'option-10', text: 'R5', isCorrect: true },
+          { id: 'option-11', text: 'T3', isCorrect: false },
+          { id: 'option-12', text: 'M5', isCorrect: false }
+        ]
+      },
+      {
+        id: 'question-4',
+        text: 'What is the default tenancy model for EC2 instances?',
+        options: [
+          { id: 'option-13', text: 'Dedicated', isCorrect: false },
+          { id: 'option-14', text: 'Reserved', isCorrect: false },
+          { id: 'option-15', text: 'Shared', isCorrect: true },
+          { id: 'option-16', text: 'Host', isCorrect: false }
+        ]
+      }
+    ]
+  }
+};
+
 export const CloudSliceModulesPage: React.FC = () => {
-  const location = useLocation();
-  const { sliceId } = useParams();
-  const navigate = useNavigate();
-  
-  // Basic state
-  const [sliceDetails, setSliceDetails] = useState<any>(location.state?.sliceDetails || null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [isModulesLoading, setIsModulesLoading] = useState(false);
-  
-  // Data state - each entity has its own state
+  const { sliceId } = useParams<{ sliceId: string }>();
+  const [activeModule, setActiveModule] = useState<string | null>(null);
+  const [activeExercise, setActiveExercise] = useState<string | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [labContent, setLabContent] = useState<LabExercise | null>(null);
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [labExercises, setLabExercises] = useState<Record<string, LabExercise>>({});
+  const [quizExercises, setQuizExercises] = useState<Record<string, QuizExercise>>({});
   
-  // UI state
-  const [activeTab, setActiveTab] = useState<'modules' | 'exercises' | 'lab' | 'quiz'>('modules');
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
-  const [isEditingExercise, setIsEditingExercise] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<QuizQuestion | null>(null);
-  
-  // Loading states for each data type
-  const [isLoadingModules, setIsLoadingModules] = useState(false);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-  const [isLoadingLabContent, setIsLoadingLabContent] = useState(false);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
-  
-  // Data loaded flags to prevent errors
-  const [modulesLoaded, setModulesLoaded] = useState(false);
-  const [exercisesLoaded, setExercisesLoaded] = useState(false);
-  const [labContentLoaded, setLabContentLoaded] = useState(false);
-  const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  // Loading states for each API call
+  const [isLoadingModules, setIsLoadingModules] = useState(true);
+  const [isLoadingLabExercises, setIsLoadingLabExercises] = useState(false);
+  const [isLoadingQuizExercises, setIsLoadingQuizExercises] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch slice details if not provided in location state
+  // Fetch modules
   useEffect(() => {
-    const fetchSliceDetails = async () => {
-      if (!sliceDetails && sliceId) {
-        setIsLoading(true);
-        try {
-          // In a real app, this would be an API call
-          // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
-          
-          // For development, using mock data
-          const mockSliceDetails = {
-            id: sliceId,
-            title: 'AWS Cloud Architecture Lab',
-            description: 'Learn to design scalable and resilient cloud architectures on AWS',
-            provider: 'aws',
-            region: 'us-east-1',
-            services: ['EC2', 'S3', 'VPC', 'RDS', 'Lambda'],
-            status: 'active',
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            cleanupPolicy: '3',
-            labType: 'with-modules',
-            credentials: {
-              username: 'lab-user',
-              accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-              secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-            },
-            consoleUrl: 'https://console.aws.amazon.com'
-          };
-          
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          setSliceDetails(mockSliceDetails);
-        } catch (err) {
-          console.error('Failed to fetch slice details:', err);
-          setError('Failed to load cloud slice details');
-        } finally {
-          setIsLoading(false);
+    const fetchModules = async () => {
+      setIsLoadingModules(true);
+      setError(null);
+      try {
+        // For development/testing, use mock data
+        // In production, uncomment the API call below
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setModules(mockModules);
+        if (mockModules.length > 0) {
+          setActiveModule(mockModules[0].id);
         }
-      } else {
-        setIsLoading(false);
+        
+        /* Uncomment for real API call
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/modules/${sliceId}`);
+        if (response.data.success) {
+          setModules(response.data.data || []);
+          if (response.data.data && response.data.data.length > 0) {
+            setActiveModule(response.data.data[0].id);
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch modules');
+        }
+        */
+      } catch (err: any) {
+        console.error('Error fetching modules:', err);
+        setError(err.response?.data?.message || 'Failed to fetch modules');
+        setModules([]);
+      } finally {
+        setIsLoadingModules(false);
       }
     };
-    
-    fetchSliceDetails();
-  }, [sliceId, sliceDetails]);
 
-  // Fetch modules - separate API call
-  useEffect(() => {
-    if (sliceId && !isLoading) {
-      const fetchModules = async () => {
-        setIsLoadingModules(true);
-        try {
-// <<<<<<< HEAD
-//           const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
-//           if (response.data.success) {
-//             setModules(response.data.data);
-
-//             setIsModulesLoading(true);
-//           } else {
-//             console.error('Failed to fetch modules:', response.data.message);
-//           }
-// =======
-          // For development, using mock data until API is ready
-          // In production, this would be a real API call
-          // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
-          
-          // Mock data for development
-          const mockModules: Module[] = [
-            {
-              id: '1',
-              title: 'Introduction to AWS',
-              description: 'Learn the basics of AWS cloud services',
-              exerciseCount: 3
-            },
-            {
-              id: '2',
-              title: 'EC2 and Networking',
-              description: 'Working with EC2 instances and VPC',
-              exerciseCount: 2
-            },
-            {
-              id: '3',
-              title: 'Storage Solutions',
-              description: 'S3, EBS, and other storage options',
-              exerciseCount: 2
-            }
-          ];
-          
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          setModules(mockModules);
-        } catch (err) {
-          console.error('Failed to fetch modules:', err);
-          // Set empty array to prevent errors
-          setModules([]);
-        } finally {
-          setIsLoadingModules(false);
-          setModulesLoaded(true);
-        }
-      };
-      
+    if (sliceId) {
       fetchModules();
-    } else {
-      // If we're still loading the slice details, mark modules as not loaded
-      setModulesLoaded(false);
     }
-  }, [sliceId, isLoading]);
+  }, [sliceId]);
 
-  // Fetch exercises when a module is selected - separate API call
+  // Fetch lab exercises when a module is selected
   useEffect(() => {
-    if (selectedModuleId && modulesLoaded) {
-      const fetchExercises = async () => {
-        setIsLoadingExercises(true);
-        setExercisesLoaded(false);
-        try {
-          // For development, using mock data until API is ready
-          // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getExercises/${selectedModuleId}`);
+    const fetchLabExercises = async () => {
+      if (!activeModule) return;
+      
+      setIsLoadingLabExercises(true);
+      try {
+        // For development/testing, use mock data
+        // In production, uncomment the API call below
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setLabExercises(mockLabExercises);
+        
+        /* Uncomment for real API call
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/lab-exercises/${activeModule}`);
+        if (response.data.success) {
+          const labExercisesData = response.data.data || [];
+          const labExercisesMap: Record<string, LabExercise> = {};
           
-          // Mock data for development
-          const mockExercises: Exercise[] = [
-            {
-              id: '101',
-              moduleId: selectedModuleId,
-              title: 'Setting up EC2 Instances',
-              type: 'lab'
-            },
-            {
-              id: '102',
-              moduleId: selectedModuleId,
-              title: 'Understanding VPC Configuration',
-              type: 'quiz'
-            }
-          ];
+          labExercisesData.forEach((exercise: LabExercise) => {
+            labExercisesMap[exercise.exerciseId] = exercise;
+          });
           
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 600));
-          
-          setExercises(mockExercises);
-        } catch (err) {
-          console.error('Failed to fetch exercises:', err);
-          // Set empty array to prevent errors
-          setExercises([]);
-        } finally {
-          setIsLoadingExercises(false);
-          setExercisesLoaded(true);
+          setLabExercises(labExercisesMap);
         }
-      };
-      
-      fetchExercises();
-    } else {
-      // If no module is selected or modules aren't loaded yet, reset exercises
-      setExercises([]);
-      setExercisesLoaded(false);
-    }
-  }, [selectedModuleId, modulesLoaded]);
-
-  // Fetch lab content when a lab exercise is selected - separate API call
-  useEffect(() => {
-    if (selectedExerciseId && exercisesLoaded) {
-      const selectedExercise = exercises.find(ex => ex.id === selectedExerciseId);
-      
-      if (selectedExercise?.type === 'lab') {
-        const fetchLabContent = async () => {
-          setIsLoadingLabContent(true);
-          setLabContentLoaded(false);
-          try {
-            // For development, using mock data until API is ready
-            // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getLabContent/${selectedExerciseId}`);
-            
-            // Mock data for development
-            const mockLabContent: LabExercise = {
-              id: selectedExerciseId,
-              content: '<h2>EC2 Lab Instructions</h2><p>In this lab, you will learn how to launch and configure an EC2 instance.</p><ol><li>Navigate to the EC2 dashboard</li><li>Click "Launch Instance"</li><li>Select an Amazon Machine Image (AMI)</li><li>Choose an instance type</li><li>Configure instance details</li><li>Add storage</li><li>Configure security group</li><li>Review and launch</li></ol>',
-              services: ['EC2', 'VPC', 'Security Groups', 'EBS']
-            };
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setLabContent(mockLabContent);
-          } catch (err) {
-            console.error('Failed to fetch lab content:', err);
-            // Set null to prevent errors
-            setLabContent(null);
-          } finally {
-            setIsLoadingLabContent(false);
-            setLabContentLoaded(true);
-          }
-        };
-        
-        fetchLabContent();
-      } else if (selectedExercise?.type === 'quiz') {
-        const fetchQuizQuestions = async () => {
-          setIsLoadingQuestions(true);
-          setQuestionsLoaded(false);
-          try {
-            // For development, using mock data until API is ready
-            // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizQuestions/${selectedExerciseId}`);
-            
-            // Mock data for development
-            const mockQuizQuestions: QuizQuestion[] = [
-              {
-                id: 'q1',
-                exerciseId: selectedExerciseId,
-                question: 'What is the primary purpose of Amazon VPC?',
-                options: [
-                  'To store objects in the cloud',
-                  'To provide isolated network environments',
-                  'To run serverless functions',
-                  'To manage DNS records'
-                ],
-                correctAnswer: 1
-              },
-              {
-                id: 'q2',
-                exerciseId: selectedExerciseId,
-                question: 'Which of the following is NOT a component of a VPC?',
-                options: [
-                  'Subnets',
-                  'Route Tables',
-                  'Lambda Functions',
-                  'Security Groups'
-                ],
-                correctAnswer: 2
-              }
-            ];
-            
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            setQuizQuestions(mockQuizQuestions);
-          } catch (err) {
-            console.error('Failed to fetch quiz questions:', err);
-            // Set empty array to prevent errors
-            setQuizQuestions([]);
-          } finally {
-            setIsLoadingQuestions(false);
-            setQuestionsLoaded(true);
-          }
-        };
-        
-        fetchQuizQuestions();
+        */
+      } catch (err) {
+        console.error('Error fetching lab exercises:', err);
+      } finally {
+        setIsLoadingLabExercises(false);
       }
-    } else {
-      // If no exercise is selected or exercises aren't loaded yet, reset content
-      setLabContent(null);
-      setLabContentLoaded(false);
-      setQuizQuestions([]);
-      setQuestionsLoaded(false);
-    }
-  }, [selectedExerciseId, exercises, exercisesLoaded]);
-
-  const handleModuleSelect = (moduleId: string) => {
-    setSelectedModuleId(moduleId);
-    setSelectedExerciseId(null);
-    setActiveTab('exercises');
-  };
-
-  const handleExerciseSelect = (exerciseId: string) => {
-    if (!exercisesLoaded) return;
-    
-    const selectedExercise = exercises.find(ex => ex.id === exerciseId);
-    if (!selectedExercise) return;
-    
-    setSelectedExerciseId(exerciseId);
-    
-    if (selectedExercise.type === 'lab') {
-      setActiveTab('lab');
-    } else if (selectedExercise.type === 'quiz') {
-      setActiveTab('quiz');
-    }
-  };
-
-  const handleEditExercise = () => {
-    setIsEditingExercise(true);
-  };
-
-  const handleSaveLabContent = async () => {
-    if (!selectedExerciseId || !labContent) return;
-    
-    setIsSaving(true);
-    setNotification(null);
-    
-    try {
-      // For development, simulate API call
-      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabContent/${selectedExerciseId}`, {
-      //   content: labContent.content,
-      //   services: labContent.services
-      // });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setNotification({ type: 'success', message: 'Lab content updated successfully' });
-      setIsEditingExercise(false);
-      setTimeout(() => setNotification(null), 3000);
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to update lab content' 
-      });
-      setTimeout(() => setNotification(null), 3000);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSaveQuizQuestions = async () => {
-    if (!selectedExerciseId) return;
-    
-    setIsSaving(true);
-    setNotification(null);
-    
-    try {
-      // For development, simulate API call
-      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizQuestions/${selectedExerciseId}`, {
-      //   questions: quizQuestions
-      // });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setNotification({ type: 'success', message: 'Quiz questions updated successfully' });
-      setIsEditingExercise(false);
-      setTimeout(() => setNotification(null), 3000);
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to update quiz questions' 
-      });
-      setTimeout(() => setNotification(null), 3000);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleAddQuestion = () => {
-    if (!selectedExerciseId) return;
-    
-    const newQuestion: QuizQuestion = {
-      id: `q-${Date.now()}`,
-      exerciseId: selectedExerciseId,
-      question: '',
-      options: ['', '', '', ''],
-      correctAnswer: 0
     };
-    
-    setQuizQuestions(prev => [...prev, newQuestion]);
-    setEditingQuestion(newQuestion);
+
+    fetchLabExercises();
+  }, [activeModule]);
+
+  // Fetch quiz exercises when a module is selected
+  useEffect(() => {
+    const fetchQuizExercises = async () => {
+      if (!activeModule) return;
+      
+      setIsLoadingQuizExercises(true);
+      try {
+        // For development/testing, use mock data
+        // In production, uncomment the API call below
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setQuizExercises(mockQuizExercises);
+        
+        /* Uncomment for real API call
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/quiz-exercises/${activeModule}`);
+        if (response.data.success) {
+          const quizExercisesData = response.data.data || [];
+          const quizExercisesMap: Record<string, QuizExercise> = {};
+          
+          quizExercisesData.forEach((exercise: QuizExercise) => {
+            quizExercisesMap[exercise.exerciseId] = exercise;
+          });
+          
+          setQuizExercises(quizExercisesMap);
+        }
+        */
+      } catch (err) {
+        console.error('Error fetching quiz exercises:', err);
+      } finally {
+        setIsLoadingQuizExercises(false);
+      }
+    };
+
+    fetchQuizExercises();
+  }, [activeModule]);
+
+  const handleModuleClick = (moduleId: string) => {
+    setActiveModule(activeModule === moduleId ? null : moduleId);
+    setActiveExercise(null);
   };
 
-  const handleUpdateQuestion = (updatedQuestion: QuizQuestion) => {
-    setQuizQuestions(prev => 
-      prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q)
-    );
-    setEditingQuestion(null);
+  const handleExerciseClick = (exerciseId: string) => {
+    setActiveExercise(activeExercise === exerciseId ? null : exerciseId);
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    setQuizQuestions(prev => prev.filter(q => q.id !== questionId));
-    if (editingQuestion?.id === questionId) {
-      setEditingQuestion(null);
+  const getActiveModule = () => {
+    if (!activeModule || !modules || modules.length === 0) return null;
+    return modules.find(m => m.id === activeModule) || null;
+  };
+
+  const getActiveExercise = () => {
+    const module = getActiveModule();
+    if (!module || !activeExercise || !module.exercises) return null;
+    return module.exercises.find(e => e.id === activeExercise) || null;
+  };
+
+  const renderExerciseContent = () => {
+    const exercise = getActiveExercise();
+    if (!exercise) return null;
+
+    if (exercise.type === 'lab') {
+      const labExercise = labExercises[exercise.id];
+      if (!labExercise) {
+        if (isLoadingLabExercises) {
+          return (
+            <div className="flex justify-center items-center h-64">
+              <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+            </div>
+          );
+        }
+        return (
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <div className="flex items-center space-x-2 text-amber-400">
+              <AlertCircle className="h-5 w-5" />
+              <p>Lab exercise content not found</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Instructions</h3>
+            <p className="text-gray-300">{labExercise.instructions}</p>
+          </div>
+
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Resources</h3>
+            <ul className="space-y-2">
+              {labExercise.resources?.map((resource, index) => (
+                <li key={index} className="flex items-center space-x-2">
+                  <BookOpen className="h-4 w-4 text-primary-400" />
+                  <a href={resource} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">
+                    {resource}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Tasks</h3>
+            <div className="space-y-4">
+              {labExercise.tasks?.map((task) => (
+                <div key={task.id} className="flex items-start space-x-3">
+                  <div className="mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => {}}
+                      className="h-5 w-5 rounded border-gray-500 text-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <p className="text-gray-300">{task.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    } else if (exercise.type === 'quiz') {
+      const quizExercise = quizExercises[exercise.id];
+      if (!quizExercise) {
+        if (isLoadingQuizExercises) {
+          return (
+            <div className="flex justify-center items-center h-64">
+              <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+            </div>
+          );
+        }
+        return (
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <div className="flex items-center space-x-2 text-amber-400">
+              <AlertCircle className="h-5 w-5" />
+              <p>Quiz exercise content not found</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          {quizExercise.questions?.map((question, qIndex) => (
+            <div key={question.id} className="p-6 bg-dark-300/50 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4">Question {qIndex + 1}</h3>
+              <p className="text-gray-300 mb-4">{question.text}</p>
+              
+              <div className="space-y-3">
+                {question.options?.map((option) => (
+                  <div key={option.id} className="flex items-start space-x-3">
+                    <div className="mt-0.5">
+                      <input
+                        type="radio"
+                        name={`question-${question.id}`}
+                        className="h-5 w-5 border-gray-500 text-primary-500 focus:ring-primary-500"
+                      />
+                    </div>
+                    <p className="text-gray-300">{option.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="flex justify-end">
+            <button className="btn-primary">
+              Submit Answers
+            </button>
+          </div>
+        </div>
+      );
     }
+
+    return null;
   };
 
-  const handleGoToConsole = () => {
-    if (sliceDetails?.consoleUrl) {
-      window.open(sliceDetails.consoleUrl, '_blank');
-    }
-  };
-
-  if (isLoading) {
+  // Main loading state
+  if (isLoadingModules) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
-        <span className="ml-3 text-gray-400">Loading cloud slice details...</span>
+        <Loader className="h-8 w-8 text-primary-400 animate-spin mr-3" />
+        <span className="text-gray-300 text-lg">Loading modules...</span>
       </div>
     );
   }
-  if(!isModulesLoading){
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
-      </div>
-    );
-  }
 
+  // Error state
   if (error) {
     return (
-      <div className="glass-panel p-6 text-center">
-        <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-200 mb-2">{error}</h2>
-        <p className="text-gray-400 mb-6">Unable to load the cloud slice details.</p>
-        <button 
-          onClick={() => navigate('/dashboard/labs/cloud-slices')}
-          className="btn-secondary"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Cloud Slices
-        </button>
+      <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
+        <AlertCircle className="h-16 w-16 text-red-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-200 mb-2">
+          {error}
+        </h2>
+        <p className="text-gray-400 text-center max-w-md">
+          There was a problem loading the module content. Please try again later or contact support.
+        </p>
       </div>
     );
   }
-  // Get the selected module and exercise objects
-  // Only access these if the data is loaded to prevent errors
-  const selectedModule = modulesLoaded && selectedModuleId ? 
-    modules.find(m => m.id === selectedModuleId) : 
-    undefined;
-    
-  const selectedExercise = exercisesLoaded && selectedExerciseId ? 
-    exercises.find(e => e.id === selectedExerciseId) : 
-    undefined;
+
+  // Empty state
+  if (!modules || modules.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
+        <Layers className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-200 mb-2">
+          No Modules Available
+        </h2>
+        <p className="text-gray-400 text-center max-w-md">
+          This cloud slice doesn't have any learning modules yet. Check back later or contact your administrator.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => navigate('/dashboard/labs/cloud-slices')}
-            className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-400" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-display font-bold">
-              <GradientText>{sliceDetails?.title || 'Modular Cloud Slice Lab'}</GradientText>
-            </h1>
-            <p className="mt-1 text-gray-400">{sliceDetails?.description}</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            sliceDetails?.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-            sliceDetails?.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-            'bg-amber-500/20 text-amber-300'
-          }`}>
-            {sliceDetails?.status}
-          </span>
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-            {sliceDetails?.provider?.toUpperCase()}
-          </span>
-        </div>
+        <h1 className="text-3xl font-display font-bold">
+          <GradientText>Learning Modules</GradientText>
+        </h1>
       </div>
 
-      {/* Notification */}
-      {notification && (
-        <div className={`p-4 rounded-lg flex items-center space-x-2 ${
-          notification.type === 'success' 
-            ? 'bg-emerald-500/20 border border-emerald-500/20' 
-            : 'bg-red-500/20 border border-red-500/20'
-        }`}>
-          {notification.type === 'success' ? (
-            <Check className="h-5 w-5 text-emerald-400" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-red-400" />
-          )}
-          <span className={`text-sm ${
-            notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
-          }`}>
-            {notification.message}
-          </span>
-        </div>
-      )}
-
-      {/* Navigation Tabs */}
-      <div className="border-b border-primary-500/10">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('modules')}
-            className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
-              ${activeTab === 'modules'
-                ? 'border-primary-500 text-primary-400'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
-              }`}
-          >
-            <List className="h-4 w-4 mr-2" />
-            Modules
-          </button>
-          {selectedModuleId && (
-            <button
-              onClick={() => setActiveTab('exercises')}
-              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
-                ${activeTab === 'exercises'
-                  ? 'border-primary-500 text-primary-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
-                }`}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Exercises
-            </button>
-          )}
-          {selectedExerciseId && selectedExercise?.type === 'lab' && (
-            <button
-              onClick={() => setActiveTab('lab')}
-              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
-                ${activeTab === 'lab'
-                  ? 'border-primary-500 text-primary-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
-                }`}
-            >
-              <Server className="h-4 w-4 mr-2" />
-              Lab Content
-            </button>
-          )}
-          {selectedExerciseId && selectedExercise?.type === 'quiz' && (
-            <button
-              onClick={() => setActiveTab('quiz')}
-              className={`flex items-center px-1 py-4 border-b-2 font-medium text-sm
-                ${activeTab === 'quiz'
-                  ? 'border-primary-500 text-primary-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-primary-500/50'
-                }`}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Quiz Questions
-            </button>
-          )}
-        </nav>
-      </div>
-
-      {/* Content based on active tab */}
-      <div className="glass-panel">
-        {/* MODULES TABLE */}
-        {activeTab === 'modules' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">
-                <GradientText>Modules</GradientText>
-              </h2>
-              <button className="btn-secondary text-sm py-1.5 px-3">
-                <Plus className="h-4 w-4 mr-1.5" />
-                Add Module
-              </button>
-            </div>
-            
-            {isLoadingModules ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
-                <span className="ml-3 text-gray-400">Loading modules...</span>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-                      <th className="pb-4 pl-4">Module Title</th>
-                      <th className="pb-4">Description</th>
-                      <th className="pb-4">Exercises</th>
-                      <th className="pb-4">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {modules.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-400">
-                          No modules found for this cloud slice.
-                        </td>
-                      </tr>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Modules Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="glass-panel">
+            <h2 className="text-xl font-semibold mb-6">
+              <GradientText>Module List</GradientText>
+            </h2>
+            <div className="space-y-2">
+              {modules.map((module) => (
+                <div key={module.id} className="space-y-2">
+                  <button
+                    onClick={() => handleModuleClick(module.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
+                      activeModule === module.id
+                        ? 'bg-primary-500/20 text-primary-300'
+                        : 'bg-dark-300/50 text-gray-300 hover:bg-dark-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Layers className="h-5 w-5" />
+                      <span className="font-medium">{module.title}</span>
+                    </div>
+                    {activeModule === module.id ? (
+                      <ChevronDown className="h-5 w-5" />
                     ) : (
-                      modules.map((module) => (
-                        <tr 
-                          key={module.id}
-                          className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
-                          onClick={() => handleModuleSelect(module.id)}
-                        >
-                          <td className="py-4 pl-4">
-                            <div className="flex items-center space-x-2">
-                              <List className="h-4 w-4 text-primary-400" />
-                              <span className="font-medium text-gray-200">{module.title}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 text-gray-400 max-w-xs truncate">{module.description}</td>
-                          <td className="py-4">
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                              {module.exerciseCount || 0} exercise{(module.exerciseCount || 0) !== 1 ? 's' : ''}
-                            </span>
-                          </td>
-                          <td className="py-4">
-                            <div className="flex items-center space-x-2">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleModuleSelect(module.id);
-                                }}
-                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                              >
-                                <Eye className="h-4 w-4 text-primary-400" />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Edit module logic
-                                }}
-                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                              >
-                                <Edit className="h-4 w-4 text-primary-400" />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Delete module logic
-                                }}
-                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-400" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                      <ChevronRight className="h-5 w-5" />
                     )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
+                  </button>
 
-        {/* EXERCISES TABLE */}
-        {activeTab === 'exercises' && selectedModuleId && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">
-                  <GradientText>Exercises for {selectedModule?.title}</GradientText>
-                </h2>
-                <p className="text-sm text-gray-400 mt-1">{selectedModule?.description}</p>
-              </div>
-              <button className="btn-secondary text-sm py-1.5 px-3">
-                <Plus className="h-4 w-4 mr-1.5" />
-                Add Exercise
-              </button>
-            </div>
-            
-            {isLoadingExercises ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
-                <span className="ml-3 text-gray-400">Loading exercises...</span>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-                      <th className="pb-4 pl-4">Exercise Title</th>
-                      <th className="pb-4">Type</th>
-                      <th className="pb-4">Content</th>
-                      <th className="pb-4">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {exercises.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-gray-400">
-                          No exercises found for this module.
-                        </td>
-                      </tr>
-                    ) : (
-                      exercises.map((exercise) => (
-                        <tr 
+                  {activeModule === module.id && module.exercises && (
+                    <div className="ml-6 space-y-1">
+                      {module.exercises.map((exercise) => (
+                        <button
                           key={exercise.id}
-                          className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors cursor-pointer"
-                          onClick={() => handleExerciseSelect(exercise.id)}
+                          onClick={() => handleExerciseClick(exercise.id)}
+                          className={`w-full flex items-center space-x-2 p-2 rounded-lg text-left text-sm transition-colors ${
+                            activeExercise === exercise.id
+                              ? 'bg-primary-500/10 text-primary-300'
+                              : 'text-gray-400 hover:bg-dark-300/70 hover:text-gray-300'
+                          }`}
                         >
-                          <td className="py-4 pl-4">
-                            <div className="flex items-center space-x-2">
-                              {exercise.type === 'lab' ? (
-                                <Server className="h-4 w-4 text-primary-400" />
-                              ) : (
-                                <FileText className="h-4 w-4 text-primary-400" />
-                              )}
-                              <span className="font-medium text-gray-200">{exercise.title}</span>
-                            </div>
-                          </td>
-                          <td className="py-4">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              exercise.type === 'lab' 
-                                ? 'bg-primary-500/20 text-primary-300'
-                                : 'bg-secondary-500/20 text-secondary-300'
-                            }`}>
-                              {exercise.type === 'lab' ? 'Lab Exercise' : 'Quiz'}
-                            </span>
-                          </td>
-                          <td className="py-4 text-gray-400">
-                            {exercise.type === 'lab' 
-                              ? 'Hands-on lab practice'
-                              : 'Multiple choice questions'
-                            }
-                          </td>
-                          <td className="py-4">
-                            <div className="flex items-center space-x-2">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExerciseSelect(exercise.id);
-                                }}
-                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                              >
-                                <Eye className="h-4 w-4 text-primary-400" />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleExerciseSelect(exercise.id);
-                                  setIsEditingExercise(true);
-                                }}
-                                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                              >
-                                <Edit className="h-4 w-4 text-primary-400" />
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Delete exercise logic
-                                }}
-                                className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-400" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* LAB CONTENT TABLE */}
-        {activeTab === 'lab' && selectedExerciseId && selectedExercise?.type === 'lab' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">
-                  <GradientText>Lab: {selectedExercise.title}</GradientText>
-                </h2>
-                <div className="flex items-center mt-1">
-                  <Server className="h-4 w-4 mr-1 text-primary-400" />
-                  <span className="text-sm text-gray-400">Lab Exercise</span>
-                </div>
-              </div>
-              
-              {isEditingExercise ? (
-                <div className="flex space-x-3">
-                  <button 
-                    onClick={() => {
-                      setIsEditingExercise(false);
-                    }}
-                    className="btn-secondary text-sm py-1.5 px-3"
-                  >
-                    <X className="h-4 w-4 mr-1.5" />
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleSaveLabContent}
-                    disabled={isSaving}
-                    className="btn-primary text-sm py-1.5 px-3"
-                  >
-                    {isSaving ? (
-                      <Loader className="animate-spin h-4 w-4" />
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1.5" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={handleEditExercise}
-                  className="btn-secondary text-sm py-1.5 px-3"
-                >
-                  <Edit className="h-4 w-4 mr-1.5" />
-                  Edit Lab Content
-                </button>
-              )}
-            </div>
-
-            {isLoadingLabContent ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
-                <span className="ml-3 text-gray-400">Loading lab content...</span>
-              </div>
-            ) : (
-              <>
-                {isEditingExercise ? (
-                  <textarea
-                    value={labContent?.content || ''}
-                    onChange={(e) => setLabContent(prev => ({ ...prev!, content: e.target.value }))}
-                    className="w-full h-64 px-4 py-3 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-300 focus:border-primary-500/40 focus:outline-none
-                             font-mono text-sm"
-                  />
-                ) : (
-                  <div className="prose prose-invert max-w-none">
-                    <div 
-                      className="p-4 bg-dark-300/50 rounded-lg text-gray-300"
-                      dangerouslySetInnerHTML={{ __html: labContent?.content || 'No content available' }}
-                    />
-                  </div>
-                )}
-
-                {/* Services used in this lab */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    <GradientText>Services Used</GradientText>
-                  </h3>
-                  
-                  {labContent?.services && labContent.services.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {labContent.services.map((service, index) => (
-                        <div 
-                          key={index}
-                          className="p-3 bg-dark-300/50 rounded-lg flex items-center space-x-2"
-                        >
-                          <Cloud className="h-4 w-4 text-primary-400 flex-shrink-0" />
-                          <span className="text-sm text-gray-300 truncate">{service}</span>
-                        </div>
+                          {exercise.type === 'lab' ? (
+                            <BookOpen className="h-4 w-4 flex-shrink-0" />
+                          ) : (
+                            <Award className="h-4 w-4 flex-shrink-0" />
+                          )}
+                          <span className="truncate">{exercise.title}</span>
+                        </button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-gray-400 text-center py-4">
-                      No specific services defined for this lab.
-                    </p>
                   )}
                 </div>
-              </>
-            )}
-          </>
-        )}
-
-        {/* QUIZ QUESTIONS TABLE */}
-        {activeTab === 'quiz' && selectedExerciseId && selectedExercise?.type === 'quiz' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">
-                  <GradientText>Quiz: {selectedExercise.title}</GradientText>
-                </h2>
-                <div className="flex items-center mt-1">
-                  <FileText className="h-4 w-4 mr-1 text-primary-400" />
-                  <span className="text-sm text-gray-400">Quiz Exercise</span>
-                </div>
-              </div>
-              
-              {isEditingExercise ? (
-                <div className="flex space-x-3">
-                  <button 
-                    onClick={() => {
-                      setIsEditingExercise(false);
-                    }}
-                    className="btn-secondary text-sm py-1.5 px-3"
-                  >
-                    <X className="h-4 w-4 mr-1.5" />
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleSaveQuizQuestions}
-                    disabled={isSaving}
-                    className="btn-primary text-sm py-1.5 px-3"
-                  >
-                    {isSaving ? (
-                      <Loader className="animate-spin h-4 w-4" />
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1.5" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex space-x-3">
-                  <button 
-                    onClick={handleEditExercise}
-                    className="btn-secondary text-sm py-1.5 px-3"
-                  >
-                    <Edit className="h-4 w-4 mr-1.5" />
-                    Edit Questions
-                  </button>
-                </div>
-              )}
+              ))}
             </div>
-
-            {isLoadingQuestions ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader className="h-6 w-6 text-primary-400 animate-spin" />
-                <span className="ml-3 text-gray-400">Loading quiz questions...</span>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-                        <th className="pb-4 pl-4">Question</th>
-                        <th className="pb-4">Options</th>
-                        <th className="pb-4">Correct Answer</th>
-                        <th className="pb-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {quizQuestions.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="py-8 text-center text-gray-400">
-                            No questions found for this quiz.
-                          </td>
-                        </tr>
-                      ) : (
-                        quizQuestions.map((question, index) => (
-                          <tr 
-                            key={question.id}
-                            className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
-                          >
-                            <td className="py-4 pl-4">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs font-medium bg-dark-400/50 px-2 py-1 rounded-full text-gray-400">
-                                  Q{index + 1}
-                                </span>
-                                <span className="text-gray-300">{question.question}</span>
-                              </div>
-                            </td>
-                            <td className="py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {question.options.map((option, optIndex) => (
-                                  <span 
-                                    key={optIndex} 
-                                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                      question.correctAnswer === optIndex
-                                        ? 'bg-emerald-500/20 text-emerald-300'
-                                        : 'bg-dark-400/50 text-gray-400'
-                                    }`}
-                                  >
-                                    {option}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="py-4 text-emerald-300">
-                              {question.options[question.correctAnswer]}
-                            </td>
-                            <td className="py-4">
-                              {isEditingExercise && (
-                                <div className="flex items-center space-x-2">
-                                  <button 
-                                    onClick={() => setEditingQuestion(question)}
-                                    className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                                  >
-                                    <PenTool className="h-4 w-4 text-primary-400" />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteQuestion(question.id)}
-                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-400" />
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {isEditingExercise && (
-                  <div className="mt-6">
-                    <button
-                      onClick={handleAddQuestion}
-                      className="w-full p-3 border border-dashed border-primary-500/20 rounded-lg
-                               text-primary-400 hover:text-primary-300 hover:border-primary-500/40
-                               flex items-center justify-center"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Question
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Question Editor Modal */}
-            {editingQuestion && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold">
-                      <GradientText>Edit Question</GradientText>
-                    </h3>
-                    <button 
-                      onClick={() => setEditingQuestion(null)}
-                      className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-                    >
-                      <X className="h-5 w-5 text-gray-400" />
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Question
-                      </label>
-                      <input
-                        type="text"
-                        value={editingQuestion.question}
-                        onChange={(e) => setEditingQuestion({
-                          ...editingQuestion,
-                          question: e.target.value
-                        })}
-                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Options
-                      </label>
-                      <div className="space-y-3">
-                        {editingQuestion.options.map((option, optIndex) => (
-                          <div key={optIndex} className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              checked={editingQuestion.correctAnswer === optIndex}
-                              onChange={() => setEditingQuestion({
-                                ...editingQuestion,
-                                correctAnswer: optIndex
-                              })}
-                              className="form-radio h-4 w-4 text-primary-500"
-                            />
-                            <input
-                              type="text"
-                              value={option}
-                              onChange={(e) => {
-                                const newOptions = [...editingQuestion.options];
-                                newOptions[optIndex] = e.target.value;
-                                setEditingQuestion({
-                                  ...editingQuestion,
-                                  options: newOptions
-                                });
-                              }}
-                              className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                              placeholder={`Option ${optIndex + 1}`}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <button
-                      onClick={() => setEditingQuestion(null)}
-                      className="btn-secondary"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => handleUpdateQuestion(editingQuestion)}
-                      className="btn-primary"
-                    >
-                      Save Question
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Credentials & Console Access */}
-      <div className="glass-panel">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Cloud Access</GradientText>
-          </h2>
-          <button
-            onClick={handleGoToConsole}
-            disabled={!sliceDetails?.consoleUrl}
-            className="btn-primary text-sm py-1.5 px-4"
-          >
-            <ExternalLink className="h-4 w-4 mr-1.5" />
-            Go to {sliceDetails?.provider?.toUpperCase()} Console
-          </button>
+          </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-3 bg-dark-300/50 rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-400">Username</span>
-              <User className="h-4 w-4 text-primary-400" />
+
+        {/* Content Area */}
+        <div className="lg:col-span-3">
+          {activeExercise ? (
+            <div className="glass-panel">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">
+                  <GradientText>
+                    {getActiveExercise()?.title || 'Exercise'}
+                  </GradientText>
+                </h2>
+                <div className="flex items-center space-x-2 text-gray-400">
+                  <Clock className="h-4 w-4" />
+                  <span>{getActiveExercise()?.duration || 0} minutes</span>
+                </div>
+              </div>
+
+              {renderExerciseContent()}
             </div>
-            <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-              {sliceDetails?.credentials?.username || 'Not available'}
-            </p>
-          </div>
-          
-          <div className="p-3 bg-dark-300/50 rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-400">Access Key ID</span>
-              <Key className="h-4 w-4 text-primary-400" />
+          ) : activeModule ? (
+            <div className="glass-panel">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">
+                  <GradientText>
+                    {getActiveModule()?.title || 'Module Overview'}
+                  </GradientText>
+                </h2>
+                <div className="flex items-center space-x-2 text-gray-400">
+                  <Clock className="h-4 w-4" />
+                  <span>{getActiveModule()?.duration || 0} minutes</span>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-6 bg-dark-300/50 rounded-lg">
+                  <p className="text-gray-300">{getActiveModule()?.description}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Exercises</h3>
+                  <div className="space-y-4">
+                    {getActiveModule()?.exercises?.map((exercise) => (
+                      <div
+                        key={exercise.id}
+                        onClick={() => handleExerciseClick(exercise.id)}
+                        className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {exercise.type === 'lab' ? (
+                              <BookOpen className="h-5 w-5 text-primary-400" />
+                            ) : (
+                              <Award className="h-5 w-5 text-primary-400" />
+                            )}
+                            <div>
+                              <h4 className="font-medium text-gray-200">{exercise.title}</h4>
+                              <p className="text-sm text-gray-400">{exercise.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-1 text-gray-400">
+                              <Clock className="h-4 w-4" />
+                              <span className="text-sm">{exercise.duration} min</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-              {sliceDetails?.credentials?.accessKeyId || 'Not available'}
-            </p>
-          </div>
-          
-          <div className="p-3 bg-dark-300/50 rounded-lg">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm text-gray-400">Secret Access Key</span>
-              <Key className="h-4 w-4 text-primary-400" />
+          ) : (
+            <div className="glass-panel flex flex-col items-center justify-center py-12">
+              <Layers className="h-16 w-16 text-gray-400 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-200 mb-2">
+                Select a Module
+              </h2>
+              <p className="text-gray-400 text-center max-w-md">
+                Choose a module from the sidebar to view its content and exercises.
+              </p>
             </div>
-            <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-              {sliceDetails?.credentials?.secretAccessKey || 'Not available'}
-            </p>
-          </div>
+          )}
         </div>
       </div>
     </div>
