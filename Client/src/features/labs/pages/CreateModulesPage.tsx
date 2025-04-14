@@ -11,8 +11,7 @@ import {
   BookOpen, 
   Code, 
   Loader,
-  AlertCircle,
-  Clock
+  AlertCircle
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -29,7 +28,6 @@ interface Question {
   text: string;
   options: string[];
   correctAnswer: number;
-  duration: number; // Added duration field
 }
 
 interface Exercise {
@@ -60,8 +58,7 @@ export const CreateModulesPage: React.FC = () => {
   const [newQuestion, setNewQuestion] = useState({
     text: '',
     options: ['', '', '', ''],
-    correctAnswer: 0,
-    duration: 60 // Default duration of 60 seconds
+    correctAnswer: 0
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,11 +126,6 @@ export const CreateModulesPage: React.FC = () => {
       return;
     }
 
-    if (newQuestion.duration <= 0) {
-      setError('Duration must be greater than 0 seconds');
-      return;
-    }
-
     const updatedExercise = {
       ...currentExercise,
       questions: [
@@ -153,8 +145,7 @@ export const CreateModulesPage: React.FC = () => {
     setNewQuestion({
       text: '',
       options: ['', '', '', ''],
-      correctAnswer: 0,
-      duration: 60
+      correctAnswer: 0
     });
     setIsAddingQuestion(false);
     setError(null);
@@ -561,24 +552,6 @@ export const CreateModulesPage: React.FC = () => {
                   rows={2}
                 />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Duration (seconds)
-                </label>
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 text-primary-400 mr-2" />
-                  <input
-                    type="number"
-                    value={newQuestion.duration}
-                    onChange={(e) => setNewQuestion({ ...newQuestion, duration: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                    placeholder="Duration in seconds"
-                    min="1"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -616,8 +589,7 @@ export const CreateModulesPage: React.FC = () => {
                     setNewQuestion({
                       text: '',
                       options: ['', '', '', ''],
-                      correctAnswer: 0,
-                      duration: 60
+                      correctAnswer: 0
                     });
                     setError(null);
                   }}
@@ -656,10 +628,6 @@ export const CreateModulesPage: React.FC = () => {
                             {qIndex + 1}
                           </span>
                           <h3 className="font-medium text-gray-200">{question.text}</h3>
-                        </div>
-                        <div className="flex items-center mt-1 text-xs text-gray-500">
-                          <Clock className="h-3 w-3 mr-1" />
-                          <span>{question.duration} seconds</span>
                         </div>
                       </div>
                       <button
