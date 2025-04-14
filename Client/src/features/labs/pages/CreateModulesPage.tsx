@@ -7,220 +7,227 @@ import {
   Trash2, 
   X, 
   Check, 
-  Loader, 
+  FileText, 
+  BookOpen, 
+  Code, 
+  Loader,
   AlertCircle,
-  FileText,
-  Clock,
-  HelpCircle
+  Clock
 } from 'lucide-react';
 import axios from 'axios';
 
 interface Module {
+  id: string;
   title: string;
   description: string;
   content: string;
-  duration: number;
   order: number;
-  questions: {
-    question: string;
-    options: string[];
-    correctAnswer: number;
-    duration: number; // Added duration for each question
-  }[];
+}
+
+interface Question {
+  id: string;
+  text: string;
+  options: string[];
+  correctAnswer: number;
+  duration: number; // Added duration field
+}
+
+interface Exercise {
+  id: string;
+  title: string;
+  description: string;
+  instructions: string;
+  questions: Question[];
 }
 
 export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [labConfig, setLabConfig] = useState<any>(location.state?.labConfig || null);
-  const [modules, setModules] = useState<Module[]>([
-    {
-      title: '',
-      description: '',
-      content: '',
-      duration: 30,
-      order: 1,
-      questions: []
-    }
-  ]);
-  const [activeModule, setActiveModule] = useState(0);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [currentModule, setCurrentModule] = useState<Module | null>(null);
+  const [currentExercise, setCurrentExercise] = useState<Exercise | null>(null);
+  const [isCreatingModule, setIsCreatingModule] = useState(false);
+  const [isCreatingExercise, setIsCreatingExercise] = useState(false);
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [newModuleTitle, setNewModuleTitle] = useState('');
+  const [newModuleDescription, setNewModuleDescription] = useState('');
+  const [newModuleContent, setNewModuleContent] = useState('');
+  const [newExerciseTitle, setNewExerciseTitle] = useState('');
+  const [newExerciseDescription, setNewExerciseDescription] = useState('');
+  const [newExerciseInstructions, setNewExerciseInstructions] = useState('');
+  const [newQuestion, setNewQuestion] = useState({
+    text: '',
+    options: ['', '', '', ''],
+    correctAnswer: 0,
+    duration: 60 // Default duration of 60 seconds
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState({
-    question: '',
-    options: ['', '', '', ''],
-    correctAnswer: 0,
-    duration: 60 // Default duration for questions (in seconds)
-  });
-  const [showQuestionForm, setShowQuestionForm] = useState(false);
 
   useEffect(() => {
-    if (!labConfig && !location.state?.labConfig) {
+    if (!labConfig) {
       navigate('/dashboard/labs/create');
-    } else if (location.state?.labConfig) {
-      setLabConfig(location.state.labConfig);
     }
-  }, [location, navigate]);
+  }, [labConfig, navigate]);
 
-  const handleModuleChange = (index: number, field: keyof Module, value: string | number) => {
-    const updatedModules = [...modules];
-    updatedModules[index] = {
-      ...updatedModules[index],
-      [field]: value
+  const handleAddModule = () => {
+    if (!newModuleTitle.trim()) {
+      setError('Module title is required');
+      return;
+    }
+
+    const newModule: Module = {
+      id: `module-${Date.now()}`,
+      title: newModuleTitle,
+      description: newModuleDescription,
+      content: newModuleContent,
+      order: modules.length
     };
-    setModules(updatedModules);
+
+    setModules([...modules, newModule]);
+    setNewModuleTitle('');
+    setNewModuleDescription('');
+    setNewModuleContent('');
+    setIsCreatingModule(false);
+    setError(null);
   };
 
-  const addModule = () => {
-    setModules([
-      ...modules,
-      {
-        title: '',
-        description: '',
-        content: '',
-        duration: 30,
-        order: modules.length + 1,
-        questions: []
-      }
-    ]);
-    setActiveModule(modules.length);
-  };
-
-  const removeModule = (index: number) => {
-    if (modules.length === 1) {
-      return; // Don't remove the last module
+  const handleAddExercise = () => {
+    if (!newExerciseTitle.trim()) {
+      setError('Exercise title is required');
+      return;
     }
-    
-    const updatedModules = [...modules];
-    updatedModules.splice(index, 1);
-    
-    // Update order for remaining modules
-    updatedModules.forEach((module, idx) => {
-      module.order = idx + 1;
-    });
-    
-    setModules(updatedModules);
-    
-    // Adjust active module if necessary
-    if (activeModule >= updatedModules.length) {
-      setActiveModule(updatedModules.length - 1);
-    }
+
+    const newExercise: Exercise = {
+      id: `exercise-${Date.now()}`,
+      title: newExerciseTitle,
+      description: newExerciseDescription,
+      instructions: newExerciseInstructions,
+      questions: []
+    };
+
+    setExercises([...exercises, newExercise]);
+    setNewExerciseTitle('');
+    setNewExerciseDescription('');
+    setNewExerciseInstructions('');
+    setIsCreatingExercise(false);
+    setError(null);
   };
 
-  const handleQuestionChange = (field: string, value: string | number, optionIndex?: number) => {
-    if (field === 'options' && optionIndex !== undefined) {
-      const newOptions = [...currentQuestion.options];
-      newOptions[optionIndex] = value as string;
-      setCurrentQuestion({
-        ...currentQuestion,
-        options: newOptions
-      });
-    } else {
-      setCurrentQuestion({
-        ...currentQuestion,
-        [field]: value
-      });
-    }
-  };
-
-  const addQuestion = () => {
-    // Validate question
-    if (!currentQuestion.question.trim()) {
+  const handleAddQuestion = () => {
+    if (!currentExercise) return;
+    if (!newQuestion.text.trim()) {
       setError('Question text is required');
       return;
     }
-    
-    // Validate options
-    const validOptions = currentQuestion.options.filter(opt => opt.trim() !== '');
-    if (validOptions.length < 2) {
-      setError('At least two options are required');
-      return;
-    }
-    
-    // Validate correct answer
-    if (currentQuestion.correctAnswer < 0 || currentQuestion.correctAnswer >= validOptions.length) {
-      setError('Please select a valid correct answer');
+
+    if (newQuestion.options.some(option => !option.trim())) {
+      setError('All options must be filled');
       return;
     }
 
-    // Validate duration
-    if (currentQuestion.duration <= 0) {
+    if (newQuestion.duration <= 0) {
       setError('Duration must be greater than 0 seconds');
       return;
     }
+
+    const updatedExercise = {
+      ...currentExercise,
+      questions: [
+        ...currentExercise.questions,
+        {
+          id: `question-${Date.now()}`,
+          ...newQuestion
+        }
+      ]
+    };
+
+    setExercises(exercises.map(ex => 
+      ex.id === currentExercise.id ? updatedExercise : ex
+    ));
     
-    const updatedModules = [...modules];
-    updatedModules[activeModule].questions.push({
-      ...currentQuestion,
-      options: currentQuestion.options.filter(opt => opt.trim() !== '')
-    });
-    
-    setModules(updatedModules);
-    setCurrentQuestion({
-      question: '',
+    setCurrentExercise(updatedExercise);
+    setNewQuestion({
+      text: '',
       options: ['', '', '', ''],
       correctAnswer: 0,
       duration: 60
     });
-    setShowQuestionForm(false);
+    setIsAddingQuestion(false);
     setError(null);
   };
 
-  const removeQuestion = (questionIndex: number) => {
-    const updatedModules = [...modules];
-    updatedModules[activeModule].questions.splice(questionIndex, 1);
-    setModules(updatedModules);
+  const handleOptionChange = (index: number, value: string) => {
+    const updatedOptions = [...newQuestion.options];
+    updatedOptions[index] = value;
+    setNewQuestion({ ...newQuestion, options: updatedOptions });
+  };
+
+  const handleDeleteModule = (moduleId: string) => {
+    setModules(modules.filter(module => module.id !== moduleId));
+    if (currentModule?.id === moduleId) {
+      setCurrentModule(null);
+    }
+  };
+
+  const handleDeleteExercise = (exerciseId: string) => {
+    setExercises(exercises.filter(exercise => exercise.id !== exerciseId));
+    if (currentExercise?.id === exerciseId) {
+      setCurrentExercise(null);
+    }
+  };
+
+  const handleDeleteQuestion = (questionId: string) => {
+    if (!currentExercise) return;
+    
+    const updatedExercise = {
+      ...currentExercise,
+      questions: currentExercise.questions.filter(q => q.id !== questionId)
+    };
+
+    setExercises(exercises.map(ex => 
+      ex.id === currentExercise.id ? updatedExercise : ex
+    ));
+    
+    setCurrentExercise(updatedExercise);
   };
 
   const handleSubmit = async () => {
-    // Validate modules
-    for (let i = 0; i < modules.length; i++) {
-      const module = modules[i];
-      if (!module.title.trim()) {
-        setError(`Module ${i + 1}: Title is required`);
-        setActiveModule(i);
-        return;
-      }
-      if (!module.content.trim()) {
-        setError(`Module ${i + 1}: Content is required`);
-        setActiveModule(i);
-        return;
-      }
-      if (module.duration <= 0) {
-        setError(`Module ${i + 1}: Duration must be greater than 0`);
-        setActiveModule(i);
-        return;
-      }
+    if (modules.length === 0) {
+      setError('Please add at least one module');
+      return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
-      // Get user profile for user ID
-      const userResponse = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-      const userId = userResponse.data.user.id;
+      const user_profile = await axios.get(`http://localhost:3000/api/v1/user_ms/user_profile`);
       
-      // Create the lab with modules
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLabWithModules', {
-        createdBy: userId,
-        labData: labConfig,
-        modules: modules
+      const result = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLab', {
+        createdBy: user_profile.data.user.id,
+        labData: {
+          ...labConfig,
+          modules,
+          exercises
+        }
       });
       
-      if (response.data.success) {
+      if (result.data.success) {
         setSuccess('Lab with modules created successfully!');
         setTimeout(() => {
           navigate('/dashboard/labs/cloud-slices');
-        }, 2000);
+        }, 3000);
       } else {
-        throw new Error(response.data.message || 'Failed to create lab with modules');
+        throw new Error('Failed to create lab with modules');
       }
-    } catch (err: any) {
-      console.error('Error creating lab with modules:', err);
-      setError(err.response?.data?.message || 'Failed to create lab with modules');
+    } catch (err) {
+      console.error('Submission error:', err);
+      setError('Failed to create lab with modules');
     } finally {
       setIsSubmitting(false);
     }
@@ -259,247 +266,316 @@ export const CreateModulesPage: React.FC = () => {
               <p className="text-gray-200">{labConfig.region}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-400">Services</p>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {labConfig.services.map((service: string, index: number) => (
-                  <span 
-                    key={index}
-                    className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300"
-                  >
-                    {service}
-                  </span>
-                ))}
-              </div>
+              <p className="text-sm text-gray-400">Duration</p>
+              <p className="text-gray-200">
+                {new Date(labConfig.startDate).toLocaleDateString()} to {new Date(labConfig.endDate).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex space-x-4 overflow-x-auto pb-2">
-        {modules.map((module, index) => (
-          <button
-            key={index}
-            onClick={() => setActiveModule(index)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
-              activeModule === index
-                ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
-                : 'bg-dark-300/50 text-gray-400 hover:bg-dark-300 hover:text-gray-300'
-            }`}
-          >
-            {module.title || `Module ${index + 1}`}
-          </button>
-        ))}
-        <button
-          onClick={addModule}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-dark-300/50 text-gray-400 
-                   hover:bg-dark-300 hover:text-gray-300 flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add Module
-        </button>
-      </div>
-
-      <div className="glass-panel">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>
-              {modules[activeModule].title || `Module ${activeModule + 1}`}
-            </GradientText>
-          </h2>
-          {modules.length > 1 && (
-            <button
-              onClick={() => removeModule(activeModule)}
-              className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Module List */}
+        <div className="glass-panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">
+              <GradientText>Modules</GradientText>
+            </h2>
+            <button 
+              onClick={() => setIsCreatingModule(true)}
+              className="btn-secondary text-sm py-1.5 px-3"
             >
-              <Trash2 className="h-5 w-5" />
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Module
             </button>
+          </div>
+
+          {isCreatingModule ? (
+            <div className="space-y-4 p-4 bg-dark-300/50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Module Title
+                </label>
+                <input
+                  type="text"
+                  value={newModuleTitle}
+                  onChange={(e) => setNewModuleTitle(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter module title"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newModuleDescription}
+                  onChange={(e) => setNewModuleDescription(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter module description"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Content
+                </label>
+                <textarea
+                  value={newModuleContent}
+                  onChange={(e) => setNewModuleContent(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter module content (supports Markdown)"
+                  rows={5}
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setIsCreatingModule(false);
+                    setNewModuleTitle('');
+                    setNewModuleDescription('');
+                    setNewModuleContent('');
+                    setError(null);
+                  }}
+                  className="btn-secondary text-sm py-1.5 px-3"
+                >
+                  <X className="h-4 w-4 mr-1.5" />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddModule}
+                  className="btn-primary text-sm py-1.5 px-3"
+                >
+                  <Check className="h-4 w-4 mr-1.5" />
+                  Add Module
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {modules.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <BookOpen className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+                  <p>No modules added yet</p>
+                  <p className="text-sm">Click "Add Module" to create your first module</p>
+                </div>
+              ) : (
+                modules.map((module, index) => (
+                  <div 
+                    key={module.id}
+                    className={`p-3 rounded-lg cursor-pointer flex justify-between items-center ${
+                      currentModule?.id === module.id 
+                        ? 'bg-primary-500/20 border border-primary-500/30' 
+                        : 'bg-dark-300/50 hover:bg-dark-300 border border-transparent'
+                    } transition-colors`}
+                    onClick={() => setCurrentModule(module)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-200">{module.title}</h3>
+                        <p className="text-xs text-gray-400 line-clamp-1">{module.description}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteModule(module.id);
+                      }}
+                      className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-400" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Module Title
-            </label>
-            <input
-              type="text"
-              value={modules[activeModule].title}
-              onChange={(e) => handleModuleChange(activeModule, 'title', e.target.value)}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              placeholder="Enter module title"
-            />
+        {/* Middle Column - Exercises */}
+        <div className="glass-panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">
+              <GradientText>Practice Exercises</GradientText>
+            </h2>
+            <button 
+              onClick={() => setIsCreatingExercise(true)}
+              className="btn-secondary text-sm py-1.5 px-3"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Exercise
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
-            <input
-              type="text"
-              value={modules[activeModule].description}
-              onChange={(e) => handleModuleChange(activeModule, 'description', e.target.value)}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              placeholder="Enter module description"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Duration (minutes)
-            </label>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-primary-400" />
-              <input
-                type="number"
-                min="1"
-                value={modules[activeModule].duration}
-                onChange={(e) => handleModuleChange(activeModule, 'duration', parseInt(e.target.value))}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                placeholder="Enter duration in minutes"
-              />
+          {isCreatingExercise ? (
+            <div className="space-y-4 p-4 bg-dark-300/50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Exercise Title
+                </label>
+                <input
+                  type="text"
+                  value={newExerciseTitle}
+                  onChange={(e) => setNewExerciseTitle(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter exercise title"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newExerciseDescription}
+                  onChange={(e) => setNewExerciseDescription(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter exercise description"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Instructions
+                </label>
+                <textarea
+                  value={newExerciseInstructions}
+                  onChange={(e) => setNewExerciseInstructions(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  placeholder="Enter exercise instructions"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setIsCreatingExercise(false);
+                    setNewExerciseTitle('');
+                    setNewExerciseDescription('');
+                    setNewExerciseInstructions('');
+                    setError(null);
+                  }}
+                  className="btn-secondary text-sm py-1.5 px-3"
+                >
+                  <X className="h-4 w-4 mr-1.5" />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddExercise}
+                  className="btn-primary text-sm py-1.5 px-3"
+                >
+                  <Check className="h-4 w-4 mr-1.5" />
+                  Add Exercise
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {exercises.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <FileText className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+                  <p>No exercises added yet</p>
+                  <p className="text-sm">Click "Add Exercise" to create your first exercise</p>
+                </div>
+              ) : (
+                exercises.map((exercise) => (
+                  <div 
+                    key={exercise.id}
+                    className={`p-3 rounded-lg cursor-pointer flex justify-between items-center ${
+                      currentExercise?.id === exercise.id 
+                        ? 'bg-primary-500/20 border border-primary-500/30' 
+                        : 'bg-dark-300/50 hover:bg-dark-300 border border-transparent'
+                    } transition-colors`}
+                    onClick={() => setCurrentExercise(exercise)}
+                  >
+                    <div>
+                      <h3 className="font-medium text-gray-200">{exercise.title}</h3>
+                      <p className="text-xs text-gray-400 line-clamp-1">{exercise.description}</p>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <Code className="h-3 w-3 mr-1" />
+                        {exercise.questions.length} question{exercise.questions.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteExercise(exercise.id);
+                      }}
+                      className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-400" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Module Content
-            </label>
-            <textarea
-              value={modules[activeModule].content}
-              onChange={(e) => handleModuleChange(activeModule, 'content', e.target.value)}
-              rows={10}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              placeholder="Enter module content (supports markdown)"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <label className="block text-sm font-medium text-gray-300">
-                Practice Questions
-              </label>
-              <button
-                onClick={() => setShowQuestionForm(true)}
+        {/* Right Column - Questions */}
+        <div className="glass-panel">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">
+              <GradientText>
+                {currentExercise ? 'Practice Questions' : 'Select an Exercise'}
+              </GradientText>
+            </h2>
+            {currentExercise && (
+              <button 
+                onClick={() => setIsAddingQuestion(true)}
                 className="btn-secondary text-sm py-1.5 px-3"
               >
                 <Plus className="h-4 w-4 mr-1.5" />
                 Add Question
               </button>
-            </div>
-
-            {modules[activeModule].questions.length > 0 ? (
-              <div className="space-y-4">
-                {modules[activeModule].questions.map((q, qIndex) => (
-                  <div 
-                    key={qIndex}
-                    className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <HelpCircle className="h-4 w-4 text-primary-400 flex-shrink-0" />
-                          <p className="font-medium text-gray-200">{q.question}</p>
-                        </div>
-                        <div className="mt-2 ml-6 space-y-1">
-                          {q.options.map((option, oIndex) => (
-                            <div 
-                              key={oIndex}
-                              className="flex items-center space-x-2"
-                            >
-                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
-                                oIndex === q.correctAnswer 
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
-                                  : 'bg-dark-400/50 text-gray-400 border border-gray-500/30'
-                              }`}>
-                                {String.fromCharCode(65 + oIndex)}
-                              </span>
-                              <span className={`text-sm ${
-                                oIndex === q.correctAnswer ? 'text-emerald-300' : 'text-gray-400'
-                              }`}>
-                                {option}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-2 ml-6 text-sm text-gray-400 flex items-center">
-                          <Clock className="h-3.5 w-3.5 mr-1.5 text-primary-400" />
-                          <span>{q.duration} seconds</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => removeQuestion(qIndex)}
-                        className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-6 bg-dark-300/50 rounded-lg border border-primary-500/10 text-center">
-                <FileText className="h-8 w-8 text-gray-500 mx-auto mb-2" />
-                <p className="text-gray-400">No questions added yet</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Add practice questions to test knowledge after this module
-                </p>
-              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {showQuestionForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">
-                <GradientText>Add Practice Question</GradientText>
-              </h2>
-              <button 
-                onClick={() => {
-                  setShowQuestionForm(false);
-                  setError(null);
-                }}
-                className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-400" />
-              </button>
+          {!currentExercise ? (
+            <div className="text-center py-8 text-gray-400">
+              <Code className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+              <p>No exercise selected</p>
+              <p className="text-sm">Select an exercise to add questions</p>
             </div>
-
-            <div className="space-y-6">
+          ) : isAddingQuestion ? (
+            <div className="space-y-4 p-4 bg-dark-300/50 rounded-lg">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Question
                 </label>
                 <textarea
-                  value={currentQuestion.question}
-                  onChange={(e) => handleQuestionChange('question', e.target.value)}
-                  rows={3}
+                  value={newQuestion.text}
+                  onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
                   className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  placeholder="Enter your question"
+                  placeholder="Enter question text"
+                  rows={2}
                 />
               </div>
-
+              
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Duration (seconds)
                 </label>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5 text-primary-400" />
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 text-primary-400 mr-2" />
                   <input
                     type="number"
-                    min="10"
-                    value={currentQuestion.duration}
-                    onChange={(e) => handleQuestionChange('duration', parseInt(e.target.value))}
+                    value={newQuestion.duration}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, duration: parseInt(e.target.value) })}
                     className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                              text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                    placeholder="Time allowed for this question (in seconds)"
+                    placeholder="Duration in seconds"
+                    min="1"
                   />
                 </div>
               </div>
@@ -508,69 +584,115 @@ export const CreateModulesPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Options
                 </label>
-                <div className="space-y-3">
-                  {currentQuestion.options.map((option, index) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        <span className="w-6 h-6 rounded-full bg-dark-400/50 flex items-center justify-center text-sm text-gray-400 border border-gray-500/30">
-                          {String.fromCharCode(65 + index)}
-                        </span>
-                      </div>
+                <div className="space-y-2">
+                  {newQuestion.options.map((option, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        checked={newQuestion.correctAnswer === index}
+                        onChange={() => setNewQuestion({ ...newQuestion, correctAnswer: index })}
+                        className="h-4 w-4 text-primary-500 focus:ring-primary-500 border-gray-500"
+                      />
                       <input
                         type="text"
                         value={option}
-                        onChange={(e) => handleQuestionChange('options', e.target.value, index)}
+                        onChange={(e) => handleOptionChange(index, e.target.value)}
                         className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                                  text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                        placeholder={`Option ${index + 1}`}
                       />
-                      <div className="flex-shrink-0">
-                        <input
-                          type="radio"
-                          name="correctAnswer"
-                          checked={currentQuestion.correctAnswer === index}
-                          onChange={() => handleQuestionChange('correctAnswer', index)}
-                          className="w-4 h-4 text-primary-500 bg-dark-400/50 border-gray-500/30 focus:ring-primary-500/40"
-                        />
-                      </div>
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="text-xs text-gray-400 mt-2">
                   Select the radio button next to the correct answer
                 </p>
               </div>
-
-              {error && (
-                <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <AlertCircle className="h-5 w-5 text-red-400" />
-                    <span className="text-red-200">{error}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-4">
+              
+              <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => {
-                    setShowQuestionForm(false);
+                    setIsAddingQuestion(false);
+                    setNewQuestion({
+                      text: '',
+                      options: ['', '', '', ''],
+                      correctAnswer: 0,
+                      duration: 60
+                    });
                     setError(null);
                   }}
-                  className="btn-secondary"
+                  className="btn-secondary text-sm py-1.5 px-3"
                 >
+                  <X className="h-4 w-4 mr-1.5" />
                   Cancel
                 </button>
                 <button
-                  onClick={addQuestion}
-                  className="btn-primary"
+                  onClick={handleAddQuestion}
+                  className="btn-primary text-sm py-1.5 px-3"
                 >
+                  <Check className="h-4 w-4 mr-1.5" />
                   Add Question
                 </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {currentExercise.questions.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Code className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+                  <p>No questions added yet</p>
+                  <p className="text-sm">Click "Add Question" to create your first question</p>
+                </div>
+              ) : (
+                currentExercise.questions.map((question, qIndex) => (
+                  <div 
+                    key={question.id}
+                    className="p-3 rounded-lg bg-dark-300/50 hover:bg-dark-300 border border-transparent transition-colors"
+                  >
+                    <div className="flex justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <span className="w-6 h-6 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 text-sm mr-2">
+                            {qIndex + 1}
+                          </span>
+                          <h3 className="font-medium text-gray-200">{question.text}</h3>
+                        </div>
+                        <div className="flex items-center mt-1 text-xs text-gray-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>{question.duration} seconds</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteQuestion(question.id)}
+                        className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
+                      </button>
+                    </div>
+                    <div className="mt-2 space-y-1 pl-8">
+                      {question.options.map((option, oIndex) => (
+                        <div 
+                          key={oIndex}
+                          className={`text-sm p-1.5 rounded ${
+                            oIndex === question.correctAnswer 
+                              ? 'bg-emerald-500/10 text-emerald-300' 
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {oIndex === question.correctAnswer && (
+                            <Check className="h-3.5 w-3.5 inline-block mr-1.5" />
+                          )}
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {error && (
         <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
@@ -590,13 +712,7 @@ export const CreateModulesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex justify-between">
-        <button
-          onClick={() => navigate('/dashboard/labs/create')}
-          className="btn-secondary"
-        >
-          Back
-        </button>
+      <div className="flex justify-end">
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
