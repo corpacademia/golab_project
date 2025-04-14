@@ -423,7 +423,7 @@ export const CreateModulesPage: React.FC = () => {
                   value={exercise.duration || 0}
                   onChange={(e) => handleUpdateExercise(module.id, exercise.id, 'duration', parseInt(e.target.value))}
                   placeholder="Enter duration in minutes"
-                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full max-w-xs px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
               </div>
@@ -459,7 +459,7 @@ export const CreateModulesPage: React.FC = () => {
                   value={exercise.duration || 0}
                   onChange={(e) => handleUpdateExercise(module.id, exercise.id, 'duration', parseInt(e.target.value))}
                   placeholder="Enter duration in minutes"
-                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full max-w-xs px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
               </div>
@@ -495,7 +495,7 @@ export const CreateModulesPage: React.FC = () => {
                   value={exercise.duration || 0}
                   onChange={(e) => handleUpdateExercise(module.id, exercise.id, 'duration', parseInt(e.target.value))}
                   placeholder="Enter duration in minutes"
-                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full max-w-xs px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
               </div>
@@ -563,7 +563,7 @@ export const CreateModulesPage: React.FC = () => {
                               value={option}
                               onChange={(e) => handleUpdateQuestion(module.id, exercise.id, question.id, 'option', e.target.value, oIndex)}
                               placeholder={`Option ${oIndex + 1}`}
-                              className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                              className="flex-1 max-w-md px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
                             />
                           </div>
@@ -608,7 +608,7 @@ export const CreateModulesPage: React.FC = () => {
                   value={exercise.duration || 0}
                   onChange={(e) => handleUpdateExercise(module.id, exercise.id, 'duration', parseInt(e.target.value))}
                   placeholder="Enter duration in minutes"
-                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                  className="w-full max-w-xs px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                            text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 />
               </div>
@@ -728,7 +728,7 @@ export const CreateModulesPage: React.FC = () => {
                 <GradientText>Module Details</GradientText>
               </h2>
               
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-3xl mx-auto">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Module Title
@@ -738,7 +738,7 @@ export const CreateModulesPage: React.FC = () => {
                     value={activeModuleData.title}
                     onChange={(e) => handleUpdateModule(activeModuleData.id, 'title', e.target.value)}
                     placeholder="Enter module title"
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                    className="w-full max-w-xl px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                              text-gray-300 focus:border-primary-500/40 focus:outline-none"
                   />
                 </div>
@@ -752,13 +752,13 @@ export const CreateModulesPage: React.FC = () => {
                     onChange={(e) => handleUpdateModule(activeModuleData.id, 'description', e.target.value)}
                     placeholder="Enter module description"
                     rows={3}
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                    className="w-full max-w-xl px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                              text-gray-300 focus:border-primary-500/40 focus:outline-none"
                   />
                 </div>
               </div>
               
-              <div className="mt-8 space-y-4">
+              <div className="mt-8 space-y-4 max-w-3xl mx-auto">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-200">
                     Exercises
@@ -858,7 +858,7 @@ export const CreateModulesPage: React.FC = () => {
                 <GradientText>Exercise Content</GradientText>
               </h2>
               
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-3xl mx-auto">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Exercise Title
@@ -868,7 +868,7 @@ export const CreateModulesPage: React.FC = () => {
                     value={activeExerciseData.title}
                     onChange={(e) => handleUpdateExercise(activeModule, activeExerciseData.id, 'title', e.target.value)}
                     placeholder="Enter exercise title"
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                    className="w-full max-w-xl px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                              text-gray-300 focus:border-primary-500/40 focus:outline-none"
                   />
                 </div>
