@@ -279,7 +279,7 @@ export const CreateModulesPage: React.FC = () => {
 
       {/* Lab Info Summary */}
       {labConfig && (
-        <div className="glass-panel max-w-3xl mx-auto">
+        <div className="glass-panel max-w-2xl mx-auto">
           <h2 className="text-lg font-semibold mb-4">
             <GradientText>Lab Configuration</GradientText>
           </h2>
@@ -308,7 +308,7 @@ export const CreateModulesPage: React.FC = () => {
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Module List */}
-        <div className="w-full md:w-64 flex-shrink-0">
+        <div className="w-full md:w-56 flex-shrink-0">
           <div className="glass-panel h-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">
@@ -378,7 +378,7 @@ export const CreateModulesPage: React.FC = () => {
 
         {/* Module Editor */}
         {activeModule && (
-          <div className="flex-1 glass-panel max-w-3xl mx-auto">
+          <div className="flex-1 glass-panel max-w-2xl">
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Module Title
