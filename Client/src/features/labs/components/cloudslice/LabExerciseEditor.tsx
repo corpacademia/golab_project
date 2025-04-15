@@ -31,6 +31,35 @@ interface LabExerciseEditorProps {
   onDelete: (exerciseId: string) => Promise<void>;
 }
 
+// Mock AWS service categories
+const mockServiceCategories: Record<string, Service[]> = {
+  'Compute': [
+    { name: 'EC2', category: 'Compute', description: 'Elastic Compute Cloud - Virtual servers in the cloud' },
+    { name: 'Lambda', category: 'Compute', description: 'Run code without provisioning servers' },
+    { name: 'ECS', category: 'Compute', description: 'Elastic Container Service for Docker containers' }
+  ],
+  'Storage': [
+    { name: 'S3', category: 'Storage', description: 'Simple Storage Service - Object storage' },
+    { name: 'EBS', category: 'Storage', description: 'Elastic Block Store - Block storage for EC2' },
+    { name: 'EFS', category: 'Storage', description: 'Elastic File System - Fully managed file system' }
+  ],
+  'Database': [
+    { name: 'RDS', category: 'Database', description: 'Relational Database Service' },
+    { name: 'DynamoDB', category: 'Database', description: 'Managed NoSQL database' },
+    { name: 'ElastiCache', category: 'Database', description: 'In-memory caching service' }
+  ],
+  'Networking': [
+    { name: 'VPC', category: 'Networking', description: 'Virtual Private Cloud - Isolated cloud resources' },
+    { name: 'Route 53', category: 'Networking', description: 'Scalable DNS and domain registration' },
+    { name: 'CloudFront', category: 'Networking', description: 'Global content delivery network' }
+  ],
+  'Security': [
+    { name: 'IAM', category: 'Security', description: 'Identity and Access Management' },
+    { name: 'KMS', category: 'Security', description: 'Key Management Service - Managed encryption keys' },
+    { name: 'WAF', category: 'Security', description: 'Web Application Firewall' }
+  ]
+};
+
 export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   exercise,
   moduleId,
@@ -46,7 +75,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   
   // Services state
-  const [serviceCategories, setServiceCategories] = useState<Record<string, Service[]>>({});
+  const [serviceCategories, setServiceCategories] = useState<Record<string, Service[]>>(mockServiceCategories);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
@@ -65,11 +94,15 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   useEffect(() => {
     const fetchServiceCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
-        if (response.data.success) {
-          const categorizedServices = extractServiceCategories(response.data.data);
-          setServiceCategories(categorizedServices);
-        }
+        // Uncomment this when API is ready
+        // const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        // if (response.data.success) {
+        //   const categorizedServices = extractServiceCategories(response.data.data);
+        //   setServiceCategories(categorizedServices);
+        // }
+        
+        // Using mock data for now
+        setServiceCategories(mockServiceCategories);
       } catch (err) {
         console.error('Failed to fetch service categories:', err);
         // Don't set error state here to avoid blocking the UI
