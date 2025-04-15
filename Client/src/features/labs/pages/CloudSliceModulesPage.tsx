@@ -229,7 +229,8 @@ export const CloudSliceModulesPage: React.FC = () => {
         try {
           const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
           if (response.data.success) {
-            const fetchedModules = response.data.data || [];
+            // Check if response.data.data is an array before using forEach
+            const fetchedModules = Array.isArray(response.data.data) ? response.data.data : [];
             setModules(fetchedModules);
             
             // Initialize expanded state for all modules
