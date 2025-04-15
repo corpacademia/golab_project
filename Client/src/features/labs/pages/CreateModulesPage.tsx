@@ -1,250 +1,690 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { GradientText } from '../../../components/ui/GradientText';
 import { 
-  ArrowLeft, 
   Plus, 
+  Minus, 
   Trash2, 
-  MoveUp, 
-  MoveDown, 
+  BookOpen, 
+  HelpCircle, 
+  Clock, 
   Save,
   Loader,
-  Check,
   AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Search,
+  Upload,
+  X,
   FileText,
-  Code,
-  Image,
-  Link,
-  List,
-  ListOrdered,
-  Heading1,
-  Heading2,
-  Heading3,
-  Bold,
-  Italic,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  X
+  File
 } from 'lucide-react';
+import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
+
+interface Option {
+  id: string;
+  text: string;
+}
+
+interface Question {
+  id: string;
+  title: string;
+  description: string;
+  options: Option[];
+  correctAnswer: string;
+}
+
+interface LabFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  file: File;
+  progress: number;
+}
+
+interface LabExercise {
+  id: string;
+  title: string;
+  duration: number;
+  instructions: string;
+  services?: string[];
+  files?: LabFile[];
+}
+
+interface Exercise {
+  id: string;
+  type: 'lab' | 'questions';
+  labExercise?: LabExercise;
+  questions?: Question[];
+}
 
 interface Module {
   id: string;
-  title: string;
-  content: string;
-  order: number;
+  name: string;
+  description: string;
+  exercises: Exercise[];
+}
+
+interface Service {
+  name: string;
+  category: string;
+  description: string;
 }
 
 export const CreateModulesPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [labConfig, setLabConfig] = useState<any>(location.state?.labConfig || null);
-  const [modules, setModules] = useState<Module[]>([
-    { id: '1', title: 'Introduction', content: '', order: 1 }
-  ]);
-  const [activeModuleId, setActiveModuleId] = useState<string>('1');
-  const [isEditorFocused, setIsEditorFocused] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const labConfig = location.state?.labConfig;
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  
+  const [modules, setModules] = useState<Module[]>([{
+    id: `module-${Date.now()}`,
+    name: '',
+    description: '',
+    exercises: []
+  }]);
+  
+  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
+  const [expandedExercises, setExpandedExercises] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  // Service selection state
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
+  const [showCategoryDropdowns, setShowCategoryDropdowns] = useState<Record<string, boolean>>({});
+  const [showServiceDropdowns, setShowServiceDropdowns] = useState<Record<string, boolean>>({});
+  const [categorySearches, setCategorySearches] = useState<Record<string, string>>({});
+  const [serviceSearches, setServiceSearches] = useState<Record<string, string>>({});
+  const [selectedCategories, setSelectedCategories] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
+    // Check if we have lab config from previous step
     if (!labConfig) {
-      navigate('/dashboard/labs/create');
+      setNotification({
+        type: 'error',
+        message: 'No lab configuration found. Please go back and configure your lab first.'
+      });
+    } else if (labConfig.services && Array.isArray(labConfig.services)) {
+      // Convert service names to service objects
+      const services = labConfig.services.map((serviceName: string) => ({
+        name: serviceName,
+        category: 'AWS Service',
+        description: 'AWS Cloud Service'
+      }));
+      setSelectedServices(services);
     }
-    
-    const fetchUserProfile = async () => {
+
+    // Fetch AWS service categories
+    const fetchAwsServiceCategories = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        if (response.data.success) {
+          const categories: Record<string, Service[]> = {};
+          
+          response.data.data.forEach((service: any) => {
+            if (!categories[service.category]) {
+              categories[service.category] = [];
+            }
+            
+            categories[service.category].push({
+              name: service.services,
+              category: service.category,
+              description: service.description
+            });
+          });
+          
+          setAvailableCategories(categories);
+        }
       } catch (error) {
-        console.error('Failed to fetch user profile:', error);
+        console.error('Failed to fetch AWS services:', error);
       }
     };
+    
+    fetchAwsServiceCategories();
+  }, [labConfig]);
 
-    fetchUserProfile();
-  }, [labConfig, navigate]);
+  const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const activeModule = modules.find(m => m.id === activeModuleId);
-
-  const handleAddModule = () => {
-    const newId = (Math.max(...modules.map(m => parseInt(m.id))) + 1).toString();
-    const newOrder = Math.max(...modules.map(m => m.order)) + 1;
-    const newModule = { id: newId, title: `Module ${newOrder}`, content: '', order: newOrder };
+  const addModule = () => {
+    const newModule: Module = {
+      id: generateId('module'),
+      name: '',
+      description: '',
+      exercises: []
+    };
     setModules([...modules, newModule]);
-    setActiveModuleId(newId);
+    setCurrentModuleIndex(modules.length);
   };
 
-  const handleDeleteModule = (id: string) => {
-    if (modules.length <= 1) {
-      setNotification({ type: 'error', message: 'Cannot delete the only module' });
-      return;
-    }
-    
-    const updatedModules = modules.filter(m => m.id !== id);
-    // Reorder remaining modules
-    const reorderedModules = updatedModules.map((m, idx) => ({
-      ...m,
-      order: idx + 1
-    }));
-    
-    setModules(reorderedModules);
-    
-    // Set active module to the first one if the active module was deleted
-    if (id === activeModuleId) {
-      setActiveModuleId(reorderedModules[0].id);
-    }
-  };
-
-  const handleMoveModule = (id: string, direction: 'up' | 'down') => {
-    const moduleIndex = modules.findIndex(m => m.id === id);
-    if (
-      (direction === 'up' && moduleIndex === 0) || 
-      (direction === 'down' && moduleIndex === modules.length - 1)
-    ) {
-      return;
-    }
-
+  const removeModule = (index: number) => {
+    if (modules.length <= 1) return;
     const newModules = [...modules];
-    const targetIndex = direction === 'up' ? moduleIndex - 1 : moduleIndex + 1;
-    
-    // Swap order values
-    const tempOrder = newModules[moduleIndex].order;
-    newModules[moduleIndex].order = newModules[targetIndex].order;
-    newModules[targetIndex].order = tempOrder;
-    
-    // Sort by order
-    newModules.sort((a, b) => a.order - b.order);
-    
+    newModules.splice(index, 1);
+    setModules(newModules);
+    if (currentModuleIndex >= newModules.length) {
+      setCurrentModuleIndex(newModules.length - 1);
+    }
+  };
+
+  const updateModule = (index: number, field: keyof Module, value: string) => {
+    const newModules = [...modules];
+    newModules[index] = {
+      ...newModules[index],
+      [field]: value
+    };
     setModules(newModules);
   };
 
-  const handleModuleChange = (id: string, field: 'title' | 'content', value: string) => {
-    setModules(modules.map(m => 
-      m.id === id ? { ...m, [field]: value } : m
-    ));
-  };
-
-  const handleEditorCommand = (command: string) => {
-    if (!activeModule) return;
+  const addExercise = (moduleIndex: number, type: 'lab' | 'questions') => {
+    const newModules = [...modules];
+    const exerciseId = generateId('exercise');
     
-    const textarea = document.getElementById('module-content') as HTMLTextAreaElement;
-    if (!textarea) return;
+    let newExercise: Exercise;
     
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    const beforeText = textarea.value.substring(0, start);
-    const afterText = textarea.value.substring(end);
-    
-    let newText = '';
-    
-    switch (command) {
-      case 'h1':
-        newText = `${beforeText}# ${selectedText}${afterText}`;
-        break;
-      case 'h2':
-        newText = `${beforeText}## ${selectedText}${afterText}`;
-        break;
-      case 'h3':
-        newText = `${beforeText}### ${selectedText}${afterText}`;
-        break;
-      case 'bold':
-        newText = `${beforeText}**${selectedText}**${afterText}`;
-        break;
-      case 'italic':
-        newText = `${beforeText}*${selectedText}*${afterText}`;
-        break;
-      case 'ul':
-        newText = `${beforeText}\n- ${selectedText}${afterText}`;
-        break;
-      case 'ol':
-        newText = `${beforeText}\n1. ${selectedText}${afterText}`;
-        break;
-      case 'link':
-        newText = `${beforeText}[${selectedText || 'Link text'}](url)${afterText}`;
-        break;
-      case 'image':
-        newText = `${beforeText}![${selectedText || 'Image alt text'}](image-url)${afterText}`;
-        break;
-      case 'code':
-        newText = `${beforeText}\`\`\`\n${selectedText}\n\`\`\`${afterText}`;
-        break;
-      default:
-        return;
+    if (type === 'lab') {
+      newExercise = {
+        id: exerciseId,
+        type,
+        labExercise: {
+          id: generateId('lab'),
+          title: '',
+          duration: 30,
+          instructions: '',
+          services: [],
+          files: []
+        }
+      };
+    } else {
+      newExercise = {
+        id: exerciseId,
+        type,
+        questions: [{
+          id: generateId('question'),
+          title: '',
+          description: '',
+          options: [
+            { id: generateId('option'), text: '' },
+            { id: generateId('option'), text: '' }
+          ],
+          correctAnswer: ''
+        }]
+      };
     }
     
-    handleModuleChange(activeModuleId, 'content', newText);
+    newModules[moduleIndex].exercises.push(newExercise);
+    setModules(newModules);
     
-    // Set focus back to textarea and update selection
-    setTimeout(() => {
-      textarea.focus();
-      const newCursorPos = newText.length;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    }, 0);
+    // Auto-expand the new exercise
+    setExpandedExercises(prev => ({
+      ...prev,
+      [exerciseId]: true
+    }));
   };
 
-  const handleSave = async () => {
-    if (!labConfig) {
-      setNotification({ type: 'error', message: 'Lab configuration is missing' });
-      return;
+  const removeExercise = (moduleIndex: number, exerciseIndex: number) => {
+    const newModules = [...modules];
+    newModules[moduleIndex].exercises.splice(exerciseIndex, 1);
+    setModules(newModules);
+  };
+
+  const updateLabExercise = (
+    moduleIndex: number, 
+    exerciseIndex: number, 
+    field: keyof LabExercise, 
+    value: string | number | string[]
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise) {
+      exercise.labExercise = {
+        ...exercise.labExercise,
+        [field]: value
+      };
+      setModules(newModules);
+    }
+  };
+
+  const addQuestion = (moduleIndex: number, exerciseIndex: number) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions.push({
+        id: generateId('question'),
+        title: '',
+        description: '',
+        options: [
+          { id: generateId('option'), text: '' },
+          { id: generateId('option'), text: '' }
+        ],
+        correctAnswer: ''
+      });
+      setModules(newModules);
+    }
+  };
+
+  const removeQuestion = (moduleIndex: number, exerciseIndex: number, questionIndex: number) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions.splice(questionIndex, 1);
+      setModules(newModules);
+    }
+  };
+
+  const updateQuestion = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    questionIndex: number,
+    field: keyof Question,
+    value: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions[questionIndex] = {
+        ...exercise.questions[questionIndex],
+        [field]: value
+      };
+      setModules(newModules);
+    }
+  };
+
+  const addOption = (moduleIndex: number, exerciseIndex: number, questionIndex: number) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions[questionIndex].options.push({
+        id: generateId('option'),
+        text: ''
+      });
+      setModules(newModules);
+    }
+  };
+
+  const removeOption = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    questionIndex: number,
+    optionIndex: number
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      const question = exercise.questions[questionIndex];
+      
+      // Don't allow removing if only 2 options remain
+      if (question.options.length <= 2) return;
+      
+      // If removing the correct answer, reset it
+      const removedOption = question.options[optionIndex];
+      if (removedOption.id === question.correctAnswer) {
+        question.correctAnswer = '';
+      }
+      
+      question.options.splice(optionIndex, 1);
+      setModules(newModules);
+    }
+  };
+
+  const updateOption = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    questionIndex: number,
+    optionIndex: number,
+    value: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions[questionIndex].options[optionIndex].text = value;
+      setModules(newModules);
+    }
+  };
+
+  const setCorrectAnswer = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    questionIndex: number,
+    optionId: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions' && exercise.questions) {
+      exercise.questions[questionIndex].correctAnswer = optionId;
+      setModules(newModules);
+    }
+  };
+
+  const toggleExerciseExpansion = (exerciseId: string) => {
+    setExpandedExercises(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
+  const toggleCategoryDropdown = (exerciseId: string) => {
+    setShowCategoryDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+    
+    // Close service dropdown if category dropdown is being opened
+    if (!showCategoryDropdowns[exerciseId]) {
+      setShowServiceDropdowns(prev => ({
+        ...prev,
+        [exerciseId]: false
+      }));
+    }
+  };
+
+  const toggleServiceDropdown = (exerciseId: string) => {
+    setShowServiceDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: !prev[exerciseId]
+    }));
+  };
+
+  const updateCategorySearch = (exerciseId: string, value: string) => {
+    setCategorySearches(prev => ({
+      ...prev,
+      [exerciseId]: value
+    }));
+  };
+
+  const updateServiceSearch = (exerciseId: string, value: string) => {
+    setServiceSearches(prev => ({
+      ...prev,
+      [exerciseId]: value
+    }));
+  };
+
+  const selectCategory = (exerciseId: string, category: string) => {
+    setSelectedCategories(prev => ({
+      ...prev,
+      [exerciseId]: category
+    }));
+    
+    setShowCategoryDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: false
+    }));
+    
+    setShowServiceDropdowns(prev => ({
+      ...prev,
+      [exerciseId]: true
+    }));
+  };
+
+  const toggleServiceForExercise = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    serviceName: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise) {
+      const services = exercise.labExercise.services || [];
+      
+      if (services.includes(serviceName)) {
+        exercise.labExercise.services = services.filter(s => s !== serviceName);
+      } else {
+        exercise.labExercise.services = [...services, serviceName];
+      }
+      
+      setModules(newModules);
+    }
+  };
+
+  const handleFileUpload = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    files: FileList
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise) {
+      if (!exercise.labExercise.files) {
+        exercise.labExercise.files = [];
+      }
+      
+      Array.from(files).forEach(file => {
+        // Check if file already exists
+        const fileExists = exercise.labExercise?.files?.some(f => 
+          f.name === file.name && f.size === file.size
+        );
+        
+        if (!fileExists) {
+          exercise.labExercise?.files?.push({
+            id: generateId('file'),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file: file,
+            progress: 100 // Simulate completed upload
+          });
+        }
+      });
+      
+      setModules(newModules);
+    }
+  };
+
+  const removeFile = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    fileId: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise && exercise.labExercise.files) {
+      exercise.labExercise.files = exercise.labExercise.files.filter(f => f.id !== fileId);
+      setModules(newModules);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const validateModules = (): boolean => {
+    // Basic validation
+    for (const module of modules) {
+      if (!module.name.trim()) {
+        setNotification({
+          type: 'error',
+          message: 'All modules must have a name'
+        });
+        return false;
+      }
+      
+      for (const exercise of module.exercises) {
+        if (exercise.type === 'lab') {
+          if (!exercise.labExercise?.title.trim()) {
+            setNotification({
+              type: 'error',
+              message: 'All lab exercises must have a title'
+            });
+            return false;
+          }
+        } else if (exercise.type === 'questions') {
+          for (const question of exercise.questions || []) {
+            if (!question.title.trim()) {
+              setNotification({
+                type: 'error',
+                message: 'All questions must have a title'
+              });
+              return false;
+            }
+            
+            if (question.options.length < 2) {
+              setNotification({
+                type: 'error',
+                message: 'All questions must have at least 2 options'
+              });
+              return false;
+            }
+            
+            if (!question.correctAnswer) {
+              setNotification({
+                type: 'error',
+                message: 'All questions must have a correct answer selected'
+              });
+              return false;
+            }
+            
+            for (const option of question.options) {
+              if (!option.text.trim()) {
+                setNotification({
+                  type: 'error',
+                  message: 'All options must have text'
+                });
+                return false;
+              }
+            }
+          }
+        }
+      }
     }
     
-    setIsSaving(true);
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateModules()) return;
+    
+    setIsSubmitting(true);
     setNotification(null);
     
     try {
-      const labData = {
-        ...labConfig,
-        modules: modules.map(({ id, title, content, order }) => ({ title, content, order }))
+      // Get the current user
+      const userResponse = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+      const userId = userResponse.data.user.id;
+      
+      // Prepare data for submission
+      const submissionData = {
+        labConfig,
+        modules,
+        createdBy: userId
       };
       
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/createCloudSliceLab', {
-        createdBy: user?.id,
-        labData
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(submissionData));
+      
+      // Add files to FormData
+      let fileCount = 0;
+      modules.forEach((module, moduleIndex) => {
+        module.exercises.forEach((exercise, exerciseIndex) => {
+          if (exercise.type === 'lab' && exercise.labExercise?.files) {
+            exercise.labExercise.files.forEach(fileObj => {
+              formData.append(
+                `files`, 
+                fileObj.file, 
+                fileObj.name
+              );
+              fileCount++;
+            });
+          }
+        });
       });
       
+      // Submit to backend
+      console.log(submissionData)
+      const response = await axios.post(
+        'http://localhost:3000/api/v1/cloud_slice_ms/createLabModules', 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
       if (response.data.success) {
-        setNotification({ type: 'success', message: 'Lab with modules created successfully!' });
-        setTimeout(() => {
-          navigate('/dashboard/labs/cloud-slices');
-        }, 2000);
+        setNotification({
+          type: 'success',
+          message: 'Lab modules created successfully!'
+        });
+        
       } else {
-        throw new Error(response.data.message || 'Failed to create lab');
+        throw new Error(response.data.message || 'Failed to create lab modules');
       }
     } catch (error: any) {
-      setNotification({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to create lab with modules' 
+      console.error('Error creating modules:', error);
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to create lab modules'
       });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const getFilteredCategories = (exerciseId: string) => {
+    const search = categorySearches[exerciseId] || '';
+    return Object.keys(availableCategories).filter(category =>
+      category.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  const getFilteredServices = (exerciseId: string) => {
+    const search = serviceSearches[exerciseId] || '';
+    const category = selectedCategories[exerciseId];
+    
+    if (!category) return [];
+    
+    return availableCategories[category].filter(service =>
+      service.name.toLowerCase().includes(search.toLowerCase()) ||
+      service.description.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  const triggerFileInput = (exerciseId: string) => {
+    if (fileInputRefs.current[exerciseId]) {
+      fileInputRefs.current[exerciseId]?.click();
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 pb-12">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => navigate('/dashboard/labs/create')}
-            className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-400" />
-          </button>
+        <div>
           <h1 className="text-3xl font-display font-bold">
             <GradientText>Create Lab Modules</GradientText>
           </h1>
+          <p className="mt-2 text-gray-400">
+            Define learning modules and exercises for your cloud slice lab
+          </p>
         </div>
         
-        <button 
-          onClick={handleSave}
-          disabled={isSaving}
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
           className="btn-primary"
         >
-          {isSaving ? (
+          {isSubmitting ? (
             <span className="flex items-center">
               <Loader className="animate-spin h-4 w-4 mr-2" />
               Saving...
@@ -252,252 +692,680 @@ export const CreateModulesPage: React.FC = () => {
           ) : (
             <span className="flex items-center">
               <Save className="h-4 w-4 mr-2" />
-              Save Lab
+              Save Lab Modules
             </span>
           )}
         </button>
       </div>
 
       {notification && (
-        <div className={`p-4 rounded-lg flex items-center space-x-2 ${
+        <div className={`p-4 rounded-lg ${
           notification.type === 'success' 
-            ? 'bg-emerald-500/20 border border-emerald-500/20' 
-            : 'bg-red-500/20 border border-red-500/20'
+            ? 'bg-emerald-500/10 border border-emerald-500/20' 
+            : 'bg-red-500/10 border border-red-500/20'
         }`}>
-          {notification.type === 'success' ? (
-            <Check className="h-5 w-5 text-emerald-400" />
-          ) : (
-            <AlertCircle className="h-5 w-5 text-red-400" />
-          )}
-          <span className={`text-sm ${
-            notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
-          }`}>
-            {notification.message}
-          </span>
-        </div>
-      )}
-
-      {/* Lab Info Summary */}
-      {labConfig && (
-        <div className="glass-panel max-w-3xl mx-auto">
-          <h2 className="text-lg font-semibold mb-4">
-            <GradientText>Lab Configuration</GradientText>
-          </h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-400">Title:</span>
-              <p className="text-gray-200">{labConfig.title}</p>
-            </div>
-            <div>
-              <span className="text-gray-400">Cloud Provider:</span>
-              <p className="text-gray-200">{labConfig.cloudProvider?.toUpperCase()}</p>
-            </div>
-            <div>
-              <span className="text-gray-400">Region:</span>
-              <p className="text-gray-200">{labConfig.region}</p>
-            </div>
-            <div>
-              <span className="text-gray-400">Duration:</span>
-              <p className="text-gray-200">
-                {new Date(labConfig.startDate).toLocaleDateString()} to {new Date(labConfig.endDate).toLocaleDateString()}
-              </p>
-            </div>
+          <div className="flex items-center space-x-2">
+            {notification.type === 'success' ? (
+              <Check className="h-5 w-5 text-emerald-400" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-400" />
+            )}
+            <span className={notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'}>
+              {notification.message}
+            </span>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Module List */}
-        <div className="w-full md:w-64 flex-shrink-0">
-          <div className="glass-panel h-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                <GradientText>Modules</GradientText>
-              </h2>
-              <button 
-                onClick={handleAddModule}
-                className="p-1.5 hover:bg-primary-500/10 rounded-lg transition-colors"
-              >
-                <Plus className="h-4 w-4 text-primary-400" />
-              </button>
+      {/* Lab Configuration Summary */}
+      {labConfig && (
+        <div className="glass-panel">
+          <h3 className="text-lg font-semibold text-gray-200 mb-4">Lab Configuration</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Lab Details</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Title:</span>
+                  <span className="text-gray-200">{labConfig.title}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Cloud Provider:</span>
+                  <span className="text-gray-200">{labConfig.cloudProvider}</span>
+                </div>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              {modules.map((module) => (
-                <div 
-                  key={module.id}
-                  className={`p-3 rounded-lg flex items-center justify-between ${
-                    activeModuleId === module.id 
-                      ? 'bg-primary-500/15 border border-primary-500/20' 
-                      : 'bg-dark-300/50 hover:bg-dark-300 border border-transparent'
-                  } transition-colors cursor-pointer`}
-                  onClick={() => setActiveModuleId(module.id)}
-                >
-                  <span className={`text-sm ${
-                    activeModuleId === module.id ? 'text-primary-300' : 'text-gray-300'
-                  }`}>
-                    {module.title}
-                  </span>
-                  
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveModule(module.id, 'up');
-                      }}
-                      className="p-1 hover:bg-dark-200 rounded transition-colors"
-                      disabled={module.order === 1}
-                    >
-                      <MoveUp className="h-3.5 w-3.5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveModule(module.id, 'down');
-                      }}
-                      className="p-1 hover:bg-dark-200 rounded transition-colors"
-                      disabled={module.order === modules.length}
-                    >
-                      <MoveDown className="h-3.5 w-3.5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteModule(module.id);
-                      }}
-                      className="p-1 hover:bg-red-500/10 rounded transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                    </button>
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedServices.map(service => (
+                  <div
+                    key={service.name}
+                    className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                             rounded-full text-sm"
+                  >
+                    {service.name}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Module Editor */}
-        {activeModule && (
-          <div className="flex-1 glass-panel max-w-3xl mx-auto">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Module Title
-              </label>
-              <input
-                type="text"
-                value={activeModule.title}
-                onChange={(e) => handleModuleChange(activeModuleId, 'title', e.target.value)}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                placeholder="Enter module title"
-              />
-            </div>
+      {/* Module Tabs */}
+      <div className="flex space-x-2 overflow-x-auto pb-2">
+        {modules.map((module, index) => (
+          <button
+            key={module.id}
+            onClick={() => setCurrentModuleIndex(index)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+              currentModuleIndex === index
+                ? 'bg-primary-500/20 text-primary-300 border border-primary-500/30'
+                : 'bg-dark-300/50 text-gray-400 hover:bg-dark-300 hover:text-gray-300'
+            }`}
+          >
+            {module.name || `Module ${index + 1}`}
+          </button>
+        ))}
+        <button
+          onClick={addModule}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-dark-300/50 text-gray-400 
+                   hover:bg-dark-300 hover:text-gray-300 flex items-center"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add Module
+        </button>
+      </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-300">
-                  Module Content (Markdown)
-                </label>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handleEditorCommand('h1')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Heading 1"
-                  >
-                    <Heading1 className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('h2')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Heading 2"
-                  >
-                    <Heading2 className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('h3')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Heading 3"
-                  >
-                    <Heading3 className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <span className="w-px h-4 bg-gray-600 mx-1"></span>
-                  <button
-                    onClick={() => handleEditorCommand('bold')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Bold"
-                  >
-                    <Bold className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('italic')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Italic"
-                  >
-                    <Italic className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <span className="w-px h-4 bg-gray-600 mx-1"></span>
-                  <button
-                    onClick={() => handleEditorCommand('ul')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Unordered List"
-                  >
-                    <List className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('ol')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Ordered List"
-                  >
-                    <ListOrdered className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <span className="w-px h-4 bg-gray-600 mx-1"></span>
-                  <button
-                    onClick={() => handleEditorCommand('link')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Link"
-                  >
-                    <Link className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('image')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Image"
-                  >
-                    <Image className="h-4 w-4 text-gray-400" />
-                  </button>
-                  <button
-                    onClick={() => handleEditorCommand('code')}
-                    className="p-1.5 hover:bg-primary-500/10 rounded transition-colors"
-                    title="Code Block"
-                  >
-                    <Code className="h-4 w-4 text-gray-400" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className={`relative border ${
-                isEditorFocused 
-                  ? 'border-primary-500/40 ring-2 ring-primary-500/20' 
-                  : 'border-primary-500/20'
-              } rounded-lg transition-colors`}>
-                <textarea
-                  id="module-content"
-                  value={activeModule.content}
-                  onChange={(e) => handleModuleChange(activeModuleId, 'content', e.target.value)}
-                  onFocus={() => setIsEditorFocused(true)}
-                  onBlur={() => setIsEditorFocused(false)}
-                  className="w-full h-96 px-4 py-3 bg-dark-400/50 rounded-lg
-                           text-gray-300 font-mono text-sm focus:outline-none"
-                  placeholder="Write your module content in Markdown format..."
-                />
-              </div>
-              
-              <div className="mt-2 text-xs text-gray-500">
-                <span className="text-primary-400">Tip:</span> Use Markdown syntax for formatting. You can also use the toolbar above.
-              </div>
-            </div>
+      {/* Current Module */}
+      <div className="glass-panel">
+        <div className="flex justify-between items-start mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>
+              {modules[currentModuleIndex].name || `Module ${currentModuleIndex + 1}`}
+            </GradientText>
+          </h2>
+          {modules.length > 1 && (
+            <button
+              onClick={() => removeModule(currentModuleIndex)}
+              className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Module Name
+            </label>
+            <input
+              type="text"
+              value={modules[currentModuleIndex].name}
+              onChange={(e) => updateModule(currentModuleIndex, 'name', e.target.value)}
+              placeholder="Enter module name"
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            />
           </div>
-        )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Module Description
+            </label>
+            <textarea
+              value={modules[currentModuleIndex].description}
+              onChange={(e) => updateModule(currentModuleIndex, 'description', e.target.value)}
+              placeholder="Describe what students will learn in this module"
+              rows={3}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            />
+          </div>
+
+          {/* Exercises */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-200">Exercises</h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => addExercise(currentModuleIndex, 'lab')}
+                  className="btn-secondary text-sm py-1.5"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Add Lab Exercise
+                </button>
+                <button
+                  onClick={() => addExercise(currentModuleIndex, 'questions')}
+                  className="btn-secondary text-sm py-1.5"
+                >
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Add Practice Questions
+                </button>
+              </div>
+            </div>
+
+            {modules[currentModuleIndex].exercises.length === 0 ? (
+              <div className="p-6 bg-dark-300/30 rounded-lg border border-primary-500/10 text-center">
+                <p className="text-gray-400">
+                  No exercises added yet. Add a lab exercise or practice questions to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {modules[currentModuleIndex].exercises.map((exercise, exerciseIndex) => (
+                  <div 
+                    key={exercise.id}
+                    className="bg-dark-300/50 rounded-lg border border-primary-500/10 overflow-hidden"
+                  >
+                    {/* Exercise Header */}
+                    <div 
+                      className="flex items-center justify-between p-4 cursor-pointer"
+                      onClick={() => toggleExerciseExpansion(exercise.id)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        {exercise.type === 'lab' ? (
+                          <BookOpen className="h-5 w-5 text-primary-400" />
+                        ) : (
+                          <HelpCircle className="h-5 w-5 text-secondary-400" />
+                        )}
+                        <div>
+                          <h4 className="font-medium text-gray-200">
+                            {exercise.type === 'lab' 
+                              ? (exercise.labExercise?.title || 'Lab Exercise') 
+                              : 'Practice Questions'
+                            }
+                          </h4>
+                          <p className="text-sm text-gray-400">
+                            {exercise.type === 'lab' 
+                              ? `${exercise.labExercise?.duration || 0} minutes` 
+                              : `${exercise.questions?.length || 0} questions`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeExercise(currentModuleIndex, exerciseIndex);
+                          }}
+                          className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        {expandedExercises[exercise.id] ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Exercise Content */}
+                    {expandedExercises[exercise.id] && (
+                      <div className="p-4 border-t border-primary-500/10">
+                        {exercise.type === 'lab' ? (
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Lab Title
+                              </label>
+                              <input
+                                type="text"
+                                value={exercise.labExercise?.title || ''}
+                                onChange={(e) => updateLabExercise(
+                                  currentModuleIndex, 
+                                  exerciseIndex, 
+                                  'title', 
+                                  e.target.value
+                                )}
+                                placeholder="Enter lab title"
+                                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Estimated Duration (minutes)
+                              </label>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-5 w-5 text-primary-400" />
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={exercise.labExercise?.duration || 30}
+                                  onChange={(e) => updateLabExercise(
+                                    currentModuleIndex, 
+                                    exerciseIndex, 
+                                    'duration', 
+                                    parseInt(e.target.value) || 30
+                                  )}
+                                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Service Selection for this Lab Exercise */}
+                            <div className="space-y-4">
+                              <h4 className="text-sm font-medium text-gray-300">AWS Services for this Exercise</h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Category Dropdown */}
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-300">
+                                    Service Category
+                                  </label>
+                                  <div className="relative">
+                                    <div 
+                                      className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                                               border border-primary-500/20 hover:border-primary-500/40 
+                                               rounded-lg cursor-pointer transition-colors"
+                                      onClick={() => toggleCategoryDropdown(exercise.id)}
+                                    >
+                                      <span className="text-gray-300">
+                                        {selectedCategories[exercise.id] || 'Select a category'}
+                                      </span>
+                                      <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                                        showCategoryDropdowns[exercise.id] ? 'transform rotate-180' : ''
+                                      }`} />
+                                    </div>
+
+                                    {showCategoryDropdowns[exercise.id] && (
+                                      <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                                    border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                                        <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              placeholder="Search categories..."
+                                              value={categorySearches[exercise.id] || ''}
+                                              onChange={(e) => updateCategorySearch(exercise.id, e.target.value)}
+                                              className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                                       rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                            />
+                                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          {getFilteredCategories(exercise.id).map(category => (
+                                            <button
+                                              key={category}
+                                              onClick={() => selectCategory(exercise.id, category)}
+                                              className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                                            >
+                                              <p className="text-gray-200">{category}</p>
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Services Dropdown */}
+                                <div className="space-y-2">
+                                  <label className="block text-sm font-medium text-gray-300">
+                                    Services
+                                  </label>
+                                  <div className="relative">
+                                    <div 
+                                      className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                                               border border-primary-500/20 hover:border-primary-500/40 
+                                               rounded-lg cursor-pointer transition-colors"
+                                      onClick={() => selectedCategories[exercise.id] && toggleServiceDropdown(exercise.id)}
+                                    >
+                                      <span className="text-gray-300">
+                                        {exercise.labExercise?.services?.length 
+                                          ? `${exercise.labExercise.services.length} service(s) selected` 
+                                          : 'Select services'}
+                                      </span>
+                                      <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                                        showServiceDropdowns[exercise.id] ? 'transform rotate-180' : ''
+                                      }`} />
+                                    </div>
+
+                                    {showServiceDropdowns[exercise.id] && selectedCategories[exercise.id] && (
+                                      <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                                    border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                                        <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              placeholder="Search services..."
+                                              value={serviceSearches[exercise.id] || ''}
+                                              onChange={(e) => updateServiceSearch(exercise.id, e.target.value)}
+                                              className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                                       rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                            />
+                                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                                          </div>
+                                        </div>
+                                        <div>
+                                          {getFilteredServices(exercise.id).map(service => (
+                                            <label
+                                              key={service.name}
+                                              className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                                       cursor-pointer transition-colors"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={exercise.labExercise?.services?.includes(service.name) || false}
+                                                onChange={() => toggleServiceForExercise(
+                                                  currentModuleIndex,
+                                                  exerciseIndex,
+                                                  service.name
+                                                )}
+                                                className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                                         border-gray-500/20 focus:ring-primary-500"
+                                              />
+                                              <div>
+                                                <p className="font-medium text-gray-200">{service.name}</p>
+                                                <p className="text-sm text-gray-400">{service.description}</p>
+                                              </div>
+                                            </label>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Selected Services Display */}
+                              {exercise.labExercise?.services && exercise.labExercise.services.length > 0 && (
+                                <div className="mt-2">
+                                  <h5 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h5>
+                                  <div className="flex flex-wrap gap-2">
+                                    {exercise.labExercise.services.map(serviceName => (
+                                      <div
+                                        key={serviceName}
+                                        className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                                                 rounded-full text-sm"
+                                      >
+                                        {serviceName}
+                                        <button
+                                          onClick={() => toggleServiceForExercise(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            serviceName
+                                          )}
+                                          className="ml-2 hover:text-primary-400"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Lab Instructions
+                              </label>
+                              <textarea
+                                value={exercise.labExercise?.instructions || ''}
+                                onChange={(e) => updateLabExercise(
+                                  currentModuleIndex, 
+                                  exerciseIndex, 
+                                  'instructions', 
+                                  e.target.value
+                                )}
+                                placeholder="Provide step-by-step instructions for the lab exercise"
+                                rows={6}
+                                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                              />
+                            </div>
+
+                            {/* File Upload Section */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Lab Files
+                              </label>
+                              <div className="border-2 border-dashed border-primary-500/20 rounded-lg p-6 text-center">
+                                <input
+                                  type="file"
+                                  multiple
+                                  className="hidden"
+                                  ref={el => fileInputRefs.current[exercise.id] = el}
+                                  onChange={(e) => {
+                                    if (e.target.files) {
+                                      handleFileUpload(currentModuleIndex, exerciseIndex, e.target.files);
+                                    }
+                                  }}
+                                />
+                                <div 
+                                  className="flex flex-col items-center cursor-pointer"
+                                  onClick={() => triggerFileInput(exercise.id)}
+                                >
+                                  <Upload className="h-12 w-12 text-primary-400 mb-4" />
+                                  <p className="text-gray-300 mb-2">
+                                    Drop files here or click to upload
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Upload lab resources, sample code, or documentation
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* File List */}
+                              {exercise.labExercise?.files && exercise.labExercise.files.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  <h5 className="text-sm font-medium text-gray-400 mb-2">Uploaded Files:</h5>
+                                  {exercise.labExercise.files.map(file => (
+                                    <div 
+                                      key={file.id}
+                                      className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg"
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        <FileText className="h-5 w-5 text-primary-400" />
+                                        <div>
+                                          <p className="text-sm text-gray-300">{file.name}</p>
+                                          <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => removeFile(currentModuleIndex, exerciseIndex, file.id)}
+                                        className="p-1 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {exercise.questions?.map((question, questionIndex) => (
+                              <div 
+                                key={question.id}
+                                className="p-4 bg-dark-400/30 rounded-lg border border-primary-500/10"
+                              >
+                                <div className="flex justify-between items-start mb-4">
+                                  <h5 className="font-medium text-gray-200">
+                                    Question {questionIndex + 1}
+                                  </h5>
+                                  {(exercise.questions?.length || 0) > 1 && (
+                                    <button
+                                      onClick={() => removeQuestion(
+                                        currentModuleIndex, 
+                                        exerciseIndex, 
+                                        questionIndex
+                                      )}
+                                      className="p-1 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                      Question Title
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={question.title}
+                                      onChange={(e) => updateQuestion(
+                                        currentModuleIndex,
+                                        exerciseIndex,
+                                        questionIndex,
+                                        'title',
+                                        e.target.value
+                                      )}
+                                      placeholder="Enter question title"
+                                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                      Question Description
+                                    </label>
+                                    <textarea
+                                      value={question.description}
+                                      onChange={(e) => updateQuestion(
+                                        currentModuleIndex,
+                                        exerciseIndex,
+                                        questionIndex,
+                                        'description',
+                                        e.target.value
+                                      )}
+                                      placeholder="Provide additional context for the question"
+                                      rows={3}
+                                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <label className="text-sm font-medium text-gray-300">
+                                        Options
+                                      </label>
+                                      <button
+                                        onClick={() => addOption(
+                                          currentModuleIndex,
+                                          exerciseIndex,
+                                          questionIndex
+                                        )}
+                                        className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
+                                      >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        Add Option
+                                      </button>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                      {question.options.map((option, optionIndex) => (
+                                        <div 
+                                          key={option.id}
+                                          className="flex items-center space-x-2"
+                                        >
+                                          <input
+                                            type="radio"
+                                            name={`correct-${question.id}`}
+                                            checked={question.correctAnswer === option.id}
+                                            onChange={() => setCorrectAnswer(
+                                              currentModuleIndex,
+                                              exerciseIndex,
+                                              questionIndex,
+                                              option.id
+                                            )}
+                                            className="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                                          />
+                                          <input
+                                            type="text"
+                                            value={option.text}
+                                            onChange={(e) => updateOption(
+                                              currentModuleIndex,
+                                              exerciseIndex,
+                                              questionIndex,
+                                              optionIndex,
+                                              e.target.value
+                                            )}
+                                            placeholder={`Option ${optionIndex + 1}`}
+                                            className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                     text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                          />
+                                          {question.options.length > 2 && (
+                                            <button
+                                              onClick={() => removeOption(
+                                                currentModuleIndex,
+                                                exerciseIndex,
+                                                questionIndex,
+                                                optionIndex
+                                              )}
+                                              className="p-1 hover:bg-red-500/10 rounded-lg text-red-400 transition-colors"
+                                            >
+                                              <Minus className="h-4 w-4" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            
+                            <button
+                              onClick={() => addQuestion(currentModuleIndex, exerciseIndex)}
+                              className="btn-secondary w-full"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Question
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+     
+      <div className="flex justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="btn-secondary"
+        >
+          Back to Lab Configuration
+        </button>
+        
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="btn-primary"
+        >
+          {isSubmitting ? (
+            <span className="flex items-center">
+              <Loader className="animate-spin h-4 w-4 mr-2" />
+              Saving...
+            </span>
+          ) : (
+            <span className="flex items-center">
+              <Layers className="h-4 w-4 mr-2" />
+              Create Lab with Modules
+            </span>
+          )}
+        </button>
       </div>
     </div>
   );
