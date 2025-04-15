@@ -68,6 +68,7 @@ export const QuizExerciseEditor: React.FC<QuizExerciseEditorProps> = ({
         setSuccess(null);
       }, 3000);
     } catch (err: any) {
+      console.error('Error saving quiz exercise:', err);
       setError(err.response?.data?.message || 'Failed to update exercise');
       
       setTimeout(() => {
@@ -87,6 +88,7 @@ export const QuizExerciseEditor: React.FC<QuizExerciseEditorProps> = ({
     try {
       await onDelete(exercise.id);
     } catch (err: any) {
+      console.error('Error deleting quiz exercise:', err);
       setError(err.response?.data?.message || 'Failed to delete exercise');
     } finally {
       setIsLoading(false);
@@ -153,7 +155,7 @@ export const QuizExerciseEditor: React.FC<QuizExerciseEditorProps> = ({
   };
 
   return (
-    <div className="glass-panel mb-4">
+    <div className="glass-panel mb-4 relative">
       {/* Notification */}
       {error && (
         <div className="absolute top-2 right-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2 z-10">
@@ -277,87 +279,96 @@ export const QuizExerciseEditor: React.FC<QuizExerciseEditorProps> = ({
         <h4 className="text-sm font-medium text-gray-300 mb-4">Questions</h4>
         
         <div className="space-y-6">
-          {questions.map((question, questionIndex) => (
-            <div 
-              key={question.id} 
-              className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10"
-            >
-              {isEditing ? (
-                <>
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 mr-3">
-                      <input
-                        type="text"
-                        value={question.text}
-                        onChange={(e) => handleQuestionChange(questionIndex, e.target.value)}
-                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                 text-gray-200 focus:border-primary-500/40 focus:outline-none"
-                        placeholder={`Question ${questionIndex + 1}`}
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleRemoveQuestion(questionIndex)}
-                      className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-400" />
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-3 mt-4">
-                    {question.options.map((option, optionIndex) => (
-                      <div key={option.id} className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          checked={option.isCorrect}
-                          onChange={() => handleCorrectOptionChange(questionIndex, optionIndex)}
-                          className="h-4 w-4 text-primary-500 focus:ring-primary-500"
-                        />
+          {questions && questions.length > 0 ? (
+            questions.map((question, questionIndex) => (
+              <div 
+                key={question.id || questionIndex} 
+                className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10"
+              >
+                {isEditing ? (
+                  <>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 mr-3">
                         <input
                           type="text"
-                          value={option.text}
-                          onChange={(e) => handleOptionChange(questionIndex, optionIndex, e.target.value)}
-                          className="flex-1 px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                          value={question.text}
+                          onChange={(e) => handleQuestionChange(questionIndex, e.target.value)}
+                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                                    text-gray-200 focus:border-primary-500/40 focus:outline-none"
-                          placeholder={`Option ${optionIndex + 1}`}
+                          placeholder={`Question ${questionIndex + 1}`}
                         />
-                        <button
-                          onClick={() => handleRemoveOption(questionIndex, optionIndex)}
-                          className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
-                          disabled={question.options.length <= 2}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </button>
                       </div>
-                    ))}
+                      <button
+                        onClick={() => handleRemoveQuestion(questionIndex)}
+                        className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
+                      </button>
+                    </div>
                     
-                    <button
-                      onClick={() => handleAddOption(questionIndex)}
-                      className="flex items-center text-sm text-primary-400 hover:text-primary-300 mt-2"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Option
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium text-gray-200 mb-3">
-                    {question.text || `Question ${questionIndex + 1}`}
-                  </p>
-                  <div className="space-y-2 ml-4">
-                    {question.options.map((option, optionIndex) => (
-                      <div key={option.id} className="flex items-center space-x-3">
-                        <div className={`h-4 w-4 rounded-full ${
-                          option.isCorrect ? 'bg-primary-500' : 'border border-gray-500'
-                        }`} />
-                        <span className="text-sm text-gray-300">{option.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                    <div className="space-y-3 mt-4">
+                      {question.options && question.options.map((option, optionIndex) => (
+                        <div key={option.id || `option-${questionIndex}-${optionIndex}`} className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            checked={option.isCorrect}
+                            onChange={() => handleCorrectOptionChange(questionIndex, optionIndex)}
+                            className="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                          />
+                          <input
+                            type="text"
+                            value={option.text}
+                            onChange={(e) => handleOptionChange(questionIndex, optionIndex, e.target.value)}
+                            className="flex-1 px-3 py-1.5 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                     text-gray-200 focus:border-primary-500/40 focus:outline-none"
+                            placeholder={`Option ${optionIndex + 1}`}
+                          />
+                          <button
+                            onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                            className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                            disabled={question.options.length <= 2}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <button
+                        onClick={() => handleAddOption(questionIndex)}
+                        className="flex items-center text-sm text-primary-400 hover:text-primary-300 mt-2"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Option
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-gray-200 mb-3">
+                      {question.text || `Question ${questionIndex + 1}`}
+                    </p>
+                    <div className="space-y-2 ml-4">
+                      {question.options && question.options.map((option, optionIndex) => (
+                        <div key={option.id || `option-${questionIndex}-${optionIndex}`} className="flex items-center space-x-3">
+                          <div className={`h-4 w-4 rounded-full ${
+                            option.isCorrect ? 'bg-primary-500' : 'border border-gray-500'
+                          }`} />
+                          <span className="text-sm text-gray-300">{option.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 bg-dark-300/30 rounded-lg">
+              <p className="text-gray-400">No questions added yet.</p>
+              {isEditing && (
+                <p className="text-sm text-gray-500 mt-1">Click "Add Question" below to create one.</p>
               )}
             </div>
-          ))}
+          )}
           
           {isEditing && (
             <button

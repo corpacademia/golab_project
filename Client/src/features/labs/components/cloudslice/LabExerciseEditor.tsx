@@ -11,7 +11,8 @@ import {
   Trash2,
   Key,
   User,
-  Lock
+  Lock,
+  Cloud
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
@@ -71,6 +72,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
         }
       } catch (err) {
         console.error('Failed to fetch service categories:', err);
+        // Don't set error state here to avoid blocking the UI
       }
     };
 
@@ -80,7 +82,19 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   const extractServiceCategories = (services: any[]): Record<string, Service[]> => {
     const categories: Record<string, Service[]> = {};
     
-    services.forEach(({ services: serviceName, description, category }) => {
+    if (!Array.isArray(services)) {
+      console.error('Expected services to be an array, got:', typeof services);
+      return categories;
+    }
+    
+    services.forEach((item) => {
+      const { services: serviceName, description, category } = item;
+      
+      if (!category) {
+        console.warn('Service missing category:', item);
+        return;
+      }
+      
       if (!categories[category]) {
         categories[category] = [];
       }
@@ -88,7 +102,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
       categories[category].push({
         name: serviceName,
         category,
-        description
+        description: description || ''
       });
     });
     
@@ -106,6 +120,11 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   };
 
   const handleSave = async () => {
+    if (!title.trim()) {
+      setError('Title is required');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setSuccess(null);
@@ -129,6 +148,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
         setSuccess(null);
       }, 3000);
     } catch (err: any) {
+      console.error('Error saving exercise:', err);
       setError(err.response?.data?.message || 'Failed to update exercise');
       
       setTimeout(() => {
@@ -148,6 +168,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
     try {
       await onDelete(exercise.id);
     } catch (err: any) {
+      console.error('Error deleting exercise:', err);
       setError(err.response?.data?.message || 'Failed to delete exercise');
     } finally {
       setIsLoading(false);
@@ -167,7 +188,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
     : [];
 
   return (
-    <div className="glass-panel mb-4">
+    <div className="glass-panel mb-4 relative">
       {/* Notification */}
       {error && (
         <div className="absolute top-2 right-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2 z-10">
@@ -301,19 +322,25 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
                       </div>
                     </div>
                     <div>
-                      {filteredCategories.map(category => (
-                        <button
-                          key={category}
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            setShowCategoryDropdown(false);
-                            setShowServiceDropdown(true);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
-                        >
-                          <p className="text-gray-200">{category}</p>
-                        </button>
-                      ))}
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map(category => (
+                          <button
+                            key={category}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setShowCategoryDropdown(false);
+                              setShowServiceDropdown(true);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                          >
+                            <p className="text-gray-200">{category}</p>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-gray-400">
+                          No categories found
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -360,25 +387,31 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
                         </div>
                       </div>
                       <div>
-                        {filteredServices.map(service => (
-                          <label
-                            key={service.name}
-                            className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
-                                     cursor-pointer transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedServices.some(s => s.name === service.name)}
-                              onChange={() => handleServiceToggle(service)}
-                              className="form-checkbox h-4 w-4 text-primary-500 rounded 
-                                       border-gray-500/20 focus:ring-primary-500"
-                            />
-                            <div>
-                              <p className="font-medium text-gray-200">{service.name}</p>
-                              <p className="text-sm text-gray-400">{service.description}</p>
-                            </div>
-                          </label>
-                        ))}
+                        {filteredServices.length > 0 ? (
+                          filteredServices.map(service => (
+                            <label
+                              key={service.name}
+                              className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                       cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedServices.some(s => s.name === service.name)}
+                                onChange={() => handleServiceToggle(service)}
+                                className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                         border-gray-500/20 focus:ring-primary-500"
+                              />
+                              <div>
+                                <p className="font-medium text-gray-200">{service.name}</p>
+                                <p className="text-sm text-gray-400">{service.description}</p>
+                              </div>
+                            </label>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-gray-400">
+                            No services found
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -419,6 +452,7 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
                     key={service.name}
                     className="p-3 bg-dark-300/50 rounded-lg flex items-center space-x-2"
                   >
+                    <Cloud className="h-4 w-4 text-primary-400 flex-shrink-0" />
                     <span className="text-sm text-gray-300 truncate">{service.name}</span>
                   </div>
                 ))}

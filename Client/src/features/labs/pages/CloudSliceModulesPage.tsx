@@ -87,6 +87,7 @@ export const CloudSliceModulesPage: React.FC = () => {
             setError('Failed to load cloud slice details');
           }
         } catch (err) {
+          console.error('Error fetching slice details:', err);
           setError('Failed to load cloud slice details');
         } finally {
           setIsLoading(false);
@@ -115,11 +116,14 @@ export const CloudSliceModulesPage: React.FC = () => {
             });
             setExpandedModules(expanded);
           } else {
-            setError('Failed to load modules');
+            console.warn('No modules found or API returned unsuccessful status');
+            setModules([]);
           }
-        } catch (err) {
+        } catch (err: any) {
+          console.error('Error fetching modules:', err);
           if (err.response?.status === 404) {
             // No modules yet, that's okay
+            console.log('No modules found (404 response)');
             setModules([]);
           } else {
             setError('Failed to load modules');
@@ -174,6 +178,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to update module');
       }
     } catch (err: any) {
+      console.error('Error saving module:', err);
       setError(err.message || 'Failed to update module');
     } finally {
       setIsSavingModule(false);
@@ -219,6 +224,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to create module');
       }
     } catch (err: any) {
+      console.error('Error adding module:', err);
       setError(err.message || 'Failed to create module');
     } finally {
       setIsSavingModule(false);
@@ -240,6 +246,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to delete module');
       }
     } catch (err: any) {
+      console.error('Error deleting module:', err);
       setError(err.message || 'Failed to delete module');
     }
   };
@@ -285,6 +292,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to create exercise');
       }
     } catch (err: any) {
+      console.error('Error adding exercise:', err);
       setError(err.message || 'Failed to create exercise');
     } finally {
       setIsSavingExercise(false);
@@ -311,6 +319,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to update exercise');
       }
     } catch (err: any) {
+      console.error('Error updating exercise:', err);
       throw new Error(err.message || 'Failed to update exercise');
     }
   };
@@ -331,6 +340,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         throw new Error(response.data.message || 'Failed to delete exercise');
       }
     } catch (err: any) {
+      console.error('Error deleting exercise:', err);
       throw new Error(err.message || 'Failed to delete exercise');
     }
   };
@@ -388,248 +398,258 @@ export const CloudSliceModulesPage: React.FC = () => {
             {sliceDetails?.status}
           </span>
           <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-            {sliceDetails?.provider?.toUpperCase()}
+            {sliceDetails?.provider?.toUpperCase() || 'AWS'}
           </span>
         </div>
       </div>
 
       {/* Modules List */}
       <div className="space-y-6">
-        {modules.map((module) => (
-          <div 
-            key={module.id}
-            className="glass-panel"
-          >
-            {/* Module Header */}
-            <div className="flex justify-between items-start">
-              {editingModuleId === module.id ? (
-                <div className="flex-1 mr-4">
-                  <input
-                    type="text"
-                    value={moduleTitle}
-                    onChange={(e) => setModuleTitle(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-200 focus:border-primary-500/40 focus:outline-none mb-2"
-                    placeholder="Module Title"
-                  />
-                  <textarea
-                    value={moduleDescription}
-                    onChange={(e) => setModuleDescription(e.target.value)}
-                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-200 focus:border-primary-500/40 focus:outline-none"
-                    placeholder="Module Description"
-                    rows={2}
-                  />
-                </div>
-              ) : (
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold">
-                    <GradientText>{module.title}</GradientText>
-                  </h2>
-                  <p className="text-gray-400 mt-1">{module.description}</p>
-                </div>
-              )}
-              
-              <div className="flex items-center space-x-2">
+        {modules.length > 0 ? (
+          modules.map((module) => (
+            <div 
+              key={module.id}
+              className="glass-panel"
+            >
+              {/* Module Header */}
+              <div className="flex justify-between items-start">
                 {editingModuleId === module.id ? (
-                  <>
-                    <button
-                      onClick={handleCancelEditModule}
-                      className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-                      disabled={isSavingModule}
-                    >
-                      <X className="h-5 w-5 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={handleSaveModule}
-                      className="p-2 hover:bg-primary-500/20 rounded-lg transition-colors"
-                      disabled={isSavingModule}
-                    >
-                      {isSavingModule ? (
-                        <Loader className="h-5 w-5 text-primary-400 animate-spin" />
-                      ) : (
-                        <Save className="h-5 w-5 text-primary-400" />
-                      )}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleEditModule(module)}
-                      className="p-2 hover:bg-primary-500/20 rounded-lg transition-colors"
-                    >
-                      <GradientText>Edit</GradientText>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteModule(module.id)}
-                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                    >
-                      <span className="text-red-400">Delete</span>
-                    </button>
-                    <button
-                      onClick={() => toggleModuleExpanded(module.id)}
-                      className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-                    >
-                      {expandedModules[module.id] ? (
-                        <ChevronUp className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            {/* Module Content */}
-            {expandedModules[module.id] && (
-              <div className="mt-6 space-y-4">
-                {/* Exercises */}
-                {module.exercises && module.exercises.length > 0 ? (
-                  <div className="space-y-4">
-                    {module.exercises.map((exercise) => (
-                      exercise.type === 'lab' ? (
-                        <LabExerciseEditor
-                          key={exercise.id}
-                          exercise={exercise}
-                          moduleId={module.id}
-                          sliceId={sliceId!}
-                          onUpdate={handleUpdateExercise}
-                          onDelete={handleDeleteExercise}
-                        />
-                      ) : (
-                        <QuizExerciseEditor
-                          key={exercise.id}
-                          exercise={exercise}
-                          moduleId={module.id}
-                          sliceId={sliceId!}
-                          onUpdate={handleUpdateExercise}
-                          onDelete={handleDeleteExercise}
-                        />
-                      )
-                    ))}
+                  <div className="flex-1 mr-4">
+                    <input
+                      type="text"
+                      value={moduleTitle}
+                      onChange={(e) => setModuleTitle(e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-200 focus:border-primary-500/40 focus:outline-none mb-2"
+                      placeholder="Module Title"
+                    />
+                    <textarea
+                      value={moduleDescription}
+                      onChange={(e) => setModuleDescription(e.target.value)}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-200 focus:border-primary-500/40 focus:outline-none"
+                      placeholder="Module Description"
+                      rows={2}
+                    />
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-400">No exercises in this module yet.</p>
-                    <p className="text-sm text-gray-500">Click "Add Exercise" to create one.</p>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold">
+                      <GradientText>{module.title}</GradientText>
+                    </h2>
+                    <p className="text-gray-400 mt-1">{module.description}</p>
                   </div>
                 )}
                 
-                {/* Add Exercise Button or Form */}
-                {isAddingExercise === module.id ? (
-                  <div className="glass-panel">
-                    <h3 className="text-lg font-semibold mb-4">
-                      <GradientText>Add New Exercise</GradientText>
-                    </h3>
-                    
+                <div className="flex items-center space-x-2">
+                  {editingModuleId === module.id ? (
+                    <>
+                      <button
+                        onClick={handleCancelEditModule}
+                        className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                        disabled={isSavingModule}
+                      >
+                        <X className="h-5 w-5 text-gray-400" />
+                      </button>
+                      <button
+                        onClick={handleSaveModule}
+                        className="p-2 hover:bg-primary-500/20 rounded-lg transition-colors"
+                        disabled={isSavingModule}
+                      >
+                        {isSavingModule ? (
+                          <Loader className="h-5 w-5 text-primary-400 animate-spin" />
+                        ) : (
+                          <Save className="h-5 w-5 text-primary-400" />
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleEditModule(module)}
+                        className="p-2 hover:bg-primary-500/20 rounded-lg transition-colors"
+                      >
+                        <GradientText>Edit</GradientText>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteModule(module.id)}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                      >
+                        <span className="text-red-400">Delete</span>
+                      </button>
+                      <button
+                        onClick={() => toggleModuleExpanded(module.id)}
+                        className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                      >
+                        {expandedModules[module.id] ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {/* Module Content */}
+              {expandedModules[module.id] && (
+                <div className="mt-6 space-y-4">
+                  {/* Exercises */}
+                  {module.exercises && module.exercises.length > 0 ? (
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Exercise Type
-                        </label>
-                        <div className="flex space-x-4">
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              checked={newExerciseType === 'lab'}
-                              onChange={() => setNewExerciseType('lab')}
-                              className="h-4 w-4 text-primary-500 focus:ring-primary-500"
-                            />
-                            <div className="flex items-center">
-                              <BookOpen className="h-4 w-4 text-primary-400 mr-1" />
-                              <span className="text-gray-300">Lab Exercise</span>
-                            </div>
+                      {module.exercises.map((exercise) => (
+                        exercise.type === 'lab' ? (
+                          <LabExerciseEditor
+                            key={exercise.id}
+                            exercise={exercise}
+                            moduleId={module.id}
+                            sliceId={sliceId!}
+                            onUpdate={handleUpdateExercise}
+                            onDelete={handleDeleteExercise}
+                          />
+                        ) : (
+                          <QuizExerciseEditor
+                            key={exercise.id}
+                            exercise={exercise}
+                            moduleId={module.id}
+                            sliceId={sliceId!}
+                            onUpdate={handleUpdateExercise}
+                            onDelete={handleDeleteExercise}
+                          />
+                        )
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-400">No exercises in this module yet.</p>
+                      <p className="text-sm text-gray-500">Click "Add Exercise" to create one.</p>
+                    </div>
+                  )}
+                  
+                  {/* Add Exercise Button or Form */}
+                  {isAddingExercise === module.id ? (
+                    <div className="glass-panel">
+                      <h3 className="text-lg font-semibold mb-4">
+                        <GradientText>Add New Exercise</GradientText>
+                      </h3>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Exercise Type
                           </label>
-                          
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              checked={newExerciseType === 'quiz'}
-                              onChange={() => setNewExerciseType('quiz')}
-                              className="h-4 w-4 text-primary-500 focus:ring-primary-500"
-                            />
-                            <div className="flex items-center">
-                              <FileText className="h-4 w-4 text-primary-400 mr-1" />
-                              <span className="text-gray-300">Quiz Questions</span>
-                            </div>
+                          <div className="flex space-x-4">
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={newExerciseType === 'lab'}
+                                onChange={() => setNewExerciseType('lab')}
+                                className="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                              />
+                              <div className="flex items-center">
+                                <BookOpen className="h-4 w-4 text-primary-400 mr-1" />
+                                <span className="text-gray-300">Lab Exercise</span>
+                              </div>
+                            </label>
+                            
+                            <label className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={newExerciseType === 'quiz'}
+                                onChange={() => setNewExerciseType('quiz')}
+                                className="h-4 w-4 text-primary-500 focus:ring-primary-500"
+                              />
+                              <div className="flex items-center">
+                                <FileText className="h-4 w-4 text-primary-400 mr-1" />
+                                <span className="text-gray-300">Quiz Questions</span>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Title
                           </label>
+                          <input
+                            type="text"
+                            value={newExerciseTitle}
+                            onChange={(e) => setNewExerciseTitle(e.target.value)}
+                            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                     text-gray-200 focus:border-primary-500/40 focus:outline-none"
+                            placeholder="Exercise Title"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Description
+                          </label>
+                          <textarea
+                            value={newExerciseDescription}
+                            onChange={(e) => setNewExerciseDescription(e.target.value)}
+                            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                     text-gray-200 focus:border-primary-500/40 focus:outline-none"
+                            placeholder="Exercise Description"
+                            rows={3}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-end space-x-3">
+                          <button
+                            onClick={() => {
+                              setIsAddingExercise(null);
+                              setNewExerciseTitle('');
+                              setNewExerciseDescription('');
+                              setNewExerciseType('lab');
+                            }}
+                            className="btn-secondary"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleAddExercise(module.id)}
+                            disabled={isSavingExercise || !newExerciseTitle.trim()}
+                            className="btn-primary"
+                          >
+                            {isSavingExercise ? (
+                              <span className="flex items-center">
+                                <Loader className="animate-spin h-4 w-4 mr-2" />
+                                Creating...
+                              </span>
+                            ) : (
+                              'Create Exercise'
+                            )}
+                          </button>
                         </div>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Title
-                        </label>
-                        <input
-                          type="text"
-                          value={newExerciseTitle}
-                          onChange={(e) => setNewExerciseTitle(e.target.value)}
-                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                   text-gray-200 focus:border-primary-500/40 focus:outline-none"
-                          placeholder="Exercise Title"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Description
-                        </label>
-                        <textarea
-                          value={newExerciseDescription}
-                          onChange={(e) => setNewExerciseDescription(e.target.value)}
-                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                   text-gray-200 focus:border-primary-500/40 focus:outline-none"
-                          placeholder="Exercise Description"
-                          rows={3}
-                        />
-                      </div>
-                      
-                      <div className="flex justify-end space-x-3">
-                        <button
-                          onClick={() => {
-                            setIsAddingExercise(null);
-                            setNewExerciseTitle('');
-                            setNewExerciseDescription('');
-                            setNewExerciseType('lab');
-                          }}
-                          className="btn-secondary"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleAddExercise(module.id)}
-                          disabled={isSavingExercise || !newExerciseTitle.trim()}
-                          className="btn-primary"
-                        >
-                          {isSavingExercise ? (
-                            <span className="flex items-center">
-                              <Loader className="animate-spin h-4 w-4 mr-2" />
-                              Creating...
-                            </span>
-                          ) : (
-                            'Create Exercise'
-                          )}
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsAddingExercise(module.id)}
-                    className="w-full py-3 border border-dashed border-primary-500/30 rounded-lg
-                             text-primary-400 hover:text-primary-300 hover:border-primary-500/50
-                             transition-colors flex items-center justify-center"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Exercise
-                  </button>
-                )}
-              </div>
-            )}
+                  ) : (
+                    <button
+                      onClick={() => setIsAddingExercise(module.id)}
+                      className="w-full py-3 border border-dashed border-primary-500/30 rounded-lg
+                               text-primary-400 hover:text-primary-300 hover:border-primary-500/50
+                               transition-colors flex items-center justify-center"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Exercise
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="glass-panel p-8 text-center">
+            <Layers className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-200 mb-2">No Modules Yet</h3>
+            <p className="text-gray-400 mb-6">
+              This cloud slice doesn't have any modules yet. Create your first module to get started.
+            </p>
           </div>
-        ))}
+        )}
         
         {/* Add Module Button or Form */}
         {isAddingModule ? (
