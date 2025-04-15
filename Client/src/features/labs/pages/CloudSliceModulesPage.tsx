@@ -195,7 +195,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       expanded[module.id] = true; // Default to expanded
     });
     setExpandedModules(expanded);
-  }, []);
+  }, [modules]);
 
   // Fetch slice details if not provided in location state
   useEffect(() => {
@@ -203,16 +203,12 @@ export const CloudSliceModulesPage: React.FC = () => {
       const fetchSliceDetails = async () => {
         setIsLoading(true);
         try {
-          // Uncomment this when API is ready
-          // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
-          // if (response.data.success) {
-          //   setSliceDetails(response.data.data);
-          // } else {
-          //   setError('Failed to load cloud slice details');
-          // }
-          
-          // Using mock data for now
-          setSliceDetails(mockSliceDetails);
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
+          if (response.data.success) {
+            setSliceDetails(response.data.data);
+          } else {
+            setError('Failed to load cloud slice details');
+          }
         } catch (err) {
           console.error('Error fetching slice details:', err);
           setError('Failed to load cloud slice details');
@@ -231,25 +227,21 @@ export const CloudSliceModulesPage: React.FC = () => {
       const fetchModules = async () => {
         setIsLoading(true);
         try {
-          // Uncomment this when API is ready
-          // const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
-          // if (response.data.success) {
-          //   const fetchedModules = response.data.data || [];
-          //   setModules(fetchedModules);
-          //   
-          //   // Initialize expanded state for all modules
-          //   const expanded: Record<string, boolean> = {};
-          //   fetchedModules.forEach((module: Module) => {
-          //     expanded[module.id] = true; // Default to expanded
-          //   });
-          //   setExpandedModules(expanded);
-          // } else {
-          //   console.warn('No modules found or API returned unsuccessful status');
-          //   setModules([]);
-          // }
-          
-          // Using mock data for now
-          setModules(mockModules);
+          const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
+          if (response.data.success) {
+            const fetchedModules = response.data.data || [];
+            setModules(fetchedModules);
+            
+            // Initialize expanded state for all modules
+            const expanded: Record<string, boolean> = {};
+            fetchedModules.forEach((module: Module) => {
+              expanded[module.id] = true; // Default to expanded
+            });
+            setExpandedModules(expanded);
+          } else {
+            console.warn('No modules found or API returned unsuccessful status');
+            setModules([]);
+          }
         } catch (err: any) {
           console.error('Error fetching modules:', err);
           if (err.response?.status === 404) {
@@ -291,33 +283,23 @@ export const CloudSliceModulesPage: React.FC = () => {
     setError(null);
 
     try {
-      // Uncomment this when API is ready
-      // const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule/${editingModuleId}`, {
-      //   title: moduleTitle,
-      //   description: moduleDescription
-      // });
-      // 
-      // if (response.data.success) {
-      //   // Update local state
-      //   setModules(prev => prev.map(module => 
-      //     module.id === editingModuleId
-      //       ? { ...module, title: moduleTitle, description: moduleDescription }
-      //       : module
-      //   ));
-      //   
-      //   setEditingModuleId(null);
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to update module');
-      // }
-
-      // Mock successful update
-      setModules(prev => prev.map(module => 
-        module.id === editingModuleId
-          ? { ...module, title: moduleTitle, description: moduleDescription }
-          : module
-      ));
+      const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule/${editingModuleId}`, {
+        title: moduleTitle,
+        description: moduleDescription
+      });
       
-      setEditingModuleId(null);
+      if (response.data.success) {
+        // Update local state
+        setModules(prev => prev.map(module => 
+          module.id === editingModuleId
+            ? { ...module, title: moduleTitle, description: moduleDescription }
+            : module
+        ));
+        
+        setEditingModuleId(null);
+      } else {
+        throw new Error(response.data.message || 'Failed to update module');
+      }
     } catch (err: any) {
       console.error('Error saving module:', err);
       setError(err.message || 'Failed to update module');
@@ -340,53 +322,30 @@ export const CloudSliceModulesPage: React.FC = () => {
     setError(null);
 
     try {
-      // Uncomment this when API is ready
-      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createModule`, {
-      //   sliceId,
-      //   title: newModuleTitle,
-      //   description: newModuleDescription,
-      //   order: modules.length + 1
-      // });
-      // 
-      // if (response.data.success) {
-      //   // Add new module to local state
-      //   setModules(prev => [...prev, response.data.data]);
-      //   
-      //   // Expand the new module
-      //   setExpandedModules(prev => ({
-      //     ...prev,
-      //     [response.data.data.id]: true
-      //   }));
-      //   
-      //   // Reset form
-      //   setIsAddingModule(false);
-      //   setNewModuleTitle('');
-      //   setNewModuleDescription('');
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to create module');
-      // }
-
-      // Mock successful creation
-      const newModule: Module = {
-        id: `module-${Date.now()}`,
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createModule`, {
+        sliceId,
         title: newModuleTitle,
         description: newModuleDescription,
-        order: modules.length + 1,
-        exercises: []
-      };
+        order: modules.length + 1
+      });
       
-      setModules(prev => [...prev, newModule]);
-      
-      // Expand the new module
-      setExpandedModules(prev => ({
-        ...prev,
-        [newModule.id]: true
-      }));
-      
-      // Reset form
-      setIsAddingModule(false);
-      setNewModuleTitle('');
-      setNewModuleDescription('');
+      if (response.data.success) {
+        // Add new module to local state
+        setModules(prev => [...prev, response.data.data]);
+        
+        // Expand the new module
+        setExpandedModules(prev => ({
+          ...prev,
+          [response.data.data.id]: true
+        }));
+        
+        // Reset form
+        setIsAddingModule(false);
+        setNewModuleTitle('');
+        setNewModuleDescription('');
+      } else {
+        throw new Error(response.data.message || 'Failed to create module');
+      }
     } catch (err: any) {
       console.error('Error adding module:', err);
       setError(err.message || 'Failed to create module');
@@ -401,18 +360,14 @@ export const CloudSliceModulesPage: React.FC = () => {
     }
 
     try {
-      // Uncomment this when API is ready
-      // const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteModule/${moduleId}`);
-      // 
-      // if (response.data.success) {
-      //   // Remove module from local state
-      //   setModules(prev => prev.filter(module => module.id !== moduleId));
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to delete module');
-      // }
-
-      // Mock successful deletion
-      setModules(prev => prev.filter(module => module.id !== moduleId));
+      const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteModule/${moduleId}`);
+      
+      if (response.data.success) {
+        // Remove module from local state
+        setModules(prev => prev.filter(module => module.id !== moduleId));
+      } else {
+        throw new Error(response.data.message || 'Failed to delete module');
+      }
     } catch (err: any) {
       console.error('Error deleting module:', err);
       setError(err.message || 'Failed to delete module');
@@ -432,71 +387,33 @@ export const CloudSliceModulesPage: React.FC = () => {
       const moduleIndex = modules.findIndex(m => m.id === moduleId);
       const exerciseCount = modules[moduleIndex].exercises?.length || 0;
       
-      // Uncomment this when API is ready
-      // const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
-      //   moduleId,
-      //   title: newExerciseTitle,
-      //   description: newExerciseDescription,
-      //   type: newExerciseType,
-      //   order: exerciseCount + 1
-      // });
-      // 
-      // if (response.data.success) {
-      //   // Add new exercise to local state
-      //   setModules(prev => prev.map(module => 
-      //     module.id === moduleId
-      //       ? { 
-      //           ...module, 
-      //           exercises: [...(module.exercises || []), response.data.data] 
-      //         }
-      //       : module
-      //   ));
-      //   
-      //   // Reset form
-      //   setIsAddingExercise(null);
-      //   setNewExerciseTitle('');
-      //   setNewExerciseDescription('');
-      //   setNewExerciseType('lab');
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to create exercise');
-      // }
-
-      // Mock successful creation
-      const newExercise: Exercise = {
-        id: `exercise-${Date.now()}`,
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+        moduleId,
         title: newExerciseTitle,
         description: newExerciseDescription,
         type: newExerciseType,
-        order: exerciseCount + 1,
-        services: [],
-        credentials: {},
-        questions: newExerciseType === 'quiz' ? [
-          {
-            id: `q-${Date.now()}`,
-            text: 'Sample Question',
-            options: [
-              { id: `o-${Date.now()}-1`, text: 'Option 1', isCorrect: false },
-              { id: `o-${Date.now()}-2`, text: 'Option 2', isCorrect: true }
-            ]
-          }
-        ] : undefined,
-        duration: newExerciseType === 'quiz' ? 15 : undefined
-      };
+        order: exerciseCount + 1
+      });
       
-      setModules(prev => prev.map(module => 
-        module.id === moduleId
-          ? { 
-              ...module, 
-              exercises: [...(module.exercises || []), newExercise] 
-            }
-          : module
-      ));
-      
-      // Reset form
-      setIsAddingExercise(null);
-      setNewExerciseTitle('');
-      setNewExerciseDescription('');
-      setNewExerciseType('lab');
+      if (response.data.success) {
+        // Add new exercise to local state
+        setModules(prev => prev.map(module => 
+          module.id === moduleId
+            ? { 
+                ...module, 
+                exercises: [...(module.exercises || []), response.data.data] 
+              }
+            : module
+        ));
+        
+        // Reset form
+        setIsAddingExercise(null);
+        setNewExerciseTitle('');
+        setNewExerciseDescription('');
+        setNewExerciseType('lab');
+      } else {
+        throw new Error(response.data.message || 'Failed to create exercise');
+      }
     } catch (err: any) {
       console.error('Error adding exercise:', err);
       setError(err.message || 'Failed to create exercise');
@@ -507,36 +424,23 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   const handleUpdateExercise = async (exerciseId: string, updatedData: any) => {
     try {
-      // Uncomment this when API is ready
-      // const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateExercise/${exerciseId}`, updatedData);
-      // 
-      // if (response.data.success) {
-      //   // Update exercise in local state
-      //   setModules(prev => prev.map(module => ({
-      //     ...module,
-      //     exercises: module.exercises?.map(exercise => 
-      //       exercise.id === exerciseId
-      //         ? { ...exercise, ...updatedData }
-      //         : exercise
-      //     )
-      //   })));
-      //   
-      //   return response.data.data;
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to update exercise');
-      // }
-
-      // Mock successful update
-      setModules(prev => prev.map(module => ({
-        ...module,
-        exercises: module.exercises?.map(exercise => 
-          exercise.id === exerciseId
-            ? { ...exercise, ...updatedData }
-            : exercise
-        )
-      })));
+      const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateExercise/${exerciseId}`, updatedData);
       
-      return updatedData;
+      if (response.data.success) {
+        // Update exercise in local state
+        setModules(prev => prev.map(module => ({
+          ...module,
+          exercises: module.exercises?.map(exercise => 
+            exercise.id === exerciseId
+              ? { ...exercise, ...updatedData }
+              : exercise
+          )
+        })));
+        
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to update exercise');
+      }
     } catch (err: any) {
       console.error('Error updating exercise:', err);
       throw new Error(err.message || 'Failed to update exercise');
@@ -545,28 +449,19 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   const handleDeleteExercise = async (exerciseId: string) => {
     try {
-      // Uncomment this when API is ready
-      // const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteExercise/${exerciseId}`);
-      // 
-      // if (response.data.success) {
-      //   // Remove exercise from local state
-      //   setModules(prev => prev.map(module => ({
-      //     ...module,
-      //     exercises: module.exercises?.filter(exercise => exercise.id !== exerciseId)
-      //   })));
-      //   
-      //   return response.data.data;
-      // } else {
-      //   throw new Error(response.data.message || 'Failed to delete exercise');
-      // }
-
-      // Mock successful deletion
-      setModules(prev => prev.map(module => ({
-        ...module,
-        exercises: module.exercises?.filter(exercise => exercise.id !== exerciseId)
-      })));
+      const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteExercise/${exerciseId}`);
       
-      return { success: true };
+      if (response.data.success) {
+        // Remove exercise from local state
+        setModules(prev => prev.map(module => ({
+          ...module,
+          exercises: module.exercises?.filter(exercise => exercise.id !== exerciseId)
+        })));
+        
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to delete exercise');
+      }
     } catch (err: any) {
       console.error('Error deleting exercise:', err);
       throw new Error(err.message || 'Failed to delete exercise');

@@ -15,8 +15,8 @@ interface QuizExerciseEditorProps {
   exercise: any;
   moduleId: string;
   sliceId: string;
-  onUpdate: (exerciseId: string, updatedData: any) => Promise<void>;
-  onDelete: (exerciseId: string) => Promise<void>;
+  onUpdate: (exerciseId: string, updatedData: any) => Promise<any>;
+  onDelete: (exerciseId: string) => Promise<any>;
 }
 
 export const QuizExerciseEditor: React.FC<QuizExerciseEditorProps> = ({

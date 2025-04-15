@@ -27,8 +27,8 @@ interface LabExerciseEditorProps {
   exercise: any;
   moduleId: string;
   sliceId: string;
-  onUpdate: (exerciseId: string, updatedData: any) => Promise<void>;
-  onDelete: (exerciseId: string) => Promise<void>;
+  onUpdate: (exerciseId: string, updatedData: any) => Promise<any>;
+  onDelete: (exerciseId: string) => Promise<any>;
 }
 
 // Mock AWS service categories
@@ -94,18 +94,15 @@ export const LabExerciseEditor: React.FC<LabExerciseEditorProps> = ({
   useEffect(() => {
     const fetchServiceCategories = async () => {
       try {
-        // Uncomment this when API is ready
-        // const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
-        // if (response.data.success) {
-        //   const categorizedServices = extractServiceCategories(response.data.data);
-        //   setServiceCategories(categorizedServices);
-        // }
-        
-        // Using mock data for now
-        setServiceCategories(mockServiceCategories);
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        if (response.data.success) {
+          const categorizedServices = extractServiceCategories(response.data.data);
+          setServiceCategories(categorizedServices);
+        }
       } catch (err) {
         console.error('Failed to fetch service categories:', err);
-        // Don't set error state here to avoid blocking the UI
+        // Using mock data as fallback
+        setServiceCategories(mockServiceCategories);
       }
     };
 
