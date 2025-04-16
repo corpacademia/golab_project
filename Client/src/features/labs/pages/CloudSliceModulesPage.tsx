@@ -17,7 +17,12 @@ import {
   Save,
   X,
   FileText,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Cloud,
+  Key,
+  User,
+  Search,
+  Lock
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -44,16 +49,18 @@ interface LabExercise {
   exerciseId: string;
   instructions: string;
   resources: string[];
-  tasks: {
-    id: string;
-    description: string;
-    completed: boolean;
-  }[];
+  services: string[];
+  credentials: {
+    accessKeyId: string;
+    username: string;
+    password: string;
+  };
 }
 
 interface QuizExercise {
   id: string;
   exerciseId: string;
+  duration: number;
   questions: {
     id: string;
     text: string;
@@ -128,23 +135,12 @@ const mockLabExercises: Record<string, LabExercise> = {
       'https://docs.aws.amazon.com/awsconsolehelpdocs/latest/gsg/getting-started.html',
       'https://aws.amazon.com/console/getting-started/'
     ],
-    tasks: [
-      {
-        id: 'task-1',
-        description: 'Log in to the AWS Management Console',
-        completed: false
-      },
-      {
-        id: 'task-2',
-        description: 'Navigate to the EC2 service dashboard',
-        completed: false
-      },
-      {
-        id: 'task-3',
-        description: 'Explore the S3 service dashboard',
-        completed: false
-      }
-    ]
+    services: ['EC2', 'S3', 'RDS'],
+    credentials: {
+      accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+      username: 'admin',
+      password: 'Password123!'
+    }
   },
   'exercise-3': {
     id: 'lab-2',
@@ -154,28 +150,12 @@ const mockLabExercises: Record<string, LabExercise> = {
       'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html',
       'https://aws.amazon.com/ec2/getting-started/'
     ],
-    tasks: [
-      {
-        id: 'task-4',
-        description: 'Launch a t2.micro EC2 instance with Amazon Linux 2',
-        completed: false
-      },
-      {
-        id: 'task-5',
-        description: 'Configure security groups to allow SSH access',
-        completed: false
-      },
-      {
-        id: 'task-6',
-        description: 'Connect to your instance using SSH',
-        completed: false
-      },
-      {
-        id: 'task-7',
-        description: 'Install a web server and deploy a simple website',
-        completed: false
-      }
-    ]
+    services: ['EC2', 'VPC', 'CloudWatch'],
+    credentials: {
+      accessKeyId: 'AKIAI44QH8DHBEXAMPLE',
+      username: 'ec2-user',
+      password: 'SecurePass456!'
+    }
   }
 };
 
@@ -183,6 +163,7 @@ const mockQuizExercises: Record<string, QuizExercise> = {
   'exercise-2': {
     id: 'quiz-1',
     exerciseId: 'exercise-2',
+    duration: 15,
     questions: [
       {
         id: 'question-1',
@@ -209,6 +190,7 @@ const mockQuizExercises: Record<string, QuizExercise> = {
   'exercise-4': {
     id: 'quiz-2',
     exerciseId: 'exercise-4',
+    duration: 20,
     questions: [
       {
         id: 'question-3',
@@ -232,6 +214,18 @@ const mockQuizExercises: Record<string, QuizExercise> = {
       }
     ]
   }
+};
+
+// AWS Service Categories and Services for dropdown
+const awsServiceCategories = {
+  'Compute': ['EC2', 'Lambda', 'ECS', 'EKS', 'Fargate', 'Batch', 'Lightsail'],
+  'Storage': ['S3', 'EBS', 'EFS', 'FSx', 'Storage Gateway', 'S3 Glacier'],
+  'Database': ['RDS', 'DynamoDB', 'ElastiCache', 'Neptune', 'Redshift', 'DocumentDB'],
+  'Networking': ['VPC', 'CloudFront', 'Route 53', 'API Gateway', 'Direct Connect', 'Global Accelerator'],
+  'Security': ['IAM', 'Cognito', 'GuardDuty', 'Inspector', 'KMS', 'Shield', 'WAF'],
+  'Management': ['CloudWatch', 'CloudTrail', 'Config', 'CloudFormation', 'Systems Manager', 'Control Tower'],
+  'Analytics': ['Athena', 'EMR', 'Kinesis', 'QuickSight', 'Glue', 'Lake Formation'],
+  'AI/ML': ['SageMaker', 'Comprehend', 'Rekognition', 'Polly', 'Lex', 'Textract']
 };
 
 // Modal components for CRUD operations
@@ -624,10 +618,20 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     exerciseId: '',
     instructions: '',
     resources: [''],
-    tasks: [{ id: `task-${Date.now()}`, description: '', completed: false }]
+    services: [],
+    credentials: {
+      accessKeyId: '',
+      username: '',
+      password: ''
+    }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
 
   useEffect(() => {
     if (labExercise) {
@@ -638,7 +642,12 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
         exerciseId,
         instructions: '',
         resources: [''],
-        tasks: [{ id: `task-${Date.now()}`, description: '', completed: false }]
+        services: [],
+        credentials: {
+          accessKeyId: '',
+          username: '',
+          password: ''
+        }
       });
     }
   }, [labExercise, exerciseId, isOpen]);
@@ -668,30 +677,34 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     });
   };
 
-  const handleAddTask = () => {
-    setFormData({
-      ...formData,
-      tasks: [...formData.tasks, { id: `task-${Date.now()}`, description: '', completed: false }]
+  const handleServiceToggle = (service: string) => {
+    setFormData(prev => {
+      const services = prev.services.includes(service)
+        ? prev.services.filter(s => s !== service)
+        : [...prev.services, service];
+      return { ...prev, services };
     });
   };
 
-  const handleTaskChange = (index: number, value: string) => {
-    const updatedTasks = [...formData.tasks];
-    updatedTasks[index] = { ...updatedTasks[index], description: value };
+  const handleCredentialsChange = (field: keyof LabExercise['credentials'], value: string) => {
     setFormData({
       ...formData,
-      tasks: updatedTasks
+      credentials: {
+        ...formData.credentials,
+        [field]: value
+      }
     });
   };
 
-  const handleRemoveTask = (index: number) => {
-    const updatedTasks = [...formData.tasks];
-    updatedTasks.splice(index, 1);
-    setFormData({
-      ...formData,
-      tasks: updatedTasks
-    });
-  };
+  const filteredCategories = Object.keys(awsServiceCategories).filter(category =>
+    category.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+
+  const filteredServices = selectedCategory 
+    ? awsServiceCategories[selectedCategory as keyof typeof awsServiceCategories].filter(service =>
+        service.toLowerCase().includes(serviceSearch.toLowerCase())
+      )
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -702,10 +715,6 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       // Validate form
       if (!formData.instructions.trim()) {
         throw new Error('Instructions are required');
-      }
-
-      if (formData.tasks.some(task => !task.description.trim())) {
-        throw new Error('All tasks must have a description');
       }
 
       // Filter out empty resources
@@ -794,42 +803,213 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             </div>
           </div>
 
+          {/* AWS Services Section */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Tasks
-              </label>
-              <button
-                type="button"
-                onClick={handleAddTask}
-                className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Task
-              </button>
+            <h3 className="text-sm font-medium text-gray-300 mb-4">AWS Services</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              {/* Service Category Selector */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Service Category
+                </label>
+                <div className="relative">
+                  <div 
+                    className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                             border border-primary-500/20 hover:border-primary-500/40 
+                             rounded-lg cursor-pointer transition-colors"
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  >
+                    <span className="text-gray-300">
+                      {selectedCategory || 'Select a category'}
+                    </span>
+                    <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                      showCategoryDropdown ? 'transform rotate-180' : ''
+                    }`} />
+                  </div>
+
+                  {showCategoryDropdown && (
+                    <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                  border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                      <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search categories..."
+                            value={categorySearch}
+                            onChange={(e) => setCategorySearch(e.target.value)}
+                            className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                     rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                          />
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                        </div>
+                      </div>
+                      <div>
+                        {filteredCategories.map(category => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setShowCategoryDropdown(false);
+                              setShowServiceDropdown(true);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-dark-300/50 transition-colors"
+                          >
+                            <p className="text-gray-200">{category}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Service Selector */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Services
+                </label>
+                <div className="relative">
+                  <div 
+                    className="w-full flex items-center justify-between p-3 bg-dark-400/50 
+                             border border-primary-500/20 hover:border-primary-500/40 
+                             rounded-lg cursor-pointer transition-colors"
+                    onClick={() => selectedCategory && setShowServiceDropdown(!showServiceDropdown)}
+                  >
+                    <span className="text-gray-300">
+                      {formData.services.length > 0 
+                        ? `${formData.services.length} service(s) selected` 
+                        : 'Select services'}
+                    </span>
+                    <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${
+                      showServiceDropdown ? 'transform rotate-180' : ''
+                    }`} />
+                  </div>
+
+                  {showServiceDropdown && selectedCategory && (
+                    <div className="absolute z-50 w-full mt-2 bg-dark-200 rounded-lg border 
+                                  border-primary-500/20 shadow-lg max-h-80 overflow-y-auto">
+                      <div className="p-2 sticky top-0 bg-dark-200 border-b border-primary-500/10">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search services..."
+                            value={serviceSearch}
+                            onChange={(e) => setServiceSearch(e.target.value)}
+                            className="w-full px-3 py-2 pl-9 bg-dark-400/50 border border-primary-500/20 
+                                     rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                          />
+                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                        </div>
+                      </div>
+                      <div>
+                        {filteredServices.map(service => (
+                          <label
+                            key={service}
+                            className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                     cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.services.includes(service)}
+                              onChange={() => handleServiceToggle(service)}
+                              className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                       border-gray-500/20 focus:ring-primary-500"
+                            />
+                            <div>
+                              <p className="font-medium text-gray-200">{service}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="space-y-3">
-              {formData.tasks.map((task, index) => (
-                <div key={task.id} className="flex items-center space-x-2">
-                  <CheckCircle className="h-5 w-5 text-gray-400" />
+
+            {/* Selected Services Display */}
+            {formData.services.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-400 mb-2">Selected Services:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {formData.services.map(service => (
+                    <div
+                      key={service}
+                      className="flex items-center px-3 py-1 bg-primary-500/10 text-primary-300
+                               rounded-full text-sm"
+                    >
+                      {service}
+                      <button
+                        type="button"
+                        onClick={() => handleServiceToggle(service)}
+                        className="ml-2 hover:text-primary-400"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* AWS Console Credentials */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-300 mb-4">AWS Console Credentials</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Access Key ID
+                </label>
+                <div className="relative">
                   <input
                     type="text"
-                    value={task.description}
-                    onChange={(e) => handleTaskChange(index, e.target.value)}
-                    placeholder="Enter task description"
-                    className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                    value={formData.credentials.accessKeyId}
+                    onChange={(e) => handleCredentialsChange('accessKeyId', e.target.value)}
+                    placeholder="Enter AWS Access Key ID"
+                    className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                              text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                    required
                   />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTask(index)}
-                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                  >
-                    <X className="h-4 w-4 text-red-400" />
-                  </button>
+                  <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
                 </div>
-              ))}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Username
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.credentials.username}
+                    onChange={(e) => handleCredentialsChange('username', e.target.value)}
+                    placeholder="Enter username"
+                    className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  />
+                  <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={formData.credentials.password}
+                    onChange={(e) => handleCredentialsChange('password', e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  />
+                  <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -890,6 +1070,7 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   const [formData, setFormData] = useState<QuizExercise>({
     id: '',
     exerciseId: '',
+    duration: 15,
     questions: [{
       id: `question-${Date.now()}`,
       text: '',
@@ -909,6 +1090,7 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       setFormData({
         id: `quiz-${Date.now()}`,
         exerciseId,
+        duration: 15,
         questions: [{
           id: `question-${Date.now()}`,
           text: '',
@@ -920,6 +1102,13 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       });
     }
   }, [quizExercise, exerciseId, isOpen]);
+
+  const handleDurationChange = (value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      duration: value
+    }));
+  };
 
   const handleAddQuestion = () => {
     const newQuestionId = `question-${Date.now()}`;
@@ -1031,6 +1220,10 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         throw new Error('Each question must have at least one correct answer');
       }
 
+      if (formData.duration <= 0) {
+        throw new Error('Duration must be greater than 0');
+      }
+
       // Save quiz exercise
       onSave(exerciseId, formData);
       onClose();
@@ -1059,6 +1252,25 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Duration Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Duration (in minutes)
+            </label>
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-gray-400" />
+              <input
+                type="number"
+                min="1"
+                value={formData.duration}
+                onChange={(e) => handleDurationChange(parseInt(e.target.value) || 0)}
+                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
           {formData.questions.map((question, questionIndex) => (
             <div key={question.id} className="p-4 bg-dark-300/50 rounded-lg space-y-4">
               <div className="flex justify-between items-start">
@@ -1634,22 +1846,63 @@ export const CloudSliceModulesPage: React.FC = () => {
             </ul>
           </div>
 
+          {/* Services Section */}
           <div className="p-6 bg-dark-300/50 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Tasks</h3>
-            <div className="space-y-4">
-              {labExercise.tasks?.map((task) => (
-                <div key={task.id} className="flex items-start space-x-3">
-                  <div className="mt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => {}}
-                      className="h-5 w-5 rounded border-gray-500 text-primary-500 focus:ring-primary-500"
-                    />
+            <h3 className="text-lg font-semibold mb-4">AWS Services</h3>
+            {labExercise.services && labExercise.services.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {labExercise.services.map((service, index) => (
+                  <div key={index} className="px-3 py-1.5 bg-primary-500/10 text-primary-300 rounded-full flex items-center">
+                    <Cloud className="h-4 w-4 mr-2" />
+                    {service}
                   </div>
-                  <p className="text-gray-300">{task.description}</p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400">No services configured for this lab</p>
+            )}
+          </div>
+
+          {/* Credentials Section */}
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">AWS Console Credentials</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Key className="h-5 w-5 text-primary-400" />
+                  <div>
+                    <p className="text-sm text-gray-400">Access Key ID</p>
+                    <p className="font-mono text-gray-300">{labExercise.credentials.accessKeyId}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <User className="h-5 w-5 text-primary-400" />
+                  <div>
+                    <p className="text-sm text-gray-400">Username</p>
+                    <p className="font-mono text-gray-300">{labExercise.credentials.username}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Lock className="h-5 w-5 text-primary-400" />
+                  <div>
+                    <p className="text-sm text-gray-400">Password</p>
+                    <p className="font-mono text-gray-300">••••••••••••</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleEditLabExercise(exercise.id)}
+                  className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-4 w-4 text-primary-400" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1687,13 +1940,19 @@ export const CloudSliceModulesPage: React.FC = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Quiz Content</h3>
-            <button
-              onClick={() => handleEditQuizExercise(exercise.id)}
-              className="btn-secondary"
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Quiz
-            </button>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-gray-400">
+                <Clock className="h-4 w-4" />
+                <span>{quizExercise.duration} minutes</span>
+              </div>
+              <button
+                onClick={() => handleEditQuizExercise(exercise.id)}
+                className="btn-secondary"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Quiz
+              </button>
+            </div>
           </div>
 
           {quizExercise.questions?.map((question, qIndex) => (
