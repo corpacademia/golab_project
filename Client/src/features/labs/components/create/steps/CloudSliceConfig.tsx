@@ -10,7 +10,8 @@ import {
   Loader, 
   Check, 
   Clock,
-  Layers
+  Layers,
+  DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,7 +65,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [credits] = useState(10000); // Example credit amount
+  const [credits, setCredits] = useState(10000); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
 
 
@@ -109,6 +110,11 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
       return;
     }
 
+    if (credits <= 0) {
+      setError('Please enter a valid credit amount');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
@@ -124,7 +130,8 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         startDate,
         endDate,
         cleanupPolicy: cleanupPolicy,
-        labType
+        labType,
+        credits:credits ? credits : 0,
       };
 
       if (labType === 'with-modules') {
@@ -212,6 +219,35 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           </label>
         </div>
       </div>
+
+      {/* Credits Configuration - Only for labs without modules */}
+      {labType === 'without-modules' && (
+        <div className="glass-panel space-y-4">
+          <h3 className="text-lg font-semibold text-gray-200">Credits Configuration</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <div className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-primary-400" />
+                  <span>Credit Amount</span>
+                </div>
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={credits}
+                onChange={(e) => setCredits(Math.max(1, parseInt(e.target.value) || 0))}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                Set the amount of credits available for this lab. Users will be limited to this budget.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Services Selection - Only show for labs without modules */}
       {labType === 'without-modules' && (
