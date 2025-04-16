@@ -6,17 +6,90 @@ import {
   Cpu, Server, HardDrive, X, Loader, AlertCircle, Check,
   Layers, FileText
 } from 'lucide-react';
-import axios from 'axios';
 import { CloudSliceCard } from '../../labs/components/user/CloudSliceCard';
 import { DeleteLabModal } from '../../labs/components/user/DeleteLabModal';
 
-interface Instance {
-  username: string;
-  user_id: string;
-  instance_id: string;
-  public_ip: string;
-  password: string;
-}
+// Mock data for testing UI
+const mockVmLabs = [
+  {
+    lab_id: 'vm-123',
+    title: 'Docker & Kubernetes Lab',
+    description: 'Learn container orchestration with Docker and Kubernetes',
+    provider: 'aws',
+    instance: 't3.large',
+    status: 'active',
+    cpu: 2,
+    ram: 8,
+    storage: 100,
+    os: 'Linux',
+    software: ['Docker', 'Kubernetes', 'Helm']
+  },
+  {
+    lab_id: 'vm-456',
+    title: 'Machine Learning Environment',
+    description: 'Set up a complete ML development environment with TensorFlow and PyTorch',
+    provider: 'aws',
+    instance: 'p3.2xlarge',
+    status: 'active',
+    cpu: 8,
+    ram: 64,
+    storage: 500,
+    os: 'Linux',
+    software: ['TensorFlow', 'PyTorch', 'Jupyter', 'CUDA']
+  }
+];
+
+const mockLabStatus = [
+  {
+    lab_id: 'vm-123',
+    status: 'in_progress',
+    completion_date: '2024-05-15'
+  },
+  {
+    lab_id: 'vm-456',
+    status: 'pending',
+    completion_date: '2024-06-01'
+  }
+];
+
+const mockCloudSlices = [
+  {
+    id: 'cs-123',
+    title: 'AWS Cloud Architecture',
+    description: 'Design and implement scalable cloud architectures',
+    provider: 'aws',
+    region: 'us-east-1',
+    services: ['EC2', 'S3', 'RDS', 'Lambda', 'CloudFormation'],
+    status: 'active',
+    startDate: '2024-04-01T00:00:00Z',
+    endDate: '2024-05-01T00:00:00Z',
+    labType: 'without-modules'
+  },
+  {
+    id: 'cs-456',
+    title: 'AWS DevOps Pipeline',
+    description: 'Build and deploy a complete CI/CD pipeline',
+    provider: 'aws',
+    region: 'us-west-2',
+    services: ['CodeCommit', 'CodeBuild', 'CodeDeploy', 'CodePipeline', 'EC2'],
+    status: 'active',
+    startDate: '2024-04-01T00:00:00Z',
+    endDate: '2024-05-01T00:00:00Z',
+    labType: 'with-modules'
+  },
+  {
+    id: 'cs-789',
+    title: 'Azure Cloud Fundamentals',
+    description: 'Learn the basics of Microsoft Azure cloud services',
+    provider: 'azure',
+    region: 'eastus',
+    services: ['Virtual Machines', 'App Service', 'Storage', 'Functions', 'SQL Database'],
+    status: 'pending',
+    startDate: '2024-04-15T00:00:00Z',
+    endDate: '2024-05-15T00:00:00Z',
+    labType: 'with-modules'
+  }
+];
 
 interface LabControl {
   isLaunched: boolean;
@@ -29,26 +102,28 @@ interface LabControl {
   } | null;
 }
 
-interface CloudSlice {
-  id: string;
-  title: string;
-  description: string;
-  provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
-  region: string;
-  services: string[];
-  status: 'active' | 'inactive' | 'pending' | 'expired';
-  startDate: string;
-  endDate: string;
-  labType: 'without-modules' | 'with-modules';
-}
-
 export const MyLabs: React.FC = () => {
-  const [labs, setLabs] = useState([]);
-  const [filteredLabs, setFilteredLabs] = useState([]);
-  const [labStatus, setLabStatus] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [cloudInstanceDetails, setCloudInstanceDetails] = useState<LabDetails | undefined>(undefined);
-  const [labControls, setLabControls] = useState<Record<string, LabControl>>({});
+  const [labs, setLabs] = useState(mockVmLabs);
+  const [filteredLabs, setFilteredLabs] = useState(mockVmLabs);
+  const [labStatus, setLabStatus] = useState(mockLabStatus);
+  const [isLoading, setIsLoading] = useState(false);
+  const [cloudInstanceDetails, setCloudInstanceDetails] = useState<any | undefined>(undefined);
+  const [labControls, setLabControls] = useState<Record<string, LabControl>>({
+    'vm-123': {
+      isLaunched: true,
+      isLaunching: false,
+      isProcessing: false,
+      buttonLabel: 'Stop Lab',
+      notification: null
+    },
+    'vm-456': {
+      isLaunched: false,
+      isLaunching: false,
+      isProcessing: false,
+      buttonLabel: 'Start Lab',
+      notification: null
+    }
+  });
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     labId: string;
@@ -68,81 +143,10 @@ export const MyLabs: React.FC = () => {
   });
 
   // Cloud Slice Labs
-  const [cloudSlices, setCloudSlices] = useState<CloudSlice[]>([]);
-  const [filteredCloudSlices, setFilteredCloudSlices] = useState<CloudSlice[]>([]);
+  const [cloudSlices, setCloudSlices] = useState(mockCloudSlices);
+  const [filteredCloudSlices, setFilteredCloudSlices] = useState(mockCloudSlices);
 
-  const [user, setUser] = useState({});
-
-  useEffect(() => {
-    const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-      setUser(response.data.user);
-    };
-    getUserDetails();
-  }, []);
-
-  // Combine all fetch calls into a single useEffect
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user.id) return;
-      
-      try {
-        // Fetch VM labs
-        const [cataloguesRes, labsRes, softwareRes] = await Promise.all([
-          axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues'),
-          axios.post('http://localhost:3000/api/v1/lab_ms/getAssignedLabs', { userId: user.id }),
-          axios.get('http://localhost:3000/api/v1/lab_ms/getSoftwareDetails')
-        ]);
-        const cats = cataloguesRes.data.data;
-        const labss = labsRes.data.data;
-        const softwareData = softwareRes.data.data;
-
-        // Filter catalogues based on assigned labs
-        const filteredCatalogues = cats.filter((cat) => 
-          labss.some((lab) => lab.lab_id === cat.lab_id)
-        );
-
-        // Attach software details to each lab
-        const updatedLabs = filteredCatalogues.map((lab) => {
-          const software = softwareData.find((s) => s.lab_id === lab.lab_id);
-          return {
-            ...lab,
-            software: software ? [software.software] : []
-          };
-        });
-
-        setLabs(updatedLabs);
-        setFilteredLabs(updatedLabs);
-        setLabStatus(labss);
-
-        // Check status for each lab
-        for (const lab of updatedLabs) {
-          await checkLabStatus(lab.lab_id);
-        }
-
-        // Fetch cloud slice labs
-        try {
-          const cloudSlicesRes = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices', {
-            params: { userId: user.id }
-          });
-          
-          if (cloudSlicesRes.data.success) {
-            setCloudSlices(cloudSlicesRes.data.data || []);
-            setFilteredCloudSlices(cloudSlicesRes.data.data || []);
-          }
-        } catch (error) {
-          console.error('Error fetching cloud slices:', error);
-        }
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user.id]);
+  const [user, setUser] = useState({ id: 'user-123', name: 'Test User' });
 
   // Apply filters effect
   useEffect(() => {
@@ -191,27 +195,6 @@ export const MyLabs: React.FC = () => {
     setFilteredCloudSlices(sliceResult);
   }, [filters, labs, labStatus, cloudSlices]);
 
-  const checkLabStatus = async (labId: string) => {
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/checkLabStatus', {
-        lab_id: labId,
-        user_id: user.id
-      });
-      if (response.data.success) {
-        setLabControls(prev => ({
-          ...prev,
-          [labId]: {
-            ...prev[labId],
-            isLaunched: response.data.success,
-            buttonLabel: response.data.data.isrunning ? 'Stop Lab' : 'Start Lab'
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error checking lab status:', error);
-    }
-  };
-
   const handleLaunchLab = async (lab) => {
     setLabControls(prev => ({
       ...prev,
@@ -222,64 +205,17 @@ export const MyLabs: React.FC = () => {
       }
     }));
   
-    try {
-      const [ami, labConfig] = await Promise.all([
-        axios.post('http://localhost:3000/api/v1/lab_ms/amiinformation', { lab_id: lab.lab_id }),
-        axios.post('http://localhost:3000/api/v1/lab_ms/getAssignLabOnId', { labId: lab.lab_id, userId: user.id }),
-      ]);
-      if (!ami.data.success) {
-        throw new Error('Failed to retrieve instance details');
-      }
-  
-      // First API: Launch instance (Keep loading active)
-      const response = await axios.post('http://localhost:3000/api/v1/aws_ms/launchInstance', {
-        name: user.name,
-        ami_id: ami.data.result.ami_id,
-        user_id: user.id,
-        lab_id: lab.lab_id,
-        instance_type: lab.instance,
-        start_date: formatDate(new Date()),
-        end_date: formatDate(labConfig.data.data.completion_date),
-      });
-      
-      // Only proceed if launchInstance is successful
-      if (response.data.success) {
-        setLabControls(prev => ({
-          ...prev,
-          [lab.lab_id]: {
-            ...prev[lab.lab_id],
-            isLaunched: true,
-            isLaunching: false, // Loading stops after decryption
-            notification: {
-              type: 'success',
-              message: 'Lab launched successfully'
-            }
-          }
-        }));
-        
-        // Remove notification after 3 seconds
-        setTimeout(() => {
-          setLabControls(prev => ({
-            ...prev,
-            [lab.lab_id]: {
-              ...prev[lab.lab_id],
-              notification: null // Clear notification
-            }
-          }));
-        }, 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to launch lab');
-      }
-  
-    } catch (error: any) {
+    // Simulate API call
+    setTimeout(() => {
       setLabControls(prev => ({
         ...prev,
         [lab.lab_id]: {
           ...prev[lab.lab_id],
-          isLaunching: false, // Loading stops on error
+          isLaunched: true,
+          isLaunching: false,
           notification: {
-            type: 'error',
-            message: error.response?.data?.message || 'Failed to launch lab'
+            type: 'success',
+            message: 'Lab launched successfully'
           }
         }
       }));
@@ -290,11 +226,11 @@ export const MyLabs: React.FC = () => {
           ...prev,
           [lab.lab_id]: {
             ...prev[lab.lab_id],
-            notification: null // Clear notification
+            notification: null
           }
         }));
       }, 3000);
-    }
+    }, 1500);
   };
   
   const handleStartStopLab = async (lab) => {
@@ -309,136 +245,22 @@ export const MyLabs: React.FC = () => {
       }
     }));
 
-    const cloudinstanceDetails = await axios.post('http://localhost:3000/api/v1/aws_ms/getAssignedInstance', {
-      user_id: user.id,
-      lab_id: lab.lab_id,
-    });
-    
-    if (!cloudinstanceDetails.data.success) {
-      throw new Error('Failed to retrieve instance details');
-    }
-    
-    setCloudInstanceDetails(cloudinstanceDetails.data.data);
-
-    try {
-      const instanceId = cloudInstanceDetails?.instance_id;
-
-      if (isStop) {
-        const stop = await axios.post('http://localhost:3000/api/v1/aws_ms/stopInstance', {
-          instance_id: instanceId
-        });
-        
-        if (stop.data.success) {
-          await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers', {
-            lab_id: lab.lab_id,
-            user_id: user.id,
-            state: false,
-            isStarted: true
-          });
-        }
-
-        setLabControls(prev => ({
-          ...prev,
-          [lab.lab_id]: {
-            ...prev[lab.lab_id],
-            isProcessing: false,
-            buttonLabel: 'Start Lab',
-            notification: {
-              type: 'success',
-              message: 'Lab stopped successfully'
-            }
-          }
-        }));
-
-        setTimeout(() => {
-          setLabControls(prev => ({
-            ...prev,
-            [lab.lab_id]: {
-              ...prev[lab.lab_id],
-              notification: null
-            }
-          }));
-        }, 3000);
-
-        return;
-      }
-
-      // Check if instance is already started
-      const checkInstanceAlreadyStarted = await axios.post('http://localhost:3000/api/v1/lab_ms/checkisstarted', {
-        type: 'user',
-        id: cloudinstanceDetails?.data.data.instance_id,
-      });
-      
-      if (checkInstanceAlreadyStarted.data.isStarted === false) {
-        const response = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
-          os_name: lab.os,
-          instance_id: cloudinstanceDetails?.data.data.instance_id,
-          hostname: cloudinstanceDetails?.data.data.public_ip,
-          password: cloudinstanceDetails?.data.data.password,
-          buttonState: 'Start Lab'
-        });
-          
-        if (response.data.response.success && response.data.response.jwtToken) {
-          await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers', {
-            lab_id: lab.lab_id,
-            user_id: user.id,
-            state: true,
-            isStarted: false
-          });
-          
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
-          window.open(guacUrl, '_blank');
-        }
-      } else {
-        const restart = await axios.post('http://localhost:3000/api/v1/aws_ms/restart_instance', {
-          instance_id: cloudinstanceDetails?.data.data.instance_id,
-          user_type: 'user'
-        });
-
-        if (restart.data.success) {
-          const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/aws_ms/getAssignedInstance', {
-            user_id: user.id,
-            lab_id: lab.lab_id,
-          });
-          
-          if (cloudInstanceDetails.data.success) {
-            const response = await axios.post('http://localhost:3000/api/v1/aws_ms/runSoftwareOrStop', {
-              os_name: lab.os,
-              instance_id: cloudInstanceDetails?.data.data.instance_id,
-              hostname: cloudInstanceDetails?.data.data.public_ip,
-              password: cloudInstanceDetails?.data.data.password,
-              buttonState: 'Start Lab'
-            });
-            
-            if (response.data.success) {
-              // Update database that the instance is started
-              await axios.post('http://localhost:3000/api/v1/lab_ms/updateawsInstanceOfUsers', {
-                lab_id: lab.lab_id,
-                user_id: user.id,
-                state: true,
-                isStarted: true
-              });
-              
-              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
-              window.open(guacUrl, '_blank');
-            }
-          }
-        }
-      }
-      
+    // Simulate API call
+    setTimeout(() => {
       setLabControls(prev => ({
         ...prev,
         [lab.lab_id]: {
           ...prev[lab.lab_id],
           isProcessing: false,
-          buttonLabel: 'Stop Lab',
+          buttonLabel: isStop ? 'Start Lab' : 'Stop Lab',
           notification: {
             type: 'success',
-            message: 'Lab started successfully'
+            message: isStop ? 'Lab stopped successfully' : 'Lab started successfully'
           }
         }
       }));
-
+      
+      // Remove notification after 3 seconds
       setTimeout(() => {
         setLabControls(prev => ({
           ...prev,
@@ -448,30 +270,7 @@ export const MyLabs: React.FC = () => {
           }
         }));
       }, 3000);
-
-    } catch (error) {
-      setLabControls(prev => ({
-        ...prev,
-        [lab.lab_id]: {
-          ...prev[lab.lab_id],
-          isProcessing: false,
-          notification: {
-            type: 'error',
-            message: error.response?.data?.message || `Failed to ${isStop ? 'stop' : 'start'} lab`
-          }
-        }
-      }));
-
-      setTimeout(() => {
-        setLabControls(prev => ({
-          ...prev,
-          [lab.lab_id]: {
-            ...prev[lab.lab_id],
-            notification: null
-          }
-        }));
-      }, 3000);
-    }
+    }, 1500);
   };
 
   function formatDate(inputDate: Date) {
@@ -480,24 +279,14 @@ export const MyLabs: React.FC = () => {
   }
 
   const handleDeleteCloudSlice = async (sliceId: string) => {
-    try {
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/deleteUserLab`, {
-        lab_id: sliceId,
-        user_id: user.id
-      });
-
-      if (response.data.success) {
-        // Remove the deleted slice from state
+    // Simulate API call
+    return new Promise<boolean>((resolve) => {
+      setTimeout(() => {
         setCloudSlices(prev => prev.filter(slice => slice.id !== sliceId));
         setFilteredCloudSlices(prev => prev.filter(slice => slice.id !== sliceId));
-        return true;
-      } else {
-        throw new Error(response.data.message || 'Failed to delete lab');
-      }
-    } catch (error) {
-      console.error('Failed to delete lab:', error);
-      return false;
-    }
+        resolve(true);
+      }, 1000);
+    });
   };
 
   if (isLoading) {
@@ -753,7 +542,10 @@ export const MyLabs: React.FC = () => {
         onClose={() => setDeleteModal({ isOpen: false, labId: '', labTitle: '', userId: '' })}
         labId={deleteModal.labId}
         labTitle={deleteModal.labTitle}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => {
+          setLabs(prev => prev.filter(lab => lab.lab_id !== deleteModal.labId));
+          setFilteredLabs(prev => prev.filter(lab => lab.lab_id !== deleteModal.labId));
+        }}
       />
     </div>
   );

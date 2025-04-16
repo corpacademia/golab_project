@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 interface CloudSliceCardProps {
   lab: {
@@ -35,62 +34,49 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
   const navigate = useNavigate();
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
   const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
 
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsLaunching(true);
     setNotification(null);
 
-    try {
-      // Call the API endpoint to get lab details
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${lab.id}`);
-      
-      if (response.data.success) {
-        // Navigate to the appropriate page based on labType
-        if (lab.labType === 'without-modules') {
-          navigate(`/dashboard/my-labs/${lab.id}/standard`, { 
-            state: { 
-              labDetails: response.data.data
-            } 
-          });
-        } else {
-          navigate(`/dashboard/my-labs/${lab.id}/modules`, { 
-            state: { 
-              labDetails: response.data.data
-            } 
-          });
-        }
+    // Simulate API call
+    setTimeout(() => {
+      // Navigate to the appropriate page based on labType
+      if (lab.labType === 'without-modules') {
+        navigate(`/dashboard/my-labs/${lab.id}/standard`, { 
+          state: { 
+            labDetails: {
+              ...lab,
+              credentials: {
+                username: 'lab-user-789',
+                accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+                secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+              },
+              consoleUrl: 'https://console.aws.amazon.com'
+            }
+          } 
+        });
       } else {
-        throw new Error(response.data.message || 'Failed to launch lab');
+        navigate(`/dashboard/my-labs/${lab.id}/modules`, { 
+          state: { 
+            labDetails: {
+              ...lab,
+              credentials: {
+                username: 'lab-user-789',
+                accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+                secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+              },
+              consoleUrl: 'https://console.aws.amazon.com'
+            }
+          } 
+        });
       }
-    } catch (error: any) {
-      setNotification({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to launch lab' 
-      });
       
-      // Clear notification after 3 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
-    } finally {
       setIsLaunching(false);
-    }
+    }, 1500);
   };
 
   const handleDeleteClick = async (e: React.MouseEvent) => {
@@ -98,11 +84,12 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
     e.preventDefault();
     
     setIsDeleting(true);
-    try {
-      await onDelete(lab.id);
-    } finally {
+    
+    // Simulate API call
+    setTimeout(() => {
+      onDelete(lab.id);
       setIsDeleting(false);
-    }
+    }, 1000);
   };
 
   function formatDateTime(dateString: string) {

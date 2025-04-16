@@ -13,7 +13,114 @@ import {
   BookOpen,
   HelpCircle
 } from 'lucide-react';
-import axios from 'axios';
+
+// Mock data for testing UI
+const mockLabDetails = {
+  id: 'lab-456',
+  title: 'AWS DevOps Pipeline Lab',
+  description: 'Learn to build and deploy a complete CI/CD pipeline using AWS services',
+  provider: 'aws',
+  region: 'us-west-2',
+  services: [
+    'CodeCommit', 
+    'CodeBuild', 
+    'CodeDeploy', 
+    'CodePipeline', 
+    'EC2', 
+    'S3', 
+    'CloudFormation'
+  ],
+  status: 'active',
+  startDate: '2024-04-01T00:00:00Z',
+  endDate: '2024-05-01T00:00:00Z',
+  credentials: {
+    username: 'lab-user-456',
+    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+  },
+  consoleUrl: 'https://console.aws.amazon.com'
+};
+
+const mockModules = [
+  {
+    id: 'module-1',
+    title: 'Source Control with CodeCommit',
+    description: 'Set up a Git repository in AWS CodeCommit and manage your code',
+    order: 1,
+    exercises: [
+      {
+        id: 'exercise-1',
+        title: 'Create a CodeCommit Repository',
+        description: 'Learn to create and configure a Git repository in AWS CodeCommit',
+        type: 'lab',
+        order: 1,
+        duration: 30,
+        status: 'completed'
+      },
+      {
+        id: 'exercise-2',
+        title: 'Git Basics Quiz',
+        description: 'Test your knowledge of Git fundamentals',
+        type: 'quiz',
+        order: 2,
+        duration: 15,
+        status: 'completed'
+      }
+    ]
+  },
+  {
+    id: 'module-2',
+    title: 'Build Automation with CodeBuild',
+    description: 'Configure automated builds for your application',
+    order: 2,
+    exercises: [
+      {
+        id: 'exercise-3',
+        title: 'Set Up a Build Project',
+        description: 'Create and configure a build project in AWS CodeBuild',
+        type: 'lab',
+        order: 1,
+        duration: 45,
+        status: 'in-progress'
+      },
+      {
+        id: 'exercise-4',
+        title: 'Create a buildspec.yml File',
+        description: 'Define your build process using a buildspec.yml file',
+        type: 'lab',
+        order: 2,
+        duration: 30,
+        status: 'not-started'
+      }
+    ]
+  },
+  {
+    id: 'module-3',
+    title: 'Deployment with CodeDeploy',
+    description: 'Learn to deploy applications to EC2 instances',
+    order: 3,
+    exercises: [
+      {
+        id: 'exercise-5',
+        title: 'Configure CodeDeploy',
+        description: 'Set up CodeDeploy to deploy your application',
+        type: 'lab',
+        order: 1,
+        duration: 60,
+        status: 'not-started'
+      },
+      {
+        id: 'exercise-6',
+        title: 'Deployment Strategies Quiz',
+        description: 'Test your knowledge of different deployment strategies',
+        type: 'quiz',
+        order: 2,
+        duration: 20,
+        status: 'not-started'
+      }
+    ]
+  }
+];
 
 interface Module {
   id: string;
@@ -38,76 +145,13 @@ export const ModularLabPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [isLoading, setIsLoading] = useState(!location.state?.labDetails);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
+  const [modules, setModules] = useState<Module[]>(mockModules);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
-
-  // Fetch user and lab details
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-
-    if (!labDetails && labId) {
-      const fetchLabDetails = async () => {
-        setIsLoading(true);
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${labId}`);
-          if (response.data.success) {
-            setLabDetails(response.data.data);
-          } else {
-            setError('Failed to load lab details');
-          }
-        } catch (err) {
-          setError('Failed to load lab details');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchLabDetails();
-    }
-  }, [labId, labDetails]);
-
-  // Fetch modules
-  useEffect(() => {
-    if (labId && user?.id) {
-      const fetchModules = async () => {
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getLabModules`, {
-            lab_id: labId,
-            user_id: user.id
-          });
-          
-          if (response.data.success) {
-            setModules(response.data.data);
-            
-            // Set first module as active if none is selected
-            if (response.data.data.length > 0 && !activeModuleId) {
-              setActiveModuleId(response.data.data[0].id);
-            }
-          } else {
-            setError('Failed to load lab modules');
-          }
-        } catch (err) {
-          setError('Failed to load lab modules');
-        }
-      };
-      
-      fetchModules();
-    }
-  }, [labId, user?.id, activeModuleId]);
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
+  const [activeModuleId, setActiveModuleId] = useState<string | null>('module-1');
 
   // Calculate total duration
   const totalDuration = modules.reduce((total, module) => {

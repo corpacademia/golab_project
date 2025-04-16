@@ -12,7 +12,71 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import axios from 'axios';
+
+// Mock data for testing UI
+const mockExercise = {
+  id: 'exercise-2',
+  title: 'Git Basics Quiz',
+  description: 'Test your knowledge of Git fundamentals',
+  type: 'quiz',
+  order: 2,
+  duration: 15,
+  status: 'not-started'
+};
+
+const mockLabDetails = {
+  id: 'lab-456',
+  title: 'AWS DevOps Pipeline Lab',
+  description: 'Learn to build and deploy a complete CI/CD pipeline using AWS services',
+  provider: 'aws'
+};
+
+const mockQuestions = [
+  {
+    id: 'q1',
+    text: 'Which command is used to create a new Git repository?',
+    options: [
+      { id: 'a1', text: 'git create' },
+      { id: 'a2', text: 'git init' },
+      { id: 'a3', text: 'git new' },
+      { id: 'a4', text: 'git start' }
+    ],
+    correctOptionId: 'a2'
+  },
+  {
+    id: 'q2',
+    text: 'Which command adds files to the Git staging area?',
+    options: [
+      { id: 'b1', text: 'git stage' },
+      { id: 'b2', text: 'git commit' },
+      { id: 'b3', text: 'git add' },
+      { id: 'b4', text: 'git push' }
+    ],
+    correctOptionId: 'b3'
+  },
+  {
+    id: 'q3',
+    text: 'What does the command "git pull" do?',
+    options: [
+      { id: 'c1', text: 'Uploads local changes to the remote repository' },
+      { id: 'c2', text: 'Downloads and integrates changes from the remote repository' },
+      { id: 'c3', text: 'Creates a new branch' },
+      { id: 'c4', text: 'Shows the commit history' }
+    ],
+    correctOptionId: 'c2'
+  },
+  {
+    id: 'q4',
+    text: 'Which of the following is NOT a Git object type?',
+    options: [
+      { id: 'd1', text: 'Blob' },
+      { id: 'd2', text: 'Tree' },
+      { id: 'd3', text: 'Branch' },
+      { id: 'd4', text: 'Commit' }
+    ],
+    correctOptionId: 'd3'
+  }
+];
 
 interface Question {
   id: string;
@@ -41,79 +105,18 @@ export const QuizExercisePage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [exercise, setExercise] = useState<any>(location.state?.exercise || null);
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
-  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || null);
-  const [isLoading, setIsLoading] = useState(!location.state?.exercise);
+  const [exercise, setExercise] = useState<any>(location.state?.exercise || mockExercise);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
+  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || 'module-1');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [countdown, setCountdown] = useState<number | null>(exercise.duration * 60); // Convert minutes to seconds
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
+  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
-
-  // Fetch user and exercise details
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-
-    if (!exercise && exerciseId) {
-      const fetchExerciseDetails = async () => {
-        setIsLoading(true);
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizExercise/${exerciseId}`);
-          if (response.data.success) {
-            setExercise(response.data.data.exercise);
-            setLabDetails(response.data.data.labDetails);
-            setModuleId(response.data.data.moduleId);
-            setQuestions(response.data.data.questions || []);
-            
-            // Initialize countdown
-            if (response.data.data.exercise.duration) {
-              setCountdown(response.data.data.exercise.duration * 60); // Convert minutes to seconds
-            }
-          } else {
-            setError('Failed to load quiz details');
-          }
-        } catch (err) {
-          setError('Failed to load quiz details');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchExerciseDetails();
-    } else if (exercise) {
-      // Initialize countdown if exercise has duration
-      if (exercise.duration) {
-        setCountdown(exercise.duration * 60); // Convert minutes to seconds
-      }
-      
-      // Fetch questions
-      const fetchQuestions = async () => {
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getQuizQuestions/${exerciseId}`);
-          if (response.data.success) {
-            setQuestions(response.data.data || []);
-          }
-        } catch (err) {
-          console.error('Failed to fetch questions:', err);
-        }
-      };
-      
-      fetchQuestions();
-    }
-  }, [exerciseId, exercise]);
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
@@ -148,33 +151,34 @@ export const QuizExercisePage: React.FC = () => {
     setIsSubmitting(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/submitQuiz', {
-        exercise_id: exerciseId,
-        user_id: user?.id,
-        module_id: moduleId,
-        lab_id: labDetails?.id,
-        answers: Object.entries(answers).map(([questionId, optionId]) => ({
-          questionId,
-          optionId
-        }))
-      });
+    // Simulate API call
+    setTimeout(() => {
+      // Calculate results
+      const correctAnswers = questions.filter(q => answers[q.id] === q.correctOptionId).length;
+      const incorrectAnswers = questions.length - correctAnswers;
+      const score = Math.round((correctAnswers / questions.length) * 100);
       
-      if (response.data.success) {
-        setQuizResult(response.data.data);
-        setNotification({ type: 'success', message: 'Quiz submitted successfully' });
-      } else {
-        throw new Error(response.data.message || 'Failed to submit quiz');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to submit quiz' 
-      });
-    } finally {
+      const feedback = questions.map(q => ({
+        questionId: q.id,
+        isCorrect: answers[q.id] === q.correctOptionId,
+        correctOptionId: q.correctOptionId
+      }));
+      
+      const result: QuizResult = {
+        score,
+        totalQuestions: questions.length,
+        correctAnswers,
+        incorrectAnswers,
+        feedback
+      };
+      
+      setQuizResult(result);
+      setNotification({ type: 'success', message: 'Quiz submitted successfully' });
       setIsSubmitting(false);
+      
+      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }
+    }, 1500);
   };
 
   // Countdown timer

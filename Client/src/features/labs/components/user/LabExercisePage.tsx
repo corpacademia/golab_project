@@ -17,17 +17,117 @@ import {
   Download,
   Send
 } from 'lucide-react';
-import axios from 'axios';
+
+// Mock data for testing UI
+const mockExercise = {
+  id: 'exercise-3',
+  title: 'Set Up a Build Project',
+  description: 'Create and configure a build project in AWS CodeBuild',
+  type: 'lab',
+  order: 1,
+  duration: 45,
+  status: 'in-progress',
+  instructions: `
+    <h2>Setting Up a Build Project in AWS CodeBuild</h2>
+    <p>In this exercise, you will create and configure a build project in AWS CodeBuild to automatically build your application.</p>
+    
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>Your source code is stored in AWS CodeCommit</li>
+      <li>You have a buildspec.yml file in your repository</li>
+    </ul>
+    
+    <h3>Steps</h3>
+    <ol>
+      <li>
+        <p><strong>Navigate to the AWS CodeBuild console</strong></p>
+        <p>Open the AWS Management Console and navigate to the CodeBuild service.</p>
+      </li>
+      <li>
+        <p><strong>Create a new build project</strong></p>
+        <p>Click on "Create build project" and provide a name for your project.</p>
+      </li>
+      <li>
+        <p><strong>Configure source provider</strong></p>
+        <p>Select "AWS CodeCommit" as the source provider and choose your repository.</p>
+      </li>
+      <li>
+        <p><strong>Configure environment</strong></p>
+        <p>Choose a managed image that matches your application's requirements.</p>
+      </li>
+      <li>
+        <p><strong>Configure buildspec</strong></p>
+        <p>Use the buildspec.yml file in your repository.</p>
+      </li>
+      <li>
+        <p><strong>Configure artifacts</strong></p>
+        <p>Specify where to store the build output (e.g., S3 bucket).</p>
+      </li>
+      <li>
+        <p><strong>Create the build project</strong></p>
+        <p>Review your settings and click "Create build project".</p>
+      </li>
+      <li>
+        <p><strong>Start a build</strong></p>
+        <p>Click "Start build" to run your first build.</p>
+      </li>
+    </ol>
+    
+    <h3>Verification</h3>
+    <p>Your build should complete successfully, and the artifacts should be stored in the specified location.</p>
+  `
+};
+
+const mockLabDetails = {
+  id: 'lab-456',
+  title: 'AWS DevOps Pipeline Lab',
+  description: 'Learn to build and deploy a complete CI/CD pipeline using AWS services',
+  provider: 'aws',
+  region: 'us-west-2',
+  services: [
+    'CodeCommit', 
+    'CodeBuild', 
+    'CodeDeploy', 
+    'CodePipeline', 
+    'EC2', 
+    'S3', 
+    'CloudFormation'
+  ],
+  credentials: {
+    username: 'lab-user-456',
+    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+  },
+  consoleUrl: 'https://console.aws.amazon.com'
+};
+
+const mockResources = [
+  {
+    name: 'buildspec.yml Template',
+    url: '#',
+    type: 'file'
+  },
+  {
+    name: 'CodeBuild Documentation',
+    url: 'https://docs.aws.amazon.com/codebuild/',
+    type: 'link'
+  },
+  {
+    name: 'Sample Application Code',
+    url: '#',
+    type: 'file'
+  }
+];
 
 export const LabExercisePage: React.FC = () => {
   const { exerciseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [exercise, setExercise] = useState<any>(location.state?.exercise || null);
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
-  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || null);
-  const [isLoading, setIsLoading] = useState(!location.state?.exercise);
+  const [exercise, setExercise] = useState<any>(location.state?.exercise || mockExercise);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
+  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || 'module-2');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
@@ -35,78 +135,9 @@ export const LabExercisePage: React.FC = () => {
   const [labStarted, setLabStarted] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [resources, setResources] = useState<any[]>([]);
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
+  const [resources, setResources] = useState<any[]>(mockResources);
   const [notes, setNotes] = useState('');
-
-  // Fetch user and exercise details
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-
-    if (!exercise && exerciseId) {
-      const fetchExerciseDetails = async () => {
-        setIsLoading(true);
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getExerciseDetails/${exerciseId}`);
-          if (response.data.success) {
-            setExercise(response.data.data.exercise);
-            setLabDetails(response.data.data.labDetails);
-            setModuleId(response.data.data.moduleId);
-            setResources(response.data.data.resources || []);
-            
-            // Check if lab is already started
-            const statusResponse = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/checkExerciseStatus', {
-              exercise_id: exerciseId,
-              user_id: user?.id
-            });
-            
-            if (statusResponse.data.success) {
-              setLabStarted(statusResponse.data.isRunning);
-              if (statusResponse.data.isRunning && statusResponse.data.timeRemaining) {
-                setCountdown(statusResponse.data.timeRemaining);
-              }
-            }
-          } else {
-            setError('Failed to load exercise details');
-          }
-        } catch (err) {
-          setError('Failed to load exercise details');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchExerciseDetails();
-    } else if (exercise) {
-      // Initialize countdown if exercise has duration
-      if (exercise.duration) {
-        setCountdown(exercise.duration * 60); // Convert minutes to seconds
-      }
-      
-      // Fetch resources
-      const fetchResources = async () => {
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getExerciseResources/${exerciseId}`);
-          if (response.data.success) {
-            setResources(response.data.data || []);
-          }
-        } catch (err) {
-          console.error('Failed to fetch resources:', err);
-        }
-      };
-      
-      fetchResources();
-    }
-  }, [exerciseId, exercise, user?.id]);
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
@@ -122,39 +153,16 @@ export const LabExercisePage: React.FC = () => {
     setIsStarting(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/startExercise', {
-        exercise_id: exerciseId,
-        user_id: user?.id,
-        module_id: moduleId,
-        lab_id: labDetails?.id
-      });
-      
-      if (response.data.success) {
-        setLabStarted(true);
-        setNotification({ type: 'success', message: 'Lab started successfully' });
-        
-        // Open AWS Console
-        if (response.data.consoleUrl) {
-          window.open(response.data.consoleUrl, '_blank');
-        }
-        
-        // Set countdown timer if duration is provided
-        if (exercise.duration) {
-          setCountdown(exercise.duration * 60); // Convert minutes to seconds
-        }
-      } else {
-        throw new Error(response.data.message || 'Failed to start lab');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to start lab' 
-      });
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setLabStarted(true);
+      setNotification({ type: 'success', message: 'Lab started successfully' });
+      setCountdown(exercise.duration * 60); // Convert minutes to seconds
       setIsStarting(false);
+      
+      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }
+    }, 1500);
   };
 
   // Stop lab
@@ -162,28 +170,16 @@ export const LabExercisePage: React.FC = () => {
     setIsStopping(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/stopExercise', {
-        exercise_id: exerciseId,
-        user_id: user?.id
-      });
-      
-      if (response.data.success) {
-        setLabStarted(false);
-        setNotification({ type: 'success', message: 'Lab stopped successfully' });
-        setCountdown(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to stop lab');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to stop lab' 
-      });
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setLabStarted(false);
+      setNotification({ type: 'success', message: 'Lab stopped successfully' });
+      setCountdown(null);
       setIsStopping(false);
+      
+      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }
+    }, 1500);
   };
 
   // Submit exercise
@@ -191,31 +187,19 @@ export const LabExercisePage: React.FC = () => {
     setIsSubmitting(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/submitExercise', {
-        exercise_id: exerciseId,
-        user_id: user?.id,
-        notes: notes
-      });
+    // Simulate API call
+    setTimeout(() => {
+      setNotification({ type: 'success', message: 'Exercise submitted successfully' });
       
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Exercise submitted successfully' });
-        setTimeout(() => {
-          navigate(`/dashboard/my-labs/${labDetails?.id}/modules`, {
-            state: { labDetails }
-          });
-        }, 1500);
-      } else {
-        throw new Error(response.data.message || 'Failed to submit exercise');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to submit exercise' 
-      });
-    } finally {
+      // Navigate back after submission
+      setTimeout(() => {
+        navigate(`/dashboard/my-labs/${labDetails?.id}/modules`, {
+          state: { labDetails }
+        });
+      }, 1500);
+      
       setIsSubmitting(false);
-    }
+    }, 1500);
   };
 
   // Countdown timer
@@ -373,7 +357,8 @@ export const LabExercisePage: React.FC = () => {
                       </div>
                       <a
                         href={resource.url}
-                        download
+                        download={resource.type === 'file'}
+                        target={resource.type === 'link' ? '_blank' : undefined}
                         className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                       >
                         <Download className="h-4 w-4 text-primary-400" />

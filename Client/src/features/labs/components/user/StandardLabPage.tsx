@@ -14,66 +14,49 @@ import {
   Play,
   Square
 } from 'lucide-react';
-import axios from 'axios';
+
+// Mock data for testing UI
+const mockLabDetails = {
+  id: 'lab-123',
+  title: 'AWS Cloud Architecture Lab',
+  description: 'Learn to design and implement scalable cloud architectures using AWS services',
+  provider: 'aws',
+  region: 'us-east-1',
+  services: [
+    'EC2', 
+    'S3', 
+    'RDS', 
+    'Lambda', 
+    'CloudFormation', 
+    'VPC', 
+    'IAM', 
+    'CloudWatch'
+  ],
+  status: 'active',
+  startDate: '2024-04-01T00:00:00Z',
+  endDate: '2024-05-01T00:00:00Z',
+  credentials: {
+    username: 'lab-user-123',
+    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+  },
+  consoleUrl: 'https://console.aws.amazon.com'
+};
 
 export const StandardLabPage: React.FC = () => {
   const { labId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
-  const [isLoading, setIsLoading] = useState(!location.state?.labDetails);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [labStarted, setLabStarted] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [user, setUser] = useState<any>(null);
-
-  // Fetch lab details if not provided in location state
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-
-    if (!labDetails && labId) {
-      const fetchLabDetails = async () => {
-        setIsLoading(true);
-        try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${labId}`);
-          if (response.data.success) {
-            setLabDetails(response.data.data);
-            
-            // Check if lab is already started
-            const statusResponse = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/checkLabStatus', {
-              lab_id: labId,
-              user_id: user?.id
-            });
-            
-            if (statusResponse.data.success && statusResponse.data.isRunning) {
-              setLabStarted(true);
-            }
-          } else {
-            setError('Failed to load lab details');
-          }
-        } catch (err) {
-          setError('Failed to load lab details');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchLabDetails();
-    }
-  }, [labId, labDetails, user?.id]);
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
@@ -89,37 +72,16 @@ export const StandardLabPage: React.FC = () => {
     setIsStarting(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/startLab', {
-        lab_id: labId,
-        user_id: user?.id
-      });
-      
-      if (response.data.success) {
-        setLabStarted(true);
-        setNotification({ type: 'success', message: 'Lab started successfully' });
-        
-        // Open AWS Console
-        if (response.data.consoleUrl) {
-          window.open(response.data.consoleUrl, '_blank');
-        }
-        
-        // Set countdown timer if duration is provided
-        if (response.data.duration) {
-          setCountdown(response.data.duration * 60); // Convert minutes to seconds
-        }
-      } else {
-        throw new Error(response.data.message || 'Failed to start lab');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to start lab' 
-      });
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setLabStarted(true);
+      setNotification({ type: 'success', message: 'Lab started successfully' });
+      setCountdown(60 * 60); // 1 hour countdown
       setIsStarting(false);
+      
+      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }
+    }, 1500);
   };
 
   // Stop lab
@@ -127,28 +89,16 @@ export const StandardLabPage: React.FC = () => {
     setIsStopping(true);
     setNotification(null);
     
-    try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/stopLab', {
-        lab_id: labId,
-        user_id: user?.id
-      });
-      
-      if (response.data.success) {
-        setLabStarted(false);
-        setNotification({ type: 'success', message: 'Lab stopped successfully' });
-        setCountdown(null);
-      } else {
-        throw new Error(response.data.message || 'Failed to stop lab');
-      }
-    } catch (err: any) {
-      setNotification({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to stop lab' 
-      });
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setLabStarted(false);
+      setNotification({ type: 'success', message: 'Lab stopped successfully' });
+      setCountdown(null);
       setIsStopping(false);
+      
+      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }
+    }, 1500);
   };
 
   // Countdown timer

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, AlertCircle, Check, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import axios from 'axios';
 
 interface DeleteLabModalProps {
   isOpen: boolean;
@@ -21,22 +20,7 @@ export const DeleteLabModal: React.FC<DeleteLabModalProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-
-  React.useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    if (isOpen) {
-      fetchUserProfile();
-    }
-  }, [isOpen]);
+  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
 
   const handleDelete = async () => {
     if (!user) {
@@ -48,26 +32,17 @@ export const DeleteLabModal: React.FC<DeleteLabModalProps> = ({
     setError(null);
     setSuccess(null);
 
-    try {
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/deleteUserLab`, {
-        lab_id: labId,
-        user_id: user.id
-      });
-
-      if (response.data.success) {
-        setSuccess('Lab deleted successfully');
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 1500);
-      } else {
-        throw new Error(response.data.message || 'Failed to delete lab');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete lab');
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setSuccess('Lab deleted successfully');
+      
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+      
       setIsDeleting(false);
-    }
+    }, 1500);
   };
 
   if (!isOpen) return null;
