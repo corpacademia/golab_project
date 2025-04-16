@@ -30,6 +30,10 @@ import { WorkspacePage } from '../features/labs/pages/WorkspacePage';
 import { WorkspaceViewPage } from '../features/labs/pages/WorkspaceViewPage';
 import { WorkspaceEditPage } from '../features/labs/pages/WorkspaceEditPage';
 import { useAuthStore } from '../store/authStore';
+import { StandardLabPage } from '../features/labs/components/user/StandardLabPage';
+import { ModularLabPage } from '../features/labs/components/user/ModularLabPage';
+import { LabExercisePage } from '../features/labs/components/user/LabExercisePage';
+import { QuizExercisePage } from '../features/labs/components/user/QuizExercisePage';
 
 export const AppRoutes: React.FC = () => {
   const { user } = useAuthStore();
@@ -81,6 +85,12 @@ export const AppRoutes: React.FC = () => {
         <Route path="assessments" element={<Assessments />} />
         <Route path="my-labs" element={<MyLabs />} />
         <Route path="create-modules" element={<CreateModulesPage />} />
+        
+        {/* User Lab Routes */}
+        <Route path="my-labs/:labId/standard" element={<StandardLabPage />} />
+        <Route path="my-labs/:labId/modules" element={<ModularLabPage />} />
+        <Route path="my-labs/:labId/exercise/:exerciseId" element={<LabExercisePage />} />
+        <Route path="my-labs/:labId/quiz/:exerciseId" element={<QuizExercisePage />} />
       </Route>
 
       <Route path="/" element={<LoginForm />} />
