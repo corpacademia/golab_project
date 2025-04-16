@@ -59,7 +59,8 @@ interface Exercise {
   type: 'lab' | 'questions';
   labExercise?: LabExercise;
   questions?: Question[];
-  duration?: number; // Added duration field for questions exercise
+  duration?: number; // Duration field for questions exercise
+  title?: string; // Title field for questions exercise
 }
 
 interface Module {
@@ -206,6 +207,7 @@ export const CreateModulesPage: React.FC = () => {
       newExercise = {
         id: exerciseId,
         type,
+        title: 'Practice Questions', // Default title for questions exercise
         duration: 15, // Default duration for questions exercise
         questions: [{
           id: generateId('question'),
@@ -264,6 +266,20 @@ export const CreateModulesPage: React.FC = () => {
     
     if (exercise.type === 'questions') {
       exercise.duration = duration;
+      setModules(newModules);
+    }
+  };
+
+  const updateExerciseTitle = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    title: string
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions') {
+      exercise.title = title;
       setModules(newModules);
     }
   };
@@ -545,6 +561,14 @@ export const CreateModulesPage: React.FC = () => {
             return false;
           }
         } else if (exercise.type === 'questions') {
+          if (!exercise.title?.trim()) {
+            setNotification({
+              type: 'error',
+              message: 'All question exercises must have a title'
+            });
+            return false;
+          }
+          
           for (const question of exercise.questions || []) {
             if (!question.title.trim()) {
               setNotification({
@@ -892,7 +916,7 @@ export const CreateModulesPage: React.FC = () => {
                           <h4 className="font-medium text-gray-200">
                             {exercise.type === 'lab' 
                               ? (exercise.labExercise?.title || 'Lab Exercise') 
-                              : 'Practice Questions'
+                              : (exercise.title || 'Practice Questions')
                             }
                           </h4>
                           <p className="text-sm text-gray-400">
@@ -1202,6 +1226,25 @@ export const CreateModulesPage: React.FC = () => {
                           </div>
                         ) : (
                           <div className="space-y-6">
+                            {/* Title input for questions exercise */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Exercise Title
+                              </label>
+                              <input
+                                type="text"
+                                value={exercise.title || ''}
+                                onChange={(e) => updateExerciseTitle(
+                                  currentModuleIndex,
+                                  exerciseIndex,
+                                  e.target.value
+                                )}
+                                placeholder="Enter exercise title"
+                                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                              />
+                            </div>
+                            
                             {/* Duration input for questions exercise */}
                             <div>
                               <label className="block text-sm font-medium text-gray-300 mb-2">
