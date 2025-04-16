@@ -59,6 +59,7 @@ interface Exercise {
   type: 'lab' | 'questions';
   labExercise?: LabExercise;
   questions?: Question[];
+  duration?: number; // Added duration field for questions exercise
 }
 
 interface Module {
@@ -205,6 +206,7 @@ export const CreateModulesPage: React.FC = () => {
       newExercise = {
         id: exerciseId,
         type,
+        duration: 15, // Default duration for questions exercise
         questions: [{
           id: generateId('question'),
           title: '',
@@ -248,6 +250,20 @@ export const CreateModulesPage: React.FC = () => {
         ...exercise.labExercise,
         [field]: value
       };
+      setModules(newModules);
+    }
+  };
+
+  const updateExerciseDuration = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    duration: number
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'questions') {
+      exercise.duration = duration;
       setModules(newModules);
     }
   };
@@ -882,7 +898,7 @@ export const CreateModulesPage: React.FC = () => {
                           <p className="text-sm text-gray-400">
                             {exercise.type === 'lab' 
                               ? `${exercise.labExercise?.duration || 0} minutes` 
-                              : `${exercise.questions?.length || 0} questions`
+                              : `${exercise.questions?.length || 0} questions, ${exercise.duration || 15} minutes`
                             }
                           </p>
                         </div>
@@ -1186,6 +1202,28 @@ export const CreateModulesPage: React.FC = () => {
                           </div>
                         ) : (
                           <div className="space-y-6">
+                            {/* Duration input for questions exercise */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Duration (in minutes)
+                              </label>
+                              <div className="flex items-center space-x-2">
+                                <Clock className="h-5 w-5 text-primary-400" />
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={exercise.duration || 15}
+                                  onChange={(e) => updateExerciseDuration(
+                                    currentModuleIndex,
+                                    exerciseIndex,
+                                    parseInt(e.target.value) || 15
+                                  )}
+                                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
                             {exercise.questions?.map((question, questionIndex) => (
                               <div 
                                 key={question.id}
