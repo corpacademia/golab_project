@@ -22,7 +22,11 @@ import {
   Key,
   User,
   Search,
-  Lock
+  Lock,
+  Calendar,
+  ClockIcon,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -44,6 +48,16 @@ interface Exercise {
   duration: number;
 }
 
+interface CleanupPolicy {
+  enabled: boolean;
+  type: 'auto' | 'scheduled' | 'inactivity' | 'manual';
+  duration?: number;
+  durationUnit?: 'seconds' | 'minutes' | 'hours';
+  scheduledTime?: string;
+  inactivityTimeout?: number;
+  inactivityTimeoutUnit?: 'minutes' | 'hours';
+}
+
 interface LabExercise {
   id: string;
   exerciseId: string;
@@ -55,6 +69,7 @@ interface LabExercise {
     username: string;
     password: string;
   };
+  cleanupPolicy?: CleanupPolicy;
 }
 
 interface QuizExercise {
@@ -140,6 +155,12 @@ const mockLabExercises: Record<string, LabExercise> = {
       accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
       username: 'admin',
       password: 'Password123!'
+    },
+    cleanupPolicy: {
+      enabled: true,
+      type: 'auto',
+      duration: 60,
+      durationUnit: 'minutes'
     }
   },
   'exercise-3': {
@@ -155,6 +176,11 @@ const mockLabExercises: Record<string, LabExercise> = {
       accessKeyId: 'AKIAI44QH8DHBEXAMPLE',
       username: 'ec2-user',
       password: 'SecurePass456!'
+    },
+    cleanupPolicy: {
+      enabled: true,
+      type: 'scheduled',
+      scheduledTime: '2024-12-31T23:59'
     }
   }
 };
@@ -623,6 +649,12 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       accessKeyId: '',
       username: '',
       password: ''
+    },
+    cleanupPolicy: {
+      enabled: false,
+      type: 'auto',
+      duration: 60,
+      durationUnit: 'minutes'
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -635,7 +667,15 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
 
   useEffect(() => {
     if (labExercise) {
-      setFormData({ ...labExercise });
+      setFormData({ 
+        ...labExercise,
+        cleanupPolicy: labExercise.cleanupPolicy || {
+          enabled: false,
+          type: 'auto',
+          duration: 60,
+          durationUnit: 'minutes'
+        }
+      });
     } else {
       setFormData({
         id: `lab-${Date.now()}`,
@@ -647,6 +687,12 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
           accessKeyId: '',
           username: '',
           password: ''
+        },
+        cleanupPolicy: {
+          enabled: false,
+          type: 'auto',
+          duration: 60,
+          durationUnit: 'minutes'
         }
       });
     }
@@ -691,6 +737,18 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       ...formData,
       credentials: {
         ...formData.credentials,
+        [field]: value
+      }
+    });
+  };
+
+  const handleCleanupPolicyChange = (field: keyof CleanupPolicy, value: any) => {
+    if (!formData.cleanupPolicy) return;
+    
+    setFormData({
+      ...formData,
+      cleanupPolicy: {
+        ...formData.cleanupPolicy,
         [field]: value
       }
     });
@@ -801,6 +859,158 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Cleanup Policy Section */}
+          <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-medium text-gray-300">Cleanup Policy</h4>
+              <div className="flex items-center">
+                <span className="text-sm text-gray-400 mr-2">Enable</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={formData.cleanupPolicy?.enabled || false}
+                    onChange={(e) => handleCleanupPolicyChange('enabled', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-dark-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                </label>
+              </div>
+            </div>
+
+            {formData.cleanupPolicy?.enabled && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Cleanup Policy Type
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { value: 'auto', label: 'Auto delete after duration', 
+                        tooltip: 'Automatically delete resources after a specified time period' },
+                      { value: 'scheduled', label: 'Delete at specific time', 
+                        tooltip: 'Delete resources at a scheduled date and time' },
+                      { value: 'inactivity', label: 'Delete after inactivity', 
+                        tooltip: 'Delete resources after a period of user inactivity' },
+                      { value: 'manual', label: 'Manual cleanup only', 
+                        tooltip: 'Resources must be manually deleted by user or admin' }
+                    ].map(policy => (
+                      <div key={policy.value} className="relative group">
+                        <label className="flex items-center space-x-2 p-3 bg-dark-400/50 rounded-lg cursor-pointer hover:bg-dark-400/70 transition-colors">
+                          <input
+                            type="radio"
+                            name={`cleanup-policy-type`}
+                            value={policy.value}
+                            checked={formData.cleanupPolicy?.type === policy.value}
+                            onChange={() => handleCleanupPolicyChange('type', policy.value)}
+                            className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+                          />
+                          <span className="text-gray-300">{policy.label}</span>
+                          <Info className="h-4 w-4 text-gray-500 ml-1" />
+                        </label>
+                        <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 text-xs text-gray-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                          {policy.tooltip}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Conditional fields based on policy type */}
+                {formData.cleanupPolicy?.type === 'auto' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Duration
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.cleanupPolicy?.duration || 60}
+                        onChange={(e) => handleCleanupPolicyChange('duration', parseInt(e.target.value) || 60)}
+                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Unit
+                      </label>
+                      <select
+                        value={formData.cleanupPolicy?.durationUnit || 'minutes'}
+                        onChange={(e) => handleCleanupPolicyChange('durationUnit', e.target.value)}
+                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      >
+                        <option value="seconds">Seconds</option>
+                        <option value="minutes">Minutes</option>
+                        <option value="hours">Hours</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {formData.cleanupPolicy?.type === 'scheduled' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Scheduled Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="datetime-local"
+                        value={formData.cleanupPolicy?.scheduledTime || ''}
+                        onChange={(e) => handleCleanupPolicyChange('scheduledTime', e.target.value)}
+                        className="w-full px-4 py-2 pl-10 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                      <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                    </div>
+                  </div>
+                )}
+
+                {formData.cleanupPolicy?.type === 'inactivity' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Inactivity Timeout
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.cleanupPolicy?.inactivityTimeout || 30}
+                        onChange={(e) => handleCleanupPolicyChange('inactivityTimeout', parseInt(e.target.value) || 30)}
+                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Unit
+                      </label>
+                      <select
+                        value={formData.cleanupPolicy?.inactivityTimeoutUnit || 'minutes'}
+                        onChange={(e) => handleCleanupPolicyChange('inactivityTimeoutUnit', e.target.value)}
+                        className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      >
+                        <option value="minutes">Minutes</option>
+                        <option value="hours">Hours</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {formData.cleanupPolicy?.type === 'manual' && (
+                  <div className="p-3 bg-dark-400/30 rounded-lg flex items-center space-x-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-400" />
+                    <p className="text-sm text-gray-300">
+                      Cleanup must be triggered manually by the user or admin.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* AWS Services Section */}
@@ -1781,6 +1991,24 @@ export const CloudSliceModulesPage: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Helper function to format cleanup policy display
+  const formatCleanupPolicy = (policy?: CleanupPolicy): string => {
+    if (!policy || !policy.enabled) return 'No cleanup policy';
+    
+    switch (policy.type) {
+      case 'auto':
+        return `Auto delete after ${policy.duration} ${policy.durationUnit}`;
+      case 'scheduled':
+        return `Scheduled deletion at ${new Date(policy.scheduledTime || '').toLocaleString()}`;
+      case 'inactivity':
+        return `Delete after ${policy.inactivityTimeout} ${policy.inactivityTimeoutUnit} of inactivity`;
+      case 'manual':
+        return 'Manual cleanup only';
+      default:
+        return 'Custom cleanup policy';
+    }
+  };
+
   const renderExerciseContent = () => {
     const exercise = getActiveExercise();
     if (!exercise) return null;
@@ -1830,6 +2058,94 @@ export const CloudSliceModulesPage: React.FC = () => {
           <div className="p-6 bg-dark-300/50 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Instructions</h3>
             <p className="text-gray-300">{labExercise.instructions}</p>
+          </div>
+
+          {/* Cleanup Policy Section */}
+          <div className="p-6 bg-dark-300/50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Cleanup Policy</h3>
+            {labExercise.cleanupPolicy?.enabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-3 bg-dark-400/50 rounded-lg">
+                  <div className={`p-2 rounded-lg ${
+                    labExercise.cleanupPolicy.type === 'auto' ? 'bg-primary-500/20' :
+                    labExercise.cleanupPolicy.type === 'scheduled' ? 'bg-secondary-500/20' :
+                    labExercise.cleanupPolicy.type === 'inactivity' ? 'bg-accent-500/20' :
+                    'bg-gray-500/20'
+                  }`}>
+                    {labExercise.cleanupPolicy.type === 'auto' ? (
+                      <ClockIcon className="h-5 w-5 text-primary-400" />
+                    ) : labExercise.cleanupPolicy.type === 'scheduled' ? (
+                      <Calendar className="h-5 w-5 text-secondary-400" />
+                    ) : labExercise.cleanupPolicy.type === 'inactivity' ? (
+                      <Clock className="h-5 w-5 text-accent-400" />
+                    ) : (
+                      <User className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-200">
+                      {labExercise.cleanupPolicy.type === 'auto' ? 'Auto Delete' :
+                       labExercise.cleanupPolicy.type === 'scheduled' ? 'Scheduled Deletion' :
+                       labExercise.cleanupPolicy.type === 'inactivity' ? 'Inactivity Timeout' :
+                       'Manual Cleanup'}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {formatCleanupPolicy(labExercise.cleanupPolicy)}
+                    </p>
+                  </div>
+                </div>
+                
+                {labExercise.cleanupPolicy.type === 'auto' && (
+                  <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <ClockIcon className="h-4 w-4 text-primary-400" />
+                      <span className="text-sm text-gray-300">Duration:</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-200">
+                      {labExercise.cleanupPolicy.duration} {labExercise.cleanupPolicy.durationUnit}
+                    </span>
+                  </div>
+                )}
+                
+                {labExercise.cleanupPolicy.type === 'scheduled' && (
+                  <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-secondary-400" />
+                      <span className="text-sm text-gray-300">Scheduled Time:</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-200">
+                      {new Date(labExercise.cleanupPolicy.scheduledTime || '').toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                
+                {labExercise.cleanupPolicy.type === 'inactivity' && (
+                  <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-accent-400" />
+                      <span className="text-sm text-gray-300">Inactivity Timeout:</span>
+                    </div>
+                    <span className="text-sm font-medium text-gray-200">
+                      {labExercise.cleanupPolicy.inactivityTimeout} {labExercise.cleanupPolicy.inactivityTimeoutUnit}
+                    </span>
+                  </div>
+                )}
+                
+                {labExercise.cleanupPolicy.type === 'manual' && (
+                  <div className="flex items-center p-3 bg-dark-400/30 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 mr-2" />
+                    <span className="text-sm text-gray-300">
+                      Resources will need to be manually cleaned up by the user or administrator.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center p-3 bg-dark-400/30 rounded-lg">
+                <Info className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-300">No cleanup policy configured</span>
+              </div>
+            )}
           </div>
 
           <div className="p-6 bg-dark-300/50 rounded-lg">
