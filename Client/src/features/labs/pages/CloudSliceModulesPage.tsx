@@ -1709,13 +1709,12 @@ export const CloudSliceModulesPage: React.FC = () => {
         // In production, uncomment the API call below
         
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setModules(mockModules);
-        if (mockModules.length > 0) {
-          setActiveModule(mockModules[0].id);
-        }
+        // await new Promise(resolve => setTimeout(resolve, 1000));
+        // setModules(mockModules);
+        // if (mockModules.length > 0) {
+        //   setActiveModule(mockModules[0].id);
+        // }
         
-        /* Uncomment for real API call
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/modules/${sliceId}`);
         if (response.data.success) {
           setModules(response.data.data || []);
@@ -1725,7 +1724,6 @@ export const CloudSliceModulesPage: React.FC = () => {
         } else {
           throw new Error(response.data.message || 'Failed to fetch modules');
         }
-        */
       } catch (err: any) {
         console.error('Error fetching modules:', err);
         setError(err.response?.data?.message || 'Failed to fetch modules');
@@ -1751,10 +1749,9 @@ export const CloudSliceModulesPage: React.FC = () => {
         // In production, uncomment the API call below
         
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setLabExercises(mockLabExercises);
+        // await new Promise(resolve => setTimeout(resolve, 800));
+        // setLabExercises(mockLabExercises);
         
-        /* Uncomment for real API call
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/lab-exercises/${activeModule}`);
         if (response.data.success) {
           const labExercisesData = response.data.data || [];
@@ -1766,7 +1763,6 @@ export const CloudSliceModulesPage: React.FC = () => {
           
           setLabExercises(labExercisesMap);
         }
-        */
       } catch (err) {
         console.error('Error fetching lab exercises:', err);
       } finally {
