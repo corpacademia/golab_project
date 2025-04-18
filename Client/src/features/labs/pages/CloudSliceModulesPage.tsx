@@ -39,6 +39,12 @@ interface Module {
   exercises: Exercise[];
 }
 
+interface Service {
+  name: string;
+  category: string;
+  description: string;
+}
+
 interface Exercise {
   id: string;
   title: string;
@@ -60,7 +66,7 @@ interface CleanupPolicy {
 
 interface LabExercise {
   id: string;
-  exerciseId: string;
+  exercise_id: string;
   instructions: string;
   resources: string[];
   services: string[];
@@ -242,18 +248,9 @@ const mockQuizExercises: Record<string, QuizExercise> = {
   }
 };
 
-// AWS Service Categories and Services for dropdown
-const awsServiceCategories = {
-  'Compute': ['EC2', 'Lambda', 'ECS', 'EKS', 'Fargate', 'Batch', 'Lightsail'],
-  'Storage': ['S3', 'EBS', 'EFS', 'FSx', 'Storage Gateway', 'S3 Glacier'],
-  'Database': ['RDS', 'DynamoDB', 'ElastiCache', 'Neptune', 'Redshift', 'DocumentDB'],
-  'Networking': ['VPC', 'CloudFront', 'Route 53', 'API Gateway', 'Direct Connect', 'Global Accelerator'],
-  'Security': ['IAM', 'Cognito', 'GuardDuty', 'Inspector', 'KMS', 'Shield', 'WAF'],
-  'Management': ['CloudWatch', 'CloudTrail', 'Config', 'CloudFormation', 'Systems Manager', 'Control Tower'],
-  'Analytics': ['Athena', 'EMR', 'Kinesis', 'QuickSight', 'Glue', 'Lake Formation'],
-  'AI/ML': ['SageMaker', 'Comprehend', 'Rekognition', 'Polly', 'Lex', 'Textract']
-};
 
+
+ 
 // Modal components for CRUD operations
 interface EditModuleModalProps {
   isOpen: boolean;
@@ -664,6 +661,37 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
+  const [awsServiceCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
+
+ // Fetch AWS service categories
+ useEffect(() => {
+    const fetchAwsServiceCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
+        if (response.data.success) {
+          const categories: Record<string, Service[]> = {};
+          
+          response.data.data.forEach((service: any) => {
+            if (!categories[service.category]) {
+              categories[service.category] = [];
+            }
+            
+            categories[service.category].push({
+              name: service.services,
+              category: service.category,
+              description: service.description
+            });
+          });
+          setAvailableCategories(categories);
+        }
+      } catch (error) {
+        console.error('Failed to fetch AWS services:', error);
+      }
+    };
+    
+    fetchAwsServiceCategories();
+  }, []);
+
 
   useEffect(() => {
     if (labExercise) {
@@ -753,17 +781,14 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       }
     });
   };
-
   const filteredCategories = Object.keys(awsServiceCategories).filter(category =>
     category.toLowerCase().includes(categorySearch.toLowerCase())
   );
-
   const filteredServices = selectedCategory 
-    ? awsServiceCategories[selectedCategory as keyof typeof awsServiceCategories].filter(service =>
-        service.toLowerCase().includes(serviceSearch.toLowerCase())
+    ? awsServiceCategories[selectedCategory].filter(service =>
+        service.name.toLowerCase().includes(serviceSearch.toLowerCase()) 
       )
     : [];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -1116,19 +1141,19 @@ const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                       <div>
                         {filteredServices.map(service => (
                           <label
-                            key={service}
+                            key={service.name}
                             className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
                                      cursor-pointer transition-colors"
                           >
                             <input
                               type="checkbox"
-                              checked={formData.services.includes(service)}
-                              onChange={() => handleServiceToggle(service)}
+                              checked={formData.services.includes(service.name)}
+                              onChange={() => handleServiceToggle(service.name)}
                               className="form-checkbox h-4 w-4 text-primary-500 rounded 
                                        border-gray-500/20 focus:ring-primary-500"
                             />
                             <div>
-                              <p className="font-medium text-gray-200">{service}</p>
+                              <p className="font-medium text-gray-200">{service.name}</p>
                             </div>
                           </label>
                         ))}
@@ -1715,15 +1740,17 @@ export const CloudSliceModulesPage: React.FC = () => {
         //   setActiveModule(mockModules[0].id);
         // }
         
-        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/modules/${sliceId}`);
+        
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
         if (response.data.success) {
-          setModules(response.data.data || []);
+          setModules(Array.isArray(response.data.data) ? response.data.data : [response.data.data] || []);
           if (response.data.data && response.data.data.length > 0) {
             setActiveModule(response.data.data[0].id);
           }
         } else {
           throw new Error(response.data.message || 'Failed to fetch modules');
         }
+       
       } catch (err: any) {
         console.error('Error fetching modules:', err);
         setError(err.response?.data?.message || 'Failed to fetch modules');
@@ -1758,11 +1785,12 @@ export const CloudSliceModulesPage: React.FC = () => {
           const labExercisesMap: Record<string, LabExercise> = {};
           
           labExercisesData.forEach((exercise: LabExercise) => {
-            labExercisesMap[exercise.exerciseId] = exercise;
+            labExercisesMap[exercise.exercise_id] = exercise;
           });
-          
+          console.log(labExercisesMap)
           setLabExercises(labExercisesMap);
         }
+        
       } catch (err) {
         console.error('Error fetching lab exercises:', err);
       } finally {
@@ -1906,10 +1934,10 @@ export const CloudSliceModulesPage: React.FC = () => {
     setIsEditLabExerciseModalOpen(true);
   };
 
-  const handleSaveLabExercise = (exerciseId: string, labExercise: LabExercise) => {
+  const handleSaveLabExercise = (exercise_id: string, labExercise: LabExercise) => {
     setLabExercises({
       ...labExercises,
-      [exerciseId]: labExercise
+      [exercise_id]: labExercise
     });
     showNotification('success', 'Lab exercise updated successfully');
   };
@@ -2331,7 +2359,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-
+console.log(modules)
   return (
     <div className="space-y-6">
       {notification && (
@@ -2394,7 +2422,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                       >
                         <div className="flex items-center space-x-3">
                           <Layers className="h-5 w-5" />
-                          <span className="font-medium">{module.title}</span>
+                          <span className="font-medium">{module.name}</span>
                         </div>
                         {activeModule === module.id ? (
                           <ChevronDown className="h-5 w-5" />

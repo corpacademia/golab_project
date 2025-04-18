@@ -65,7 +65,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [credits, setCredits] = useState(10000); // Example credit amount
+  const [credits, setCredits] = useState(100); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
 
 
