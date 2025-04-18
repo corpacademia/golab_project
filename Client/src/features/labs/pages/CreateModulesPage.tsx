@@ -18,7 +18,11 @@ import {
   Upload,
   X,
   FileText,
-  File
+  File,
+  Info,
+  Calendar,
+  Clock as ClockIcon,
+  AlertTriangle
 } from 'lucide-react';
 import { GradientText } from '../../../components/ui/GradientText';
 import axios from 'axios';
@@ -34,6 +38,7 @@ interface Question {
   description: string;
   options: Option[];
   correctAnswer: string;
+  marks: number; // Added marks field
 }
 
 interface LabFile {
@@ -45,6 +50,16 @@ interface LabFile {
   progress: number;
 }
 
+interface CleanupPolicy {
+  enabled: boolean;
+  type: 'auto' | 'scheduled' | 'inactivity' | 'manual';
+  duration?: number;
+  durationUnit?: 'seconds' | 'minutes' | 'hours';
+  scheduledTime?: string;
+  inactivityTimeout?: number;
+  inactivityTimeoutUnit?: 'minutes' | 'hours';
+}
+
 interface LabExercise {
   id: string;
   title: string;
@@ -52,6 +67,7 @@ interface LabExercise {
   instructions: string;
   services?: string[];
   files?: LabFile[];
+  cleanupPolicy?: CleanupPolicy;
 }
 
 interface Exercise {
@@ -200,7 +216,13 @@ export const CreateModulesPage: React.FC = () => {
           duration: 30,
           instructions: '',
           services: [],
-          files: []
+          files: [],
+          cleanupPolicy: {
+            enabled: false,
+            type: 'auto',
+            duration: 60,
+            durationUnit: 'minutes'
+          }
         }
       };
     } else {
@@ -217,7 +239,8 @@ export const CreateModulesPage: React.FC = () => {
             { id: generateId('option'), text: '' },
             { id: generateId('option'), text: '' }
           ],
-          correctAnswer: ''
+          correctAnswer: '',
+          marks: 1 // Default marks value
         }]
       };
     }
@@ -242,7 +265,7 @@ export const CreateModulesPage: React.FC = () => {
     moduleIndex: number, 
     exerciseIndex: number, 
     field: keyof LabExercise, 
-    value: string | number | string[]
+    value: string | number | string[] | CleanupPolicy
   ) => {
     const newModules = [...modules];
     const exercise = newModules[moduleIndex].exercises[exerciseIndex];
@@ -250,6 +273,24 @@ export const CreateModulesPage: React.FC = () => {
     if (exercise.type === 'lab' && exercise.labExercise) {
       exercise.labExercise = {
         ...exercise.labExercise,
+        [field]: value
+      };
+      setModules(newModules);
+    }
+  };
+
+  const updateCleanupPolicy = (
+    moduleIndex: number,
+    exerciseIndex: number,
+    field: keyof CleanupPolicy,
+    value: any
+  ) => {
+    const newModules = [...modules];
+    const exercise = newModules[moduleIndex].exercises[exerciseIndex];
+    
+    if (exercise.type === 'lab' && exercise.labExercise && exercise.labExercise.cleanupPolicy) {
+      exercise.labExercise.cleanupPolicy = {
+        ...exercise.labExercise.cleanupPolicy,
         [field]: value
       };
       setModules(newModules);
@@ -297,7 +338,8 @@ export const CreateModulesPage: React.FC = () => {
           { id: generateId('option'), text: '' },
           { id: generateId('option'), text: '' }
         ],
-        correctAnswer: ''
+        correctAnswer: '',
+        marks: 1 // Default marks value
       });
       setModules(newModules);
     }
@@ -318,7 +360,7 @@ export const CreateModulesPage: React.FC = () => {
     exerciseIndex: number,
     questionIndex: number,
     field: keyof Question,
-    value: string
+    value: string | number
   ) => {
     const newModules = [...modules];
     const exercise = newModules[moduleIndex].exercises[exerciseIndex];
@@ -991,6 +1033,193 @@ export const CreateModulesPage: React.FC = () => {
                               </div>
                             </div>
 
+                            {/* Cleanup Policy Section */}
+                            <div className="p-4 bg-dark-300/50 rounded-lg border border-primary-500/10">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-sm font-medium text-gray-300">Cleanup Policy</h4>
+                                <div className="flex items-center">
+                                  <span className="text-sm text-gray-400 mr-2">Enable</span>
+                                  <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                      type="checkbox"
+                                      checked={exercise.labExercise?.cleanupPolicy?.enabled || false}
+                                      onChange={(e) => updateCleanupPolicy(
+                                        currentModuleIndex,
+                                        exerciseIndex,
+                                        'enabled',
+                                        e.target.checked
+                                      )}
+                                      className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-dark-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                                  </label>
+                                </div>
+                              </div>
+
+                              {exercise.labExercise?.cleanupPolicy?.enabled && (
+                                <div className="space-y-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                      Cleanup Policy Type
+                                    </label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      {[
+                                        { value: 'auto', label: 'Auto delete after duration', 
+                                          tooltip: 'Automatically delete resources after a specified time period' },
+                                        { value: 'scheduled', label: 'Delete at specific time', 
+                                          tooltip: 'Delete resources at a scheduled date and time' },
+                                        { value: 'inactivity', label: 'Delete after inactivity', 
+                                          tooltip: 'Delete resources after a period of user inactivity' },
+                                        { value: 'manual', label: 'Manual cleanup only', 
+                                          tooltip: 'Resources must be manually deleted by user or admin' }
+                                      ].map(policy => (
+                                        <div key={policy.value} className="relative group">
+                                          <label className="flex items-center space-x-2 p-3 bg-dark-400/50 rounded-lg cursor-pointer hover:bg-dark-400/70 transition-colors">
+                                            <input
+                                              type="radio"
+                                              name={`cleanup-policy-${exercise.id}`}
+                                              value={policy.value}
+                                              checked={exercise.labExercise?.cleanupPolicy?.type === policy.value}
+                                              onChange={() => updateCleanupPolicy(
+                                                currentModuleIndex,
+                                                exerciseIndex,
+                                                'type',
+                                                policy.value
+                                              )}
+                                              className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+                                            />
+                                            <span className="text-gray-300">{policy.label}</span>
+                                            <Info className="h-4 w-4 text-gray-500 ml-1" />
+                                          </label>
+                                          <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 text-xs text-gray-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-10">
+                                            {policy.tooltip}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Conditional fields based on policy type */}
+                                  {exercise.labExercise?.cleanupPolicy?.type === 'auto' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                          Duration
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={exercise.labExercise?.cleanupPolicy?.duration || 60}
+                                          onChange={(e) => updateCleanupPolicy(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            'duration',
+                                            parseInt(e.target.value) || 60
+                                          )}
+                                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                          Unit
+                                        </label>
+                                        <select
+                                          value={exercise.labExercise?.cleanupPolicy?.durationUnit || 'minutes'}
+                                          onChange={(e) => updateCleanupPolicy(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            'durationUnit',
+                                            e.target.value
+                                          )}
+                                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                        >
+                                          <option value="seconds">Seconds</option>
+                                          <option value="minutes">Minutes</option>
+                                          <option value="hours">Hours</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {exercise.labExercise?.cleanupPolicy?.type === 'scheduled' && (
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                                        Scheduled Time
+                                      </label>
+                                      <div className="relative">
+                                        <input
+                                          type="datetime-local"
+                                          value={exercise.labExercise?.cleanupPolicy?.scheduledTime || ''}
+                                          onChange={(e) => updateCleanupPolicy(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            'scheduledTime',
+                                            e.target.value
+                                          )}
+                                          className="w-full px-4 py-2 pl-10 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                        />
+                                        <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {exercise.labExercise?.cleanupPolicy?.type === 'inactivity' && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                          Inactivity Timeout
+                                        </label>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={exercise.labExercise?.cleanupPolicy?.inactivityTimeout || 30}
+                                          onChange={(e) => updateCleanupPolicy(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            'inactivityTimeout',
+                                            parseInt(e.target.value) || 30
+                                          )}
+                                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                                          Unit
+                                        </label>
+                                        <select
+                                          value={exercise.labExercise?.cleanupPolicy?.inactivityTimeoutUnit || 'minutes'}
+                                          onChange={(e) => updateCleanupPolicy(
+                                            currentModuleIndex,
+                                            exerciseIndex,
+                                            'inactivityTimeoutUnit',
+                                            e.target.value
+                                          )}
+                                          className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                        >
+                                          <option value="minutes">Minutes</option>
+                                          <option value="hours">Hours</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {exercise.labExercise?.cleanupPolicy?.type === 'manual' && (
+                                    <div className="p-3 bg-dark-400/30 rounded-lg flex items-center space-x-2">
+                                      <AlertTriangle className="h-5 w-5 text-amber-400" />
+                                      <p className="text-sm text-gray-300">
+                                        Cleanup must be triggered manually by the user or admin.
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
                             {/* Service Selection for this Lab Exercise */}
                             <div className="space-y-4">
                               <h4 className="text-sm font-medium text-gray-300">AWS Services for this Exercise</h4>
@@ -1326,6 +1555,28 @@ export const CreateModulesPage: React.FC = () => {
                                       )}
                                       placeholder="Provide additional context for the question"
                                       rows={3}
+                                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                                    />
+                                  </div>
+
+                                  {/* Marks field for the question */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                                      Marks
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={question.marks}
+                                      onChange={(e) => updateQuestion(
+                                        currentModuleIndex,
+                                        exerciseIndex,
+                                        questionIndex,
+                                        'marks',
+                                        parseInt(e.target.value) || 1
+                                      )}
+                                      placeholder="Enter marks for this question"
                                       className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                                                text-gray-300 focus:border-primary-500/40 focus:outline-none"
                                     />

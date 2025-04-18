@@ -65,7 +65,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [credits, setCredits] = useState(10000); // Example credit amount
+  const [credits, setCredits] = useState(100); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
 
 
@@ -129,10 +129,14 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         region: selectedRegion,
         startDate,
         endDate,
-        cleanupPolicy: cleanupPolicy,
         labType,
         credits:credits ? credits : 0,
       };
+
+      // Only add cleanupPolicy for labs without modules
+      if (labType === 'without-modules') {
+        config['cleanupPolicy'] = cleanupPolicy;
+      }
 
       if (labType === 'with-modules') {
         // For labs with modules, navigate to module creation page
@@ -452,9 +456,13 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         </div>
       </div>
 
-      {/* Duration and Cleanup - Show for both lab types */}
+      {/* Duration and Cleanup - Show different content based on lab type */}
       <div className="glass-panel space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Duration & Cleanup</h3>
+        {labType === 'without-modules' ? (
+          <h3 className="text-lg font-semibold text-gray-200">Duration & Cleanup</h3>
+        ) : (
+          <h3 className="text-lg font-semibold text-gray-200">Duration</h3>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -494,22 +502,25 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Cleanup Policy
-          </label>
-          <select
-            value={cleanupPolicy}
-            onChange={(e) => setCleanupPolicy(e.target.value)}
-            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                     text-gray-300 focus:border-primary-500/40 focus:outline-none"
-          >
-            <option value="1">1-day cleanup</option>
-            <option value="2">2-day cleanup</option>
-            <option value="3">3-day cleanup</option>
-            <option value="7">7-day cleanup</option>
-          </select>
-        </div>
+        {/* Only show cleanup policy for labs without modules */}
+        {labType === 'without-modules' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Cleanup Policy
+            </label>
+            <select
+              value={cleanupPolicy}
+              onChange={(e) => setCleanupPolicy(e.target.value)}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            >
+              <option value="1">1-day cleanup</option>
+              <option value="2">2-day cleanup</option>
+              <option value="3">3-day cleanup</option>
+              <option value="7">7-day cleanup</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {error && (

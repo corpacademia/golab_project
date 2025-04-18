@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertCircle, Check, Loader, Calendar } from 'lucide-react';
+import { X, AlertCircle, Check, Loader, Calendar, MapPin } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
 interface CloudSlice {
   id: string;
-  name: string;
+  title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
@@ -25,6 +25,16 @@ interface EditCloudSliceModalProps {
   onSuccess: () => void;
 }
 
+// Simplified regions list
+const awsRegions = [
+  { code: 'us-east-1', name: 'US East (N. Virginia)' },
+  { code: 'us-west-2', name: 'US West (Oregon)' },
+  { code: 'eu-west-1', name: 'Europe (Ireland)' },
+  { code: 'ap-southeast-1', name: 'Asia Pacific (Singapore)' },
+  { code: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)' },
+  { code: 'sa-east-1', name: 'South America (São Paulo)' }
+];
+
 export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   isOpen,
   onClose,
@@ -32,9 +42,11 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   onSuccess
 }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
     status: '',
+    region: '',
+    startDate: '',
     endDate: '',
     cleanupPolicy: ''
   });
@@ -42,16 +54,49 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (slice) {
-      setFormData({
-        name: slice.name,
-        description: slice.description,
-        status: slice.status,
-        endDate: new Date(slice.endDate).toISOString().slice(0, 16),
-        cleanupPolicy: slice.cleanupPolicy
-      });
+      setIsLoading(true);
+      try {
+        // Format dates safely
+        let startDateFormatted = '';
+        let endDateFormatted = '';
+        
+        try {
+          const startDate = new Date(slice.startDate);
+          if (!isNaN(startDate.getTime())) {
+            startDateFormatted = startDate.toISOString().slice(0, 16);
+          }
+        } catch (e) {
+          console.error("Error formatting start date:", e);
+        }
+        
+        try {
+          const endDate = new Date(slice.endDate);
+          if (!isNaN(endDate.getTime())) {
+            endDateFormatted = endDate.toISOString().slice(0, 16);
+          }
+        } catch (e) {
+          console.error("Error formatting end date:", e);
+        }
+        
+        setFormData({
+          title: slice.title || '',
+          description: slice.description || '',
+          status: slice.status || '',
+          region: slice.region || '',
+          startDate: startDateFormatted,
+          endDate: endDateFormatted,
+          cleanupPolicy: slice.cleanupPolicy || ''
+        });
+      } catch (e) {
+        console.error("Error setting form data:", e);
+        setError("Error loading cloud slice data");
+      } finally {
+        setIsLoading(false);
+      }
     }
   }, [slice]);
 
@@ -64,8 +109,31 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name.trim()) {
-      setError('Name is required');
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+
+    if (!formData.startDate || !formData.endDate || !formData.region) {
+      setError('Start date, end date and region are required');
+      return;
+    }
+
+    try {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        setError('Invalid date format');
+        return;
+      }
+      
+      if (startDate >= endDate) {
+        setError('End date must be after start date');
+        return;
+      }
+    } catch (e) {
+      setError('Invalid date format');
       return;
     }
 
@@ -96,62 +164,60 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
 
   if (!isOpen || !slice) return null;
 
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-dark-200 rounded-lg p-6">
+          <Loader className="animate-spin h-6 w-6 text-primary-400" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
             <GradientText>Edit Cloud Slice</GradientText>
           </h2>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-dark-300 rounded-lg">
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              required
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              rows={2}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            />
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Status
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               >
                 <option value="active">Active</option>
@@ -162,67 +228,86 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                End Date
-              </label>
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  min={new Date().toISOString().slice(0, 16)}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  required
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Cleanup Policy (days)
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Region</label>
               <select
-                name="cleanupPolicy"
-                value={formData.cleanupPolicy}
+                name="region"
+                value={formData.region}
                 onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 required
               >
-                <option value="1">1-day cleanup</option>
-                <option value="2">2-day cleanup</option>
-                <option value="3">3-day cleanup</option>
-                <option value="7">7-day cleanup</option>
+                <option value="">Select Region</option>
+                {awsRegions.map(region => (
+                  <option key={region.code} value={region.code}>
+                    {region.code}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+              <input
+                type="datetime-local"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+              <input
+                type="datetime-local"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleChange}
+                min={formData.startDate || new Date().toISOString().slice(0, 16)}
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Cleanup Policy</label>
+            <select
+              name="cleanupPolicy"
+              value={formData.cleanupPolicy}
+              onChange={handleChange}
+              className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              required
+            >
+              <option value="1">1-day cleanup</option>
+              <option value="2">2-day cleanup</option>
+              <option value="3">3-day cleanup</option>
+              <option value="7">7-day cleanup</option>
+            </select>
+          </div>
+
           {error && (
-            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <span className="text-red-200">{error}</span>
-              </div>
+            <div className="p-3 bg-red-900/20 border border-red-500/20 rounded-lg flex items-center space-x-2">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <span className="text-red-200 text-sm">{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Check className="h-5 w-5 text-emerald-400" />
-                <span className="text-emerald-200">{success}</span>
-              </div>
+            <div className="p-3 bg-emerald-900/20 border border-emerald-500/20 rounded-lg flex items-center space-x-2">
+              <Check className="h-4 w-4 text-emerald-400" />
+              <span className="text-emerald-200 text-sm">{success}</span>
             </div>
           )}
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="btn-secondary"
+              className="btn-secondary py-1.5 px-4 text-sm"
               disabled={isSubmitting}
             >
               Cancel
@@ -230,7 +315,7 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn-primary"
+              className="btn-primary py-1.5 px-4 text-sm"
             >
               {isSubmitting ? (
                 <span className="flex items-center">
@@ -238,7 +323,7 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
                   Updating...
                 </span>
               ) : (
-                'Update Cloud Slice'
+                'Update'
               )}
             </button>
           </div>
