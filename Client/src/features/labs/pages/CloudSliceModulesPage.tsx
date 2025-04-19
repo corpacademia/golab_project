@@ -75,7 +75,7 @@ interface LabExercise {
     username: string;
     password: string;
   };
-  cleanupPolicy?: CleanupPolicy;
+  cleanuppolicy?: CleanupPolicy;
 }
 
 interface QuizExercise {
@@ -88,7 +88,7 @@ interface QuizExercise {
     options: {
       id: string;
       text: string;
-      isCorrect: boolean;
+      is_correct: boolean;
     }[];
   }[];
 }
@@ -201,20 +201,20 @@ const mockQuizExercises: Record<string, QuizExercise> = {
         id: 'question-1',
         text: 'Which AWS service is used for object storage?',
         options: [
-          { id: 'option-1', text: 'EC2', isCorrect: false },
-          { id: 'option-2', text: 'S3', isCorrect: true },
-          { id: 'option-3', text: 'RDS', isCorrect: false },
-          { id: 'option-4', text: 'Lambda', isCorrect: false }
+          { id: 'option-1', text: 'EC2', is_correct: false },
+          { id: 'option-2', text: 'S3', is_correct: true },
+          { id: 'option-3', text: 'RDS', is_correct: false },
+          { id: 'option-4', text: 'Lambda', is_correct: false }
         ]
       },
       {
         id: 'question-2',
         text: 'Which AWS service is used for relational databases?',
         options: [
-          { id: 'option-5', text: 'DynamoDB', isCorrect: false },
-          { id: 'option-6', text: 'S3', isCorrect: false },
-          { id: 'option-7', text: 'RDS', isCorrect: true },
-          { id: 'option-8', text: 'SQS', isCorrect: false }
+          { id: 'option-5', text: 'DynamoDB', is_correct: false },
+          { id: 'option-6', text: 'S3', is_correct: false },
+          { id: 'option-7', text: 'RDS', is_correct: true },
+          { id: 'option-8', text: 'SQS', is_correct: false }
         ]
       }
     ]
@@ -228,20 +228,20 @@ const mockQuizExercises: Record<string, QuizExercise> = {
         id: 'question-3',
         text: 'Which EC2 instance type is optimized for memory-intensive applications?',
         options: [
-          { id: 'option-9', text: 'C5', isCorrect: false },
-          { id: 'option-10', text: 'R5', isCorrect: true },
-          { id: 'option-11', text: 'T3', isCorrect: false },
-          { id: 'option-12', text: 'M5', isCorrect: false }
+          { id: 'option-9', text: 'C5', is_correct: false },
+          { id: 'option-10', text: 'R5', is_correct: true },
+          { id: 'option-11', text: 'T3', is_correct: false },
+          { id: 'option-12', text: 'M5', is_correct: false }
         ]
       },
       {
         id: 'question-4',
         text: 'What is the default tenancy model for EC2 instances?',
         options: [
-          { id: 'option-13', text: 'Dedicated', isCorrect: false },
-          { id: 'option-14', text: 'Reserved', isCorrect: false },
-          { id: 'option-15', text: 'Shared', isCorrect: true },
-          { id: 'option-16', text: 'Host', isCorrect: false }
+          { id: 'option-13', text: 'Dedicated', is_correct: false },
+          { id: 'option-14', text: 'Reserved', is_correct: false },
+          { id: 'option-15', text: 'Shared', is_correct: true },
+          { id: 'option-16', text: 'Host', is_correct: false }
         ]
       }
     ]
@@ -1310,8 +1310,8 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       id: `question-${Date.now()}`,
       text: '',
       options: [
-        { id: `option-${Date.now()}-1`, text: '', isCorrect: false },
-        { id: `option-${Date.now()}-2`, text: '', isCorrect: false }
+        { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+        { id: `option-${Date.now()}-2`, text: '', is_correct: false }
       ]
     }]
   });
@@ -1330,8 +1330,8 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           id: `question-${Date.now()}`,
           text: '',
           options: [
-            { id: `option-${Date.now()}-1`, text: '', isCorrect: false },
-            { id: `option-${Date.now()}-2`, text: '', isCorrect: false }
+            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }]
       });
@@ -1355,8 +1355,8 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           id: newQuestionId,
           text: '',
           options: [
-            { id: `option-${Date.now()}-1`, text: '', isCorrect: false },
-            { id: `option-${Date.now()}-2`, text: '', isCorrect: false }
+            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }
       ]
@@ -1386,7 +1386,7 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     const question = updatedQuestions[questionIndex];
     question.options = [
       ...question.options,
-      { id: `option-${Date.now()}`, text: '', isCorrect: false }
+      { id: `option-${Date.now()}`, text: '', is_correct: false }
     ];
     setFormData({
       ...formData,
@@ -1411,13 +1411,13 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     // Reset all options to not correct
     question.options = question.options.map(option => ({
       ...option,
-      isCorrect: false
+      is_correct: false
     }));
     
     // Set the selected option as correct
     question.options[optionIndex] = { 
       ...question.options[optionIndex], 
-      isCorrect: true 
+      is_correct: true 
     };
     
     setFormData({
@@ -1451,7 +1451,7 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         throw new Error('All options must have text');
       }
 
-      if (formData.questions.some(q => !q.options.some(o => o.isCorrect))) {
+      if (formData.questions.some(q => !q.options.some(o => o.is_correct))) {
         throw new Error('Each question must have at least one correct answer');
       }
 
@@ -1553,7 +1553,7 @@ const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                     <input
                       type="radio"
                       name={`correct-${question.id}`}
-                      checked={option.isCorrect}
+                      checked={option.is_correct}
                       onChange={() => handleCorrectOptionChange(questionIndex, optionIndex)}
                       className="text-primary-500 focus:ring-primary-500"
                     />
@@ -1787,7 +1787,6 @@ export const CloudSliceModulesPage: React.FC = () => {
           labExercisesData.forEach((exercise: LabExercise) => {
             labExercisesMap[exercise.exercise_id] = exercise;
           });
-          console.log(labExercisesMap)
           setLabExercises(labExercisesMap);
         }
         
@@ -1812,10 +1811,9 @@ export const CloudSliceModulesPage: React.FC = () => {
         // In production, uncomment the API call below
         
         // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setQuizExercises(mockQuizExercises);
+        // await new Promise(resolve => setTimeout(resolve, 800));
+        // setQuizExercises(mockQuizExercises);
         
-        /* Uncomment for real API call
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/quiz-exercises/${activeModule}`);
         if (response.data.success) {
           const quizExercisesData = response.data.data || [];
@@ -1824,10 +1822,8 @@ export const CloudSliceModulesPage: React.FC = () => {
           quizExercisesData.forEach((exercise: QuizExercise) => {
             quizExercisesMap[exercise.exerciseId] = exercise;
           });
-          
           setQuizExercises(quizExercisesMap);
         }
-        */
       } catch (err) {
         console.error('Error fetching quiz exercises:', err);
       } finally {
@@ -2015,6 +2011,11 @@ export const CloudSliceModulesPage: React.FC = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  function extractFile_Name(filePath) {
+    const match = filePath.match(/[^\\\/]+$/);
+    return match ? match[0] : null;
+  }
+
   // Helper function to format cleanup policy display
   const formatCleanupPolicy = (policy?: CleanupPolicy): string => {
     if (!policy || !policy.enabled) return 'No cleanup policy';
@@ -2087,20 +2088,20 @@ export const CloudSliceModulesPage: React.FC = () => {
           {/* Cleanup Policy Section */}
           <div className="p-6 bg-dark-300/50 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Cleanup Policy</h3>
-            {labExercise.cleanupPolicy?.enabled ? (
+            {labExercise.cleanuppolicy?.enabled ? (
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 bg-dark-400/50 rounded-lg">
                   <div className={`p-2 rounded-lg ${
-                    labExercise.cleanupPolicy.type === 'auto' ? 'bg-primary-500/20' :
-                    labExercise.cleanupPolicy.type === 'scheduled' ? 'bg-secondary-500/20' :
-                    labExercise.cleanupPolicy.type === 'inactivity' ? 'bg-accent-500/20' :
+                    labExercise.cleanuppolicy.type === 'auto' ? 'bg-primary-500/20' :
+                    labExercise.cleanuppolicy.type === 'scheduled' ? 'bg-secondary-500/20' :
+                    labExercise.cleanuppolicy.type === 'inactivity' ? 'bg-accent-500/20' :
                     'bg-gray-500/20'
                   }`}>
-                    {labExercise.cleanupPolicy.type === 'auto' ? (
+                    {labExercise.cleanuppolicy.type === 'auto' ? (
                       <ClockIcon className="h-5 w-5 text-primary-400" />
-                    ) : labExercise.cleanupPolicy.type === 'scheduled' ? (
+                    ) : labExercise.cleanuppolicy.type === 'scheduled' ? (
                       <Calendar className="h-5 w-5 text-secondary-400" />
-                    ) : labExercise.cleanupPolicy.type === 'inactivity' ? (
+                    ) : labExercise.cleanuppolicy.type === 'inactivity' ? (
                       <Clock className="h-5 w-5 text-accent-400" />
                     ) : (
                       <User className="h-5 w-5 text-gray-400" />
@@ -2108,54 +2109,54 @@ export const CloudSliceModulesPage: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-medium text-gray-200">
-                      {labExercise.cleanupPolicy.type === 'auto' ? 'Auto Delete' :
-                       labExercise.cleanupPolicy.type === 'scheduled' ? 'Scheduled Deletion' :
-                       labExercise.cleanupPolicy.type === 'inactivity' ? 'Inactivity Timeout' :
+                      {labExercise.cleanuppolicy.type === 'auto' ? 'Auto Delete' :
+                       labExercise.cleanuppolicy.type === 'scheduled' ? 'Scheduled Deletion' :
+                       labExercise.cleanuppolicy.type === 'inactivity' ? 'Inactivity Timeout' :
                        'Manual Cleanup'}
                     </p>
                     <p className="text-sm text-gray-400">
-                      {formatCleanupPolicy(labExercise.cleanupPolicy)}
+                      {formatCleanupPolicy(labExercise.cleanuppolicy)}
                     </p>
                   </div>
                 </div>
                 
-                {labExercise.cleanupPolicy.type === 'auto' && (
+                {labExercise.cleanuppolicy.type === 'auto' && (
                   <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <ClockIcon className="h-4 w-4 text-primary-400" />
                       <span className="text-sm text-gray-300">Duration:</span>
                     </div>
                     <span className="text-sm font-medium text-gray-200">
-                      {labExercise.cleanupPolicy.duration} {labExercise.cleanupPolicy.durationUnit}
+                      {labExercise.cleanuppolicy.duration} {labExercise.cleanuppolicy.durationUnit}
                     </span>
                   </div>
                 )}
                 
-                {labExercise.cleanupPolicy.type === 'scheduled' && (
+                {labExercise.cleanuppolicy.type === 'scheduled' && (
                   <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-secondary-400" />
                       <span className="text-sm text-gray-300">Scheduled Time:</span>
                     </div>
                     <span className="text-sm font-medium text-gray-200">
-                      {new Date(labExercise.cleanupPolicy.scheduledTime || '').toLocaleString()}
+                      {new Date(labExercise.cleanuppolicy.scheduledTime || '').toLocaleString()}
                     </span>
                   </div>
                 )}
                 
-                {labExercise.cleanupPolicy.type === 'inactivity' && (
+                {labExercise.cleanuppolicy.type === 'inactivity' && (
                   <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4 text-accent-400" />
                       <span className="text-sm text-gray-300">Inactivity Timeout:</span>
                     </div>
                     <span className="text-sm font-medium text-gray-200">
-                      {labExercise.cleanupPolicy.inactivityTimeout} {labExercise.cleanupPolicy.inactivityTimeoutUnit}
+                      {labExercise.cleanuppolicy.inactivityTimeout} {labExercise.cleanuppolicy.inactivityTimeoutUnit}
                     </span>
                   </div>
                 )}
                 
-                {labExercise.cleanupPolicy.type === 'manual' && (
+                {labExercise.cleanuppolicy.type === 'manual' && (
                   <div className="flex items-center p-3 bg-dark-400/30 rounded-lg">
                     <AlertTriangle className="h-4 w-4 text-amber-400 mr-2" />
                     <span className="text-sm text-gray-300">
@@ -2175,10 +2176,10 @@ export const CloudSliceModulesPage: React.FC = () => {
           <div className="p-6 bg-dark-300/50 rounded-lg">
             <h3 className="text-lg font-semibold mb-4">Resources</h3>
             <ul className="space-y-2">
-              {labExercise.resources?.map((resource, index) => (
+              {labExercise.files?.map((resource, index) => (
                 <li key={index} className="flex items-center space-x-2">
                   <BookOpen className="h-4 w-4 text-primary-400" />
-                  <a href={resource} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">
+                  <a href={`http://localhost:3006/uploads/${extractFile_Name(resource)}`} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">
                     {resource}
                   </a>
                 </li>
@@ -2212,7 +2213,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                   <Key className="h-5 w-5 text-primary-400" />
                   <div>
                     <p className="text-sm text-gray-400">Access Key ID</p>
-                    <p className="font-mono text-gray-300">{labExercise.credentials.accessKeyId}</p>
+                    <p className="font-mono text-gray-300">123456</p>
                   </div>
                 </div>
               </div>
@@ -2222,7 +2223,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                   <User className="h-5 w-5 text-primary-400" />
                   <div>
                     <p className="text-sm text-gray-400">Username</p>
-                    <p className="font-mono text-gray-300">{labExercise.credentials.username}</p>
+                    <p className="font-mono text-gray-300">123456</p>
                   </div>
                 </div>
               </div>
@@ -2247,7 +2248,8 @@ export const CloudSliceModulesPage: React.FC = () => {
           </div>
         </div>
       );
-    } else if (exercise.type === 'quiz') {
+    } 
+    else if (exercise.type === 'questions') {
       const quizExercise = quizExercises[exercise.id];
       if (!quizExercise) {
         if (isLoadingQuizExercises) {
@@ -2275,7 +2277,6 @@ export const CloudSliceModulesPage: React.FC = () => {
           </div>
         );
       }
-
       return (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
@@ -2308,12 +2309,12 @@ export const CloudSliceModulesPage: React.FC = () => {
                         type="radio"
                         name={`question-${question.id}`}
                         className="h-5 w-5 border-gray-500 text-primary-500 focus:ring-primary-500"
-                        defaultChecked={option.isCorrect}
+                        defaultChecked={option.is_correct}
                       />
                     </div>
-                    <p className={`text-gray-300 ${option.isCorrect ? 'font-medium' : ''}`}>
+                    <p className={`text-gray-300 ${option.is_correct ? 'font-medium' : ''}`}>
                       {option.text}
-                      {option.isCorrect && (
+                      {option.is_correct && (
                         <span className="ml-2 text-xs text-emerald-400">(Correct Answer)</span>
                       )}
                     </p>
@@ -2359,7 +2360,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-console.log(modules)
+  console.log('modules', modules);
   return (
     <div className="space-y-6">
       {notification && (
@@ -2422,7 +2423,7 @@ console.log(modules)
                       >
                         <div className="flex items-center space-x-3">
                           <Layers className="h-5 w-5" />
-                          <span className="font-medium">{module.name}</span>
+                          <span className="font-medium">{module.title}</span>
                         </div>
                         {activeModule === module.id ? (
                           <ChevronDown className="h-5 w-5" />
