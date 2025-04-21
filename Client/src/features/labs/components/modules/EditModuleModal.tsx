@@ -21,22 +21,23 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
     title: '',
     description: '',
     order: 1,
-    duration: 60,
+    totalduration: 60,
     exercises: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+console.log(module)
   useEffect(() => {
     if (module) {
       setFormData({ ...module });
     } else {
       setFormData({
-        id: `module-${Date.now()}`,
+        id: module?.id || '',
         title: '',
         description: '',
         order: 1,
-        duration: 60,
+        totalduration: 60,
         exercises: []
       });
     }
@@ -124,13 +125,13 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Duration (minutes)
+                totalduration (minutes)
               </label>
               <input
                 type="number"
                 min="1"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                value={formData.totalduration}
+                onChange={(e) => setFormData({ ...formData, totalduration: parseInt(e.target.value) })}
                 className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />

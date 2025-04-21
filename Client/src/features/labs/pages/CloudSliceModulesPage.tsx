@@ -8,6 +8,7 @@ import {
   Clock, 
   ChevronRight, 
   ChevronDown,
+  CheckCircle,
   AlertCircle,
   Loader,
   Plus,
@@ -23,6 +24,15 @@ import { EditExerciseModal } from '../components/modules/EditExerciseModal';
 import { EditLabExerciseModal } from '../components/modules/EditLabExerciseModal';
 import { EditQuizExerciseModal } from '../components/modules/EditQuizExerciseModal';
 import { DeleteConfirmationModal } from '../components/modules/DeleteConfirmationModal';
+
+
+  // Import the exercise content components
+  import { LabExerciseContent } from '../components/modules/LabExerciseContent';
+  import { QuizExerciseContent } from '../components/modules/QuizExerciseContent';
+
+  
+  // Import the module list component
+  import { ModuleList } from '../components/modules/ModuleList';
 
 // Import types
 import { 
@@ -71,6 +81,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       try {
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
         if (response.data.success) {
+          console.log('Modules fetched successfully:', response.data.data);
           setModules(Array.isArray(response.data.data) ? response.data.data : [response.data.data] || []);
           if (response.data.data && response.data.data.length > 0) {
             setActiveModule(response.data.data[0].id);
@@ -184,11 +195,15 @@ export const CloudSliceModulesPage: React.FC = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleSaveModule = (module: Module) => {
+  const handleSaveModule = async(module: Module) => {
     if (selectedModule) {
       // Update existing module
-      setModules(modules.map(m => m.id === module.id ? module : m));
+      const result = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule`, module);
+      if(result.data.success){
+        setModules(modules.map(m => m.id === module.id ? module : m));
       showNotification('success', 'Module updated successfully');
+      }
+      
     } else {
       // Add new module
       setModules([...modules, module]);
@@ -347,9 +362,6 @@ export const CloudSliceModulesPage: React.FC = () => {
     }
   };
 
-  // Import the exercise content components
-  import { LabExerciseContent } from '../components/modules/LabExerciseContent';
-  import { QuizExerciseContent } from '../components/modules/QuizExerciseContent';
 
   const renderExerciseContent = () => {
     const exercise = getActiveExercise();
@@ -367,7 +379,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         />
       );
     } 
-    else if (exercise.type === 'quiz') {
+    else if (exercise.type === 'questions') {
       return (
         <QuizExerciseContent
           exercise={exercise}
@@ -405,9 +417,6 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-
-  // Import the module list component
-  import { ModuleList } from '../components/modules/ModuleList';
 
   return (
     <div className="space-y-6">
@@ -485,7 +494,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2 text-gray-400">
                     <Clock className="h-4 w-4" />
-                    <span>{getActiveModule()?.duration || 0} minutes</span>
+                    <span>{getActiveModule()?.totalduration || 0} minutes</span>
                   </div>
                   <div className="flex space-x-2">
                     <button
@@ -534,9 +543,9 @@ export const CloudSliceModulesPage: React.FC = () => {
                         </button>
                       </div>
                     ) : (
-                      getActiveModule()?.exercises?.map((exercise) => (
+                      getActiveModule()?.exercises?.map((exercise,index) => (
                         <div
-                          key={exercise.id}
+                          key={index}
                           className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors"
                         >
                           <div className="flex items-center justify-between">

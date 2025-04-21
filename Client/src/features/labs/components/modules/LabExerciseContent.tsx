@@ -81,20 +81,20 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
       {/* Cleanup Policy Section */}
       <div className="p-6 bg-dark-300/50 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Cleanup Policy</h3>
-        {labExercise.cleanupPolicy?.enabled ? (
+        {labExercise.cleanuppolicy?.enabled ? (
           <div className="space-y-4">
             <div className="flex items-center space-x-3 p-3 bg-dark-400/50 rounded-lg">
               <div className={`p-2 rounded-lg ${
-                labExercise.cleanupPolicy.type === 'auto' ? 'bg-primary-500/20' :
-                labExercise.cleanupPolicy.type === 'scheduled' ? 'bg-secondary-500/20' :
-                labExercise.cleanupPolicy.type === 'inactivity' ? 'bg-accent-500/20' :
+                labExercise.cleanuppolicy.type === 'auto' ? 'bg-primary-500/20' :
+                labExercise.cleanuppolicy.type === 'scheduled' ? 'bg-secondary-500/20' :
+                labExercise.cleanuppolicy.type === 'inactivity' ? 'bg-accent-500/20' :
                 'bg-gray-500/20'
               }`}>
-                {labExercise.cleanupPolicy.type === 'auto' ? (
+                {labExercise.cleanuppolicy.type === 'auto' ? (
                   <ClockIcon className="h-5 w-5 text-primary-400" />
-                ) : labExercise.cleanupPolicy.type === 'scheduled' ? (
+                ) : labExercise.cleanuppolicy.type === 'scheduled' ? (
                   <Calendar className="h-5 w-5 text-secondary-400" />
-                ) : labExercise.cleanupPolicy.type === 'inactivity' ? (
+                ) : labExercise.cleanuppolicy.type === 'inactivity' ? (
                   <ClockIcon className="h-5 w-5 text-accent-400" />
                 ) : (
                   <User className="h-5 w-5 text-gray-400" />
@@ -102,54 +102,54 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
               </div>
               <div>
                 <p className="font-medium text-gray-200">
-                  {labExercise.cleanupPolicy.type === 'auto' ? 'Auto Delete' :
-                   labExercise.cleanupPolicy.type === 'scheduled' ? 'Scheduled Deletion' :
-                   labExercise.cleanupPolicy.type === 'inactivity' ? 'Inactivity Timeout' :
+                  {labExercise.cleanuppolicy.type === 'auto' ? 'Auto Delete' :
+                   labExercise.cleanuppolicy.type === 'scheduled' ? 'Scheduled Deletion' :
+                   labExercise.cleanuppolicy.type === 'inactivity' ? 'Inactivity Timeout' :
                    'Manual Cleanup'}
                 </p>
                 <p className="text-sm text-gray-400">
-                  {formatCleanupPolicy(labExercise.cleanupPolicy)}
+                  {formatCleanupPolicy(labExercise.cleanuppolicy)}
                 </p>
               </div>
             </div>
             
-            {labExercise.cleanupPolicy.type === 'auto' && (
+            {labExercise.cleanuppolicy.type === 'auto' && (
               <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-4 w-4 text-primary-400" />
                   <span className="text-sm text-gray-300">Duration:</span>
                 </div>
                 <span className="text-sm font-medium text-gray-200">
-                  {labExercise.cleanupPolicy.duration} {labExercise.cleanupPolicy.durationUnit}
+                  {labExercise.cleanuppolicy.duration} {labExercise.cleanuppolicy.durationUnit}
                 </span>
               </div>
             )}
             
-            {labExercise.cleanupPolicy.type === 'scheduled' && (
+            {labExercise.cleanuppolicy.type === 'scheduled' && (
               <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-secondary-400" />
                   <span className="text-sm text-gray-300">Scheduled Time:</span>
                 </div>
                 <span className="text-sm font-medium text-gray-200">
-                  {new Date(labExercise.cleanupPolicy.scheduledTime || '').toLocaleString()}
+                  {new Date(labExercise.cleanuppolicy.scheduledTime || '').toLocaleString()}
                 </span>
               </div>
             )}
             
-            {labExercise.cleanupPolicy.type === 'inactivity' && (
+            {labExercise.cleanuppolicy.type === 'inactivity' && (
               <div className="flex items-center justify-between p-3 bg-dark-400/30 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <ClockIcon className="h-4 w-4 text-accent-400" />
                   <span className="text-sm text-gray-300">Inactivity Timeout:</span>
                 </div>
                 <span className="text-sm font-medium text-gray-200">
-                  {labExercise.cleanupPolicy.inactivityTimeout} {labExercise.cleanupPolicy.inactivityTimeoutUnit}
+                  {labExercise.cleanuppolicy.inactivityTimeout} {labExercise.cleanupPolicy.inactivityTimeoutUnit}
                 </span>
               </div>
             )}
             
-            {labExercise.cleanupPolicy.type === 'manual' && (
+            {labExercise.cleanuppolicy.type === 'manual' && (
               <div className="flex items-center p-3 bg-dark-400/30 rounded-lg">
                 <AlertTriangle className="h-4 w-4 text-amber-400 mr-2" />
                 <span className="text-sm text-gray-300">
@@ -206,7 +206,7 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
               <Key className="h-5 w-5 text-primary-400" />
               <div>
                 <p className="text-sm text-gray-400">Access Key ID</p>
-                <p className="font-mono text-gray-300">{labExercise.credentials.accessKeyId || '123456'}</p>
+                <p className="font-mono text-gray-300">{labExercise?.credentials?.accessKeyId || '123456'}</p>
               </div>
             </div>
           </div>
@@ -216,7 +216,7 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
               <User className="h-5 w-5 text-primary-400" />
               <div>
                 <p className="text-sm text-gray-400">Username</p>
-                <p className="font-mono text-gray-300">{labExercise.credentials.username || '123456'}</p>
+                <p className="font-mono text-gray-300">{labExercise?.credentials?.username || '123456'}</p>
               </div>
             </div>
           </div>

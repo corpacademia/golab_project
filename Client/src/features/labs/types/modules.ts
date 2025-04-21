@@ -22,7 +22,7 @@ export interface Module {
 export interface Exercise {
   id: string;
   title: string;
-  type: 'lab' | 'quiz';
+  type: 'lab' | 'questions';
   description: string;
   order: number;
   duration: number;

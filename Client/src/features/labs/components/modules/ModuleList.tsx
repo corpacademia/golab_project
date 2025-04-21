@@ -39,6 +39,20 @@ export const ModuleList: React.FC<ModuleListProps> = ({
   onEditExercise,
   onDeleteExercise
 }) => {
+  // Function to filter out duplicate exercises based on title
+  const getUniqueExercises = (exercises: Exercise[]): Exercise[] => {
+    const uniqueExercises = new Map<string, Exercise>();
+    
+    exercises.forEach(exercise => {
+      // Use exercise ID as the key to ensure uniqueness
+      if (!uniqueExercises.has(exercise.id)) {
+        uniqueExercises.set(exercise.id, exercise);
+      }
+    });
+    
+    return Array.from(uniqueExercises.values());
+  };
+
   return (
     <div className="glass-panel">
       <h2 className="text-xl font-semibold mb-6">
@@ -102,7 +116,8 @@ export const ModuleList: React.FC<ModuleListProps> = ({
 
               {activeModule === module.id && module.exercises && (
                 <div className="ml-6 space-y-1">
-                  {module.exercises.map((exercise) => (
+                  {/* Apply the getUniqueExercises function to filter out duplicates */}
+                  {getUniqueExercises(module.exercises).map((exercise) => (
                     <div key={exercise.id} className="flex items-center">
                       <button
                         onClick={() => onExerciseClick(exercise.id)}

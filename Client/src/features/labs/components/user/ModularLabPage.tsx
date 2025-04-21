@@ -134,7 +134,7 @@ interface Exercise {
   id: string;
   title: string;
   description: string;
-  type: 'lab' | 'quiz';
+  type: 'lab' | 'questions';
   order: number;
   duration: number;
   status?: 'not-started' | 'in-progress' | 'completed';
@@ -180,7 +180,7 @@ export const ModularLabPage: React.FC = () => {
           moduleId
         }
       });
-    } else if (exercise.type === 'quiz') {
+    } else if (exercise.type === 'questions') {
       navigate(`/dashboard/my-labs/${labId}/quiz/${exercise.id}`, {
         state: { 
           exercise,
@@ -215,7 +215,6 @@ export const ModularLabPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -318,7 +317,7 @@ export const ModularLabPage: React.FC = () => {
               <div className="space-y-4">
                 {modules.find(m => m.id === activeModuleId)?.exercises.map((exercise, index) => (
                   <div 
-                    key={exercise.id}
+                    key={index}
                     onClick={() => handleExerciseClick(activeModuleId, exercise)}
                     className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors cursor-pointer"
                   >
