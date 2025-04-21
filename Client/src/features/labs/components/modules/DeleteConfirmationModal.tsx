@@ -1,6 +1,7 @@
-import React from 'react';
-import { X, Loader } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Loader, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface DeleteConfirmationModalProps {
   title: string;
   message: string;
   isDeleting: boolean;
+  moduleId?: string;
 }
 
 export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
@@ -17,8 +19,37 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   onConfirm,
   title,
   message,
-  isDeleting
+  isDeleting,
+  moduleId
 }) => {
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleDelete = async () => {
+    if (!moduleId) {
+      // If no moduleId is provided, use the original onConfirm function
+      onConfirm();
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteModule/${moduleId}`);
+      
+      if (response.data.success) {
+        onConfirm();
+      } else {
+        setError(response.data.message || 'Failed to delete module');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'An error occurred while deleting the module');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -38,20 +69,29 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
         <p className="text-gray-300 mb-6">{message}</p>
 
+        {error && (
+          <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg mb-6">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <span className="text-red-200">{error}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end space-x-4">
           <button
             onClick={onClose}
             className="btn-secondary"
-            disabled={isDeleting}
+            disabled={isDeleting || isProcessing}
           >
             Cancel
           </button>
           <button
-            onClick={onConfirm}
-            disabled={isDeleting}
+            onClick={handleDelete}
+            disabled={isDeleting || isProcessing}
             className="btn-primary bg-red-500 hover:bg-red-600"
           >
-            {isDeleting ? (
+            {isDeleting || isProcessing ? (
               <span className="flex items-center">
                 <Loader className="animate-spin h-4 w-4 mr-2" />
                 Deleting...

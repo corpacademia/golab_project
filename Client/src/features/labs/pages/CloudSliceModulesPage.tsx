@@ -665,6 +665,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                 deleteType === 'exercise' ? 'exercise' : 
                 deleteType === 'labExercise' ? 'lab content' : 'quiz'}? This action cannot be undone.`}
         isDeleting={isDeleting}
+        moduleId={deleteType === 'module' ? deleteItemId : undefined}
       />
     </div>
   );
