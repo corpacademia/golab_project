@@ -1,0 +1,347 @@
+import React, { useState, useEffect } from 'react';
+import { X, Plus, AlertCircle, Loader, Clock } from 'lucide-react';
+import { GradientText } from '../../../../components/ui/GradientText';
+import { QuizExercise } from '../../types/modules';
+
+interface EditQuizExerciseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  exerciseId: string;
+  quizExercise: QuizExercise | null;
+  onSave: (exerciseId: string, quizExercise: QuizExercise) => void;
+}
+
+export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
+  isOpen,
+  onClose,
+  exerciseId,
+  quizExercise,
+  onSave
+}) => {
+  const [formData, setFormData] = useState<QuizExercise>({
+    id: '',
+    exerciseId: '',
+    duration: 15,
+    questions: [{
+      id: `question-${Date.now()}`,
+      text: '',
+      options: [
+        { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+        { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+      ]
+    }]
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (quizExercise) {
+      setFormData({ ...quizExercise });
+    } else {
+      setFormData({
+        id: `quiz-${Date.now()}`,
+        exerciseId,
+        duration: 15,
+        questions: [{
+          id: `question-${Date.now()}`,
+          text: '',
+          options: [
+            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+          ]
+        }]
+      });
+    }
+  }, [quizExercise, exerciseId, isOpen]);
+
+  const handleDurationChange = (value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      duration: value
+    }));
+  };
+
+  const handleAddQuestion = () => {
+    const newQuestionId = `question-${Date.now()}`;
+    setFormData({
+      ...formData,
+      questions: [
+        ...formData.questions,
+        {
+          id: newQuestionId,
+          text: '',
+          options: [
+            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+          ]
+        }
+      ]
+    });
+  };
+
+  const handleQuestionChange = (questionIndex: number, text: string) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions[questionIndex] = { ...updatedQuestions[questionIndex], text };
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleRemoveQuestion = (questionIndex: number) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions.splice(questionIndex, 1);
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleAddOption = (questionIndex: number) => {
+    const updatedQuestions = [...formData.questions];
+    const question = updatedQuestions[questionIndex];
+    question.options = [
+      ...question.options,
+      { id: `option-${Date.now()}`, text: '', is_correct: false }
+    ];
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleOptionChange = (questionIndex: number, optionIndex: number, text: string) => {
+    const updatedQuestions = [...formData.questions];
+    const question = updatedQuestions[questionIndex];
+    question.options[optionIndex] = { ...question.options[optionIndex], text };
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleCorrectOptionChange = (questionIndex: number, optionIndex: number) => {
+    const updatedQuestions = [...formData.questions];
+    const question = updatedQuestions[questionIndex];
+    
+    // Reset all options to not correct
+    question.options = question.options.map(option => ({
+      ...option,
+      is_correct: false
+    }));
+    
+    // Set the selected option as correct
+    question.options[optionIndex] = { 
+      ...question.options[optionIndex], 
+      is_correct: true 
+    };
+    
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleRemoveOption = (questionIndex: number, optionIndex: number) => {
+    const updatedQuestions = [...formData.questions];
+    const question = updatedQuestions[questionIndex];
+    question.options.splice(optionIndex, 1);
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Validate form
+      if (formData.questions.some(q => !q.text.trim())) {
+        throw new Error('All questions must have text');
+      }
+
+      if (formData.questions.some(q => q.options.some(o => !o.text.trim()))) {
+        throw new Error('All options must have text');
+      }
+
+      if (formData.questions.some(q => !q.options.some(o => o.is_correct))) {
+        throw new Error('Each question must have at least one correct answer');
+      }
+
+      if (formData.duration <= 0) {
+        throw new Error('Duration must be greater than 0');
+      }
+
+      // Save quiz exercise
+      onSave(exerciseId, formData);
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-lg w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>{quizExercise ? 'Edit Quiz' : 'Add Quiz'}</GradientText>
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Duration Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Duration (in minutes)
+            </label>
+            <div className="flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-gray-400" />
+              <input
+                type="number"
+                min="1"
+                value={formData.duration}
+                onChange={(e) => handleDurationChange(parseInt(e.target.value) || 0)}
+                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          {formData.questions.map((question, questionIndex) => (
+            <div key={question.id} className="p-4 bg-dark-300/50 rounded-lg space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Question {questionIndex + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={question.text}
+                    onChange={(e) => handleQuestionChange(questionIndex, e.target.value)}
+                    placeholder="Enter question text"
+                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveQuestion(questionIndex)}
+                  className="p-2 hover:bg-red-500/10 rounded-lg transition-colors ml-2"
+                  disabled={formData.questions.length <= 1}
+                >
+                  <X className="h-4 w-4 text-red-400" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Options
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleAddOption(questionIndex)}
+                    className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Option
+                  </button>
+                </div>
+
+                {question.options.map((option, optionIndex) => (
+                  <div key={option.id} className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name={`correct-${question.id}`}
+                      checked={option.is_correct}
+                      onChange={() => handleCorrectOptionChange(questionIndex, optionIndex)}
+                      className="text-primary-500 focus:ring-primary-500"
+                    />
+                    <input
+                      type="text"
+                      value={option.text}
+                      onChange={(e) => handleOptionChange(questionIndex, optionIndex, e.target.value)}
+                      placeholder={`Option ${optionIndex + 1}`}
+                      className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                      disabled={question.options.length <= 2}
+                    >
+                      <X className="h-4 w-4 text-red-400" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={handleAddQuestion}
+            className="w-full p-3 border border-dashed border-primary-500/30 rounded-lg
+                     text-primary-400 hover:text-primary-300 hover:border-primary-500/50
+                     transition-colors flex items-center justify-center"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Question
+          </button>
+
+          {error && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-4 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Saving...
+                </span>
+              ) : (
+                'Save Quiz'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
