@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Module } from '../../types/modules';
+import axios from 'axios';
 
 interface EditModuleModalProps {
   isOpen: boolean;
@@ -26,8 +27,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-console.log(module)
   useEffect(() => {
     if (module) {
       setFormData({ ...module });
@@ -47,6 +48,7 @@ console.log(module)
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setApiError(null);
 
     try {
       // Validate form
@@ -54,9 +56,41 @@ console.log(module)
         throw new Error('Module title is required');
       }
 
-      // Save module
-      onSave(formData);
-      onClose();
+      // If it's an update operation
+      if (module?.id) {
+        try {
+          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule`, formData);
+          
+          if (response.data.success) {
+            // Save module
+            onSave(formData);
+            onClose();
+          } else {
+            setApiError(response.data.message || 'Failed to update module');
+          }
+        } catch (err: any) {
+          setApiError(err.response?.data?.message || 'An error occurred while updating the module');
+        }
+      } else {
+        // For new modules
+        try {
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createModule`, formData);
+          
+          if (response.data.success) {
+            // Save module with the ID from the response
+            const savedModule = {
+              ...formData,
+              id: response.data.data.id || formData.id
+            };
+            onSave(savedModule);
+            onClose();
+          } else {
+            setApiError(response.data.message || 'Failed to create module');
+          }
+        } catch (err: any) {
+          setApiError(err.response?.data?.message || 'An error occurred while creating the module');
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -143,6 +177,15 @@ console.log(module)
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-5 w-5 text-red-400" />
                 <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {apiError && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{apiError}</span>
               </div>
             </div>
           )}
