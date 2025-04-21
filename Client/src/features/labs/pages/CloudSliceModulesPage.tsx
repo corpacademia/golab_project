@@ -48,7 +48,7 @@ interface Service {
 interface Exercise {
   id: string;
   title: string;
-  type: 'lab' | 'quiz';
+  type: 'lab' | 'questions';
   description: string;
   order: number;
   duration: number;
@@ -1818,7 +1818,6 @@ export const CloudSliceModulesPage: React.FC = () => {
         if (response.data.success) {
           const quizExercisesData = response.data.data || [];
           const quizExercisesMap: Record<string, QuizExercise> = {};
-          
           quizExercisesData.forEach((exercise: QuizExercise) => {
             quizExercisesMap[exercise.exerciseId] = exercise;
           });
@@ -2251,6 +2250,7 @@ export const CloudSliceModulesPage: React.FC = () => {
     } 
     else if (exercise.type === 'questions') {
       const quizExercise = quizExercises[exercise.id];
+      
       if (!quizExercise) {
         if (isLoadingQuizExercises) {
           return (
@@ -2360,7 +2360,6 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-  console.log('modules', modules);
   return (
     <div className="space-y-6">
       {notification && (
