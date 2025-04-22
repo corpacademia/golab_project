@@ -37,18 +37,13 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     id: '',
     exercise_id: '',
     instructions: '',
-    resources: [''],
+    files: [''],
     services: [],
+    cleanupPolicy:{},
     credentials: {
       accessKeyId: '',
       username: '',
       password: ''
-    },
-    cleanupPolicy: {
-      enabled: false,
-      type: 'auto',
-      duration: 60,
-      durationUnit: 'minutes'
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,59 +94,58 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (labExercise) {
-      setFormData({ 
-        ...labExercise,
-        cleanupPolicy: labExercise.cleanupPolicy || {
-          enabled: false,
-          type: 'auto',
-          duration: 60,
-          durationUnit: 'minutes'
-        }
-      });
-    } else {
-      setFormData({
-        id: `lab-${Date.now()}`,
-        exercise_id: exerciseId,
-        instructions: '',
-        resources: [''],
-        services: [],
-        credentials: {
-          accessKeyId: '',
-          username: '',
-          password: ''
-        },
-        cleanupPolicy: {
-          enabled: false,
-          type: 'auto',
-          duration: 60,
-          durationUnit: 'minutes'
-        }
-      });
+    if (isOpen) {
+      if (labExercise) {
+        // If we have an existing lab exercise, use its data
+        setFormData({ 
+          ...labExercise,
+          cleanupPolicy: labExercise.cleanuppolicy 
+        });
+      } else {
+        // Otherwise initialize with default values
+        setFormData({
+          id: `lab-${Date.now()}`,
+          exercise_id: exerciseId,
+          instructions: '',
+          files: [''],
+          services: [],
+          credentials: {
+            accessKeyId: '',
+            username: '',
+            password: ''
+          },
+          cleanupPolicy: {
+            enabled: false,
+            type: 'auto',
+            duration: 60,
+            durationUnit: 'minutes'
+          }
+        });
+      }
     }
   }, [labExercise, exerciseId, isOpen]);
   const handleAddResource = () => {
     setFormData({
       ...formData,
-      resources: [...formData.resources, '']
+      files: [...formData.files, '']
     });
   };
 
   const handleResourceChange = (index: number, value: string) => {
-    const updatedResources = [...formData.resources];
+    const updatedResources = [...formData.files];
     updatedResources[index] = value;
     setFormData({
       ...formData,
-      resources: updatedResources
+      files: updatedResources
     });
   };
 
   const handleRemoveResource = (index: number) => {
-    const updatedResources = [...formData.resources];
+    const updatedResources = [...formData.files];
     updatedResources.splice(index, 1);
     setFormData({
       ...formData,
-      resources: updatedResources
+      files: updatedResources
     });
   };
 
@@ -192,7 +186,8 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   
   const filteredServices = selectedCategory && awsServiceCategories && awsServiceCategories[selectedCategory]
     ? awsServiceCategories[selectedCategory].filter(service =>
-        service.name.toLowerCase().includes(serviceSearch.toLowerCase()) 
+        service.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+        (service.description && service.description.toLowerCase().includes(serviceSearch.toLowerCase()))
       )
     : [];
 
@@ -210,16 +205,17 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       }
 
       // Filter out empty resources
-      const filteredResources = formData.resources.filter(r => r.trim() !== '');
+      const filteredResources = formData.files.filter(r => r.trim() !== '');
       
       const dataToSubmit = {
         ...formData,
-        resources: filteredResources
+        files: filteredResources
       };
 
       try {
         // Determine if this is an update or create operation
         if (labExercise) {
+          console.log('Updating lab exercise:', dataToSubmit);
           // Update existing lab exercise
           const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabExercise`, {
             ...dataToSubmit,
@@ -326,7 +322,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
               </button>
             </div>
             <div className="space-y-3">
-              {formData.resources.map((resource, index) => (
+              {formData.files.map((resource, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <LinkIcon className="h-5 w-5 text-gray-400" />
                   <input
@@ -586,7 +582,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                         </div>
                       </div>
                       <div>
-                        {filteredServices && filteredServices.length > 0 ? (
+                        {Array.isArray(filteredServices) && filteredServices.length > 0 ? (
                           filteredServices.map(service => (
                             <label
                               key={service.name}
@@ -602,6 +598,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                               />
                               <div>
                                 <p className="font-medium text-gray-200">{service.name}</p>
+                                <p className="text-sm text-gray-400">{service.description}</p>
                               </div>
                             </label>
                           ))
@@ -655,7 +652,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    value={formData.credentials.accessKeyId}
+                    // value={formData.credentials.accessKeyId}
                     onChange={(e) => handleCredentialsChange('accessKeyId', e.target.value)}
                     placeholder="Enter AWS Access Key ID"
                     className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -672,7 +669,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    value={formData.credentials.username}
+                    // value={formData.credentials.username}
                     onChange={(e) => handleCredentialsChange('username', e.target.value)}
                     placeholder="Enter username"
                     className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -689,7 +686,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 <div className="relative">
                   <input
                     type="password"
-                    value={formData.credentials.password}
+                    // value={formData.credentials.password}
                     onChange={(e) => handleCredentialsChange('password', e.target.value)}
                     placeholder="Enter password"
                     className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -756,4 +753,4 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       </div>
     </div>
   );
-};
+};'/'

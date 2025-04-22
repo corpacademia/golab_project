@@ -32,7 +32,6 @@ export interface LabExercise {
   id: string;
   exercise_id: string;
   instructions: string;
-  resources: string[];
   files?: string[];
   services: string[];
   credentials: {

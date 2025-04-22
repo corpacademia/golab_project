@@ -25,14 +25,12 @@ import { EditLabExerciseModal } from '../components/modules/EditLabExerciseModal
 import { EditQuizExerciseModal } from '../components/modules/EditQuizExerciseModal';
 import { DeleteConfirmationModal } from '../components/modules/DeleteConfirmationModal';
 
+// Import the exercise content components
+import { LabExerciseContent } from '../components/modules/LabExerciseContent';
+import { QuizExerciseContent } from '../components/modules/QuizExerciseContent';
 
-  // Import the exercise content components
-  import { LabExerciseContent } from '../components/modules/LabExerciseContent';
-  import { QuizExerciseContent } from '../components/modules/QuizExerciseContent';
-
-  
-  // Import the module list component
-  import { ModuleList } from '../components/modules/ModuleList';
+// Import the module list component
+import { ModuleList } from '../components/modules/ModuleList';
 
 // Import types
 import { 
@@ -254,6 +252,7 @@ export const CloudSliceModulesPage: React.FC = () => {
 
   // CRUD operations for lab exercises
   const handleEditLabExercise = (exerciseId: string) => {
+    // Make sure to set the selected lab exercise before opening the modal
     setSelectedLabExercise(labExercises[exerciseId] || null);
     setIsEditLabExerciseModalOpen(true);
   };
@@ -361,7 +360,6 @@ export const CloudSliceModulesPage: React.FC = () => {
         return 'Custom cleanup policy';
     }
   };
-
 
   const renderExerciseContent = () => {
     const exercise = getActiveExercise();

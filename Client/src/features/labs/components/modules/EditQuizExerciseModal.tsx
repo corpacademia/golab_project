@@ -38,9 +38,10 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log(quizExercise)
   useEffect(() => {
     if (quizExercise) {
-      setFormData({ ...quizExercise });
+      setFormData({ ...quizExercise,duration:quizExercise.questions[0].duration });
     } else {
       setFormData({
         id: `quiz-${Date.now()}`,
@@ -235,9 +236,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       setIsSubmitting(false);
     }
   };
-
+console.log(formData)
   if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-dark-200 rounded-lg w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
