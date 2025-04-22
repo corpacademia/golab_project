@@ -48,10 +48,6 @@ export const QuizExerciseContent: React.FC<QuizExerciseContentProps> = ({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Quiz Content</h3>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-gray-400">
-            <Clock className="h-4 w-4" />
-            <span>{quizExercise.duration} minutes</span>
-          </div>
           <button
             onClick={onEdit}
             className="btn-secondary"

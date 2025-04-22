@@ -198,8 +198,11 @@ export const CloudSliceModulesPage: React.FC = () => {
   const handleSaveModule = async(module: Module) => {
     if (selectedModule) {
       // Update existing module
+      const result = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule`, module);
+      if(result.data.success){
         setModules(modules.map(m => m.id === module.id ? module : m));
       showNotification('success', 'Module updated successfully');
+      }
       
     } else {
       // Add new module
@@ -662,6 +665,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                 deleteType === 'exercise' ? 'exercise' : 
                 deleteType === 'labExercise' ? 'lab content' : 'quiz'}? This action cannot be undone.`}
         isDeleting={isDeleting}
+        moduleId={deleteItemId}
       />
     </div>
   );

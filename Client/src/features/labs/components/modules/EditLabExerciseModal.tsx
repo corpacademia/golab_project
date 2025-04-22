@@ -11,7 +11,8 @@ import {
   Lock, 
   Calendar, 
   ChevronDown, 
-  Search 
+  Search,
+  Check
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { LabExercise, CleanupPolicy, Service } from '../../types/modules';
@@ -52,16 +53,20 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
   const [awsServiceCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch AWS service categories
   useEffect(() => {
     const fetchAwsServiceCategories = async () => {
+      setIsLoading(true);
       try {
         const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getAwsServices');
         if (response.data.success) {
@@ -82,11 +87,16 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
         }
       } catch (error) {
         console.error('Failed to fetch AWS services:', error);
+        setError('Failed to load service categories');
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    fetchAwsServiceCategories();
-  }, []);
+    if (isOpen) {
+      fetchAwsServiceCategories();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (labExercise) {
@@ -120,7 +130,6 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       });
     }
   }, [labExercise, exerciseId, isOpen]);
-
   const handleAddResource = () => {
     setFormData({
       ...formData,
@@ -177,11 +186,11 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     });
   };
 
-  const filteredCategories = Object.keys(awsServiceCategories).filter(category =>
+  const filteredCategories = Object.keys(awsServiceCategories || {}).filter(category =>
     category.toLowerCase().includes(categorySearch.toLowerCase())
   );
   
-  const filteredServices = selectedCategory 
+  const filteredServices = selectedCategory && awsServiceCategories && awsServiceCategories[selectedCategory]
     ? awsServiceCategories[selectedCategory].filter(service =>
         service.name.toLowerCase().includes(serviceSearch.toLowerCase()) 
       )
@@ -191,6 +200,8 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setApiError(null);
+    setSuccess(null);
 
     try {
       // Validate form
@@ -201,12 +212,55 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       // Filter out empty resources
       const filteredResources = formData.resources.filter(r => r.trim() !== '');
       
-      // Save lab exercise
-      onSave(exerciseId, {
+      const dataToSubmit = {
         ...formData,
         resources: filteredResources
-      });
-      onClose();
+      };
+
+      try {
+        // Determine if this is an update or create operation
+        if (labExercise) {
+          // Update existing lab exercise
+          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabExercise`, {
+            ...dataToSubmit,
+            exerciseId
+          });
+          
+          if (response.data.success) {
+            setSuccess('Lab exercise updated successfully');
+            // Save lab exercise
+            onSave(exerciseId, dataToSubmit);
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          } else {
+            setApiError(response.data.message || 'Failed to update lab exercise');
+          }
+        } else {
+          // Create new lab exercise
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createLabExercise`, {
+            ...dataToSubmit,
+            exerciseId
+          });
+          
+          if (response.data.success) {
+            setSuccess('Lab exercise created successfully');
+            // Save lab exercise with the ID from the response
+            const savedLabExercise = {
+              ...dataToSubmit,
+              id: response.data.data?.id || dataToSubmit.id
+            };
+            onSave(exerciseId, savedLabExercise);
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          } else {
+            setApiError(response.data.message || 'Failed to create lab exercise');
+          }
+        }
+      } catch (err: any) {
+        setApiError(err.response?.data?.message || 'An error occurred while saving the lab exercise');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -215,6 +269,17 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-dark-200 rounded-lg p-8 flex flex-col items-center">
+          <Loader className="h-8 w-8 text-primary-400 animate-spin mb-4" />
+          <p className="text-gray-300">Loading service categories...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -521,24 +586,30 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                         </div>
                       </div>
                       <div>
-                        {filteredServices.map(service => (
-                          <label
-                            key={service.name}
-                            className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
-                                     cursor-pointer transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={formData.services.includes(service.name)}
-                              onChange={() => handleServiceToggle(service.name)}
-                              className="form-checkbox h-4 w-4 text-primary-500 rounded 
-                                       border-gray-500/20 focus:ring-primary-500"
-                            />
-                            <div>
-                              <p className="font-medium text-gray-200">{service.name}</p>
-                            </div>
-                          </label>
-                        ))}
+                        {filteredServices && filteredServices.length > 0 ? (
+                          filteredServices.map(service => (
+                            <label
+                              key={service.name}
+                              className="flex items-center space-x-3 p-3 hover:bg-dark-300/50 
+                                       cursor-pointer transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.services.includes(service.name)}
+                                onChange={() => handleServiceToggle(service.name)}
+                                className="form-checkbox h-4 w-4 text-primary-500 rounded 
+                                         border-gray-500/20 focus:ring-primary-500"
+                              />
+                              <div>
+                                <p className="font-medium text-gray-200">{service.name}</p>
+                              </div>
+                            </label>
+                          ))
+                        ) : (
+                          <div className="p-3 text-gray-400 text-center">
+                            No services found in this category
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -635,6 +706,24 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-5 w-5 text-red-400" />
                 <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {apiError && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{apiError}</span>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Check className="h-5 w-5 text-emerald-400" />
+                <span className="text-emerald-200">{success}</span>
               </div>
             </div>
           )}

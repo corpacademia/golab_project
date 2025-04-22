@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, AlertCircle, Loader, Clock } from 'lucide-react';
+import { X, Plus, AlertCircle, Loader, Clock, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { QuizExercise } from '../../types/modules';
+import axios from 'axios';
 
 interface EditQuizExerciseModalProps {
   isOpen: boolean;
@@ -33,6 +34,9 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (quizExercise) {
@@ -156,6 +160,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setApiError(null);
+    setSuccess(null);
 
     try {
       // Validate form
@@ -175,9 +181,54 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         throw new Error('Duration must be greater than 0');
       }
 
-      // Save quiz exercise
-      onSave(exerciseId, formData);
-      onClose();
+      try {
+        // Determine if this is an update or create operation
+        if (quizExercise) {
+          // Update existing quiz
+          setIsLoading(true);
+          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizExercise`, {
+            ...formData,
+            exerciseId
+          });
+          
+          if (response.data.success) {
+            setSuccess('Quiz updated successfully');
+            // Save quiz
+            onSave(exerciseId, formData);
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          } else {
+            setApiError(response.data.message || 'Failed to update quiz');
+          }
+        } else {
+          // Create new quiz
+          setIsLoading(true);
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createQuizExercise`, {
+            ...formData,
+            exerciseId
+          });
+          
+          if (response.data.success) {
+            setSuccess('Quiz created successfully');
+            // Save quiz with the ID from the response
+            const savedQuiz = {
+              ...formData,
+              id: response.data.data?.id || formData.id
+            };
+            onSave(exerciseId, savedQuiz);
+            setTimeout(() => {
+              onClose();
+            }, 1500);
+          } else {
+            setApiError(response.data.message || 'Failed to create quiz');
+          }
+        }
+      } catch (err: any) {
+        setApiError(err.response?.data?.message || 'An error occurred while saving the quiz');
+      } finally {
+        setIsLoading(false);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -316,21 +367,39 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
             </div>
           )}
 
+          {apiError && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{apiError}</span>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-4 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Check className="h-5 w-5 text-emerald-400" />
+                <span className="text-emerald-200">{success}</span>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end space-x-4 pt-4">
             <button
               type="button"
               onClick={onClose}
               className="btn-secondary"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isLoading}
               className="btn-primary"
             >
-              {isSubmitting ? (
+              {isSubmitting || isLoading ? (
                 <span className="flex items-center">
                   <Loader className="animate-spin h-4 w-4 mr-2" />
                   Saving...

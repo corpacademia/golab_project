@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertCircle, Loader } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { Exercise } from '../../types/modules';
+import axios from 'axios';
 
 interface EditExerciseModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (exercise) {
@@ -48,6 +50,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setApiError(null);
 
     try {
       // Validate form
@@ -55,9 +58,49 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
         throw new Error('Exercise title is required');
       }
 
-      // Save exercise
-      onSave(moduleId, formData);
-      onClose();
+      // Determine if this is an update or create operation
+      if (exercise) {
+        // Update existing exercise
+        console.log(formData)
+        try {
+          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateExercise`, {
+            ...formData,
+            moduleId
+          });
+          
+          if (response.data.success) {
+            // Save exercise
+            onSave(moduleId, formData);
+            onClose();
+          } else {
+            setApiError(response.data.message || 'Failed to update exercise');
+          }
+        } catch (err: any) {
+          setApiError(err.response?.data?.message || 'An error occurred while updating the exercise');
+        }
+      } else {
+        // Create new exercise
+        try {
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+            ...formData,
+            moduleId
+          });
+          
+          if (response.data.success) {
+            // Save exercise with the ID from the response
+            const savedExercise = {
+              ...formData,
+              id: response.data.data.id || formData.id
+            };
+            onSave(moduleId, savedExercise);
+            onClose();
+          } else {
+            setApiError(response.data.message || 'Failed to create exercise');
+          }
+        } catch (err: any) {
+          setApiError(err.response?.data?.message || 'An error occurred while creating the exercise');
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -114,8 +157,8 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
               <label className="flex items-center space-x-2">
                 <input
                   type="radio"
-                  checked={formData.type === 'quiz'}
-                  onChange={() => setFormData({ ...formData, type: 'quiz' })}
+                  checked={formData.type === 'questions'}
+                  onChange={() => setFormData({ ...formData, type: 'questions' })}
                   className="text-primary-500 focus:ring-primary-500"
                 />
                 <span className="text-gray-300">Quiz</span>
@@ -123,18 +166,20 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
-            />
-          </div>
+          {formData.type === 'questions' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -170,6 +215,15 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
               <div className="flex items-center space-x-2">
                 <AlertCircle className="h-5 w-5 text-red-400" />
                 <span className="text-red-200">{error}</span>
+              </div>
+            </div>
+          )}
+
+          {apiError && (
+            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+                <span className="text-red-200">{apiError}</span>
               </div>
             </div>
           )}
