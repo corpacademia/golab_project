@@ -3,6 +3,7 @@ import { X, Plus, AlertCircle, Loader, Clock, Check } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { QuizExercise } from '../../types/modules';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 interface EditQuizExerciseModalProps {
   isOpen: boolean;
@@ -27,8 +28,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       id: `question-${Date.now()}`,
       text: '',
       options: [
-        { id: `option-${Date.now()}-1`, text: '', is_correct: false },
-        { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+        { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+        { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
       ]
     }]
   });
@@ -38,7 +39,6 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  console.log(quizExercise)
   useEffect(() => {
     if (quizExercise) {
       setFormData({ ...quizExercise,duration:quizExercise.questions[0].duration });
@@ -48,11 +48,11 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         exerciseId,
         duration: 15,
         questions: [{
-          id: `question-${Date.now()}`,
+          id: uuidv4(),
           text: '',
           options: [
-            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
-            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }]
       });
@@ -67,7 +67,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   };
 
   const handleAddQuestion = () => {
-    const newQuestionId = `question-${Date.now()}`;
+    const newQuestionId = uuidv4();
     setFormData({
       ...formData,
       questions: [
@@ -76,8 +76,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           id: newQuestionId,
           text: '',
           options: [
-            { id: `option-${Date.now()}-1`, text: '', is_correct: false },
-            { id: `option-${Date.now()}-2`, text: '', is_correct: false }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }
       ]
@@ -107,7 +107,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     const question = updatedQuestions[questionIndex];
     question.options = [
       ...question.options,
-      { id: `option-${Date.now()}`, text: '', is_correct: false }
+      { option_id: `option-${Date.now()}`, text: '', is_correct: false }
     ];
     setFormData({
       ...formData,
@@ -186,6 +186,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         // Determine if this is an update or create operation
         if (quizExercise) {
           // Update existing quiz
+          console.log(formData)
           setIsLoading(true);
           const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizExercise`, {
             ...formData,
@@ -236,7 +237,6 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       setIsSubmitting(false);
     }
   };
-console.log(formData)
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">

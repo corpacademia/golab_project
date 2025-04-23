@@ -9,13 +9,15 @@ interface EditModuleModalProps {
   onClose: () => void;
   module: Module | null;
   onSave: (module: Module) => void;
+  labId: string;
 }
 
 export const EditModuleModal: React.FC<EditModuleModalProps> = ({ 
   isOpen, 
   onClose, 
   module, 
-  onSave 
+  onSave,
+  labId
 }) => {
   const [formData, setFormData] = useState<Module>({
     id: '',
@@ -23,7 +25,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
     description: '',
     order: 1,
     totalduration: 60,
-    exercises: []
+    exercises: [],
+    labId: labId
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
 
   useEffect(() => {
     if (module) {
-      setFormData({ ...module });
+      setFormData({ ...module,labId: labId });
+    } else if (isOpen) {
     } else {
       setFormData({
         id: module?.id || '',
@@ -39,7 +43,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
         description: '',
         order: 1,
         totalduration: 60,
-        exercises: []
+        exercises: [],
+        labId: labId
       });
     }
   }, [module, isOpen]);

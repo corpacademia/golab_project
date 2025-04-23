@@ -40,7 +40,6 @@ import {
   QuizExercise, 
   CleanupPolicy 
 } from '../types/modules';
-
 export const CloudSliceModulesPage: React.FC = () => {
   const { sliceId } = useParams<{ sliceId: string }>();
   const navigate = useNavigate();
@@ -71,6 +70,7 @@ export const CloudSliceModulesPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
+
   // Fetch modules
   useEffect(() => {
     const fetchModules = async () => {
@@ -79,7 +79,6 @@ export const CloudSliceModulesPage: React.FC = () => {
       try {
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
         if (response.data.success) {
-          console.log('Modules fetched successfully:', response.data.data);
           setModules(Array.isArray(response.data.data) ? response.data.data : [response.data.data] || []);
           if (response.data.data && response.data.data.length > 0) {
             setActiveModule(response.data.data[0].id);
@@ -626,6 +625,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         onClose={() => setIsEditModuleModalOpen(false)}
         module={selectedModule}
         onSave={handleSaveModule}
+        labId={sliceId}
       />
 
       <EditExerciseModal
