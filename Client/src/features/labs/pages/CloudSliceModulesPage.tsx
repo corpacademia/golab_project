@@ -79,6 +79,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       try {
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
         if (response.data.success) {
+          console.log(response.data.data)
           setModules(Array.isArray(response.data.data) ? response.data.data : [response.data.data] || []);
           if (response.data.data && response.data.data.length > 0) {
             setActiveModule(response.data.data[0].id);
@@ -88,7 +89,9 @@ export const CloudSliceModulesPage: React.FC = () => {
         }
        
       } catch (err: any) {
-        console.error('Error fetching modules:', err);
+        if(err.status === 404){
+          return null
+        }
         setError(err.response?.data?.message || 'Failed to fetch modules');
         setModules([]);
       } finally {
@@ -400,7 +403,6 @@ export const CloudSliceModulesPage: React.FC = () => {
 
     return null;
   };
-
   // Main loading state
   if (isLoadingModules) {
     return (
@@ -410,7 +412,6 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-
   // Error state
   if (error) {
     return (

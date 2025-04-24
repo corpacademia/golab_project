@@ -53,7 +53,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
     setApiError(null);
 
     try {
-      // For editing an existing exercise, we need all fields
+      // For editing an existing exercise
       if (exercise) {
         // Validate form
         if (!formData.title.trim()) {
@@ -68,7 +68,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
           });
           
           if (response.data.success) {
-            // Save exercise
+            // Save exercise and close modal - don't open any other modals
             onSave(moduleId, formData);
             onClose();
           } else {
@@ -78,29 +78,24 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
           setApiError(err.response?.data?.message || 'An error occurred while updating the exercise');
         }
       } else {
-        // For new exercises, we only need type and order initially
-        // The title, description, and duration will be set in the specific modals
-        
-        // Create new exercise with minimal data
+        // For new exercises
         try {
-          // Set placeholder title that will be updated in the specific modal
-          const initialExercise = {
-            ...formData,
+          // Create new exercise
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
             title: formData.type === 'lab' ? 'New Lab Exercise' : 'New Quiz',
             description: '',
-            duration: 30
-          };
-          
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
-            ...initialExercise,
+            type: formData.type,
+            order: formData.order,
+            duration: 30,
             moduleId
           });
           
           if (response.data.success) {
-            // Save exercise with the ID from the response
+            // Save exercise with the ID from the response and close modal
             const savedExercise = {
-              ...initialExercise,
-              id: response.data.data.id || formData.id
+              ...formData,
+              id: response.data.data.id || formData.id,
+              title: formData.type === 'lab' ? 'New Lab Exercise' : 'New Quiz'
             };
             onSave(moduleId, savedExercise);
             onClose();

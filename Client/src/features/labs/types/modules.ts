@@ -49,6 +49,7 @@ export interface QuizExercise {
   questions: {
     id: string;
     text: string;
+    description: string;
     options: {
       id: string;
       text: string;

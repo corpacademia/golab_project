@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Plus, 
@@ -12,7 +12,9 @@ import {
   Calendar, 
   ChevronDown, 
   Search,
-  Check
+  Check,
+  Upload,
+  File
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { LabExercise, CleanupPolicy, Service } from '../../types/modules';
@@ -37,9 +39,8 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     id: '',
     exercise_id: '',
     instructions: '',
-    files: [''],
+    files: [],
     services: [],
-    cleanupPolicy:{},
     credentials: {
       accessKeyId: '',
       username: '',
@@ -63,6 +64,10 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   const [serviceSearch, setServiceSearch] = useState('');
   const [awsServiceCategories, setAvailableCategories] = useState<Record<string, Service[]>>({});
   const [isLoading, setIsLoading] = useState(false);
+  
+  // File upload state
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch AWS service categories
   useEffect(() => {
@@ -114,7 +119,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
           id: `lab-${Date.now()}`,
           exercise_id: exerciseId,
           instructions: '',
-          files: [''],
+          files: [],
           services: [],
           credentials: {
             accessKeyId: '',
@@ -135,29 +140,16 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       }
     }
   }, [labExercise, exerciseId, isOpen]);
-  const handleAddResource = () => {
-    setFormData({
-      ...formData,
-      files: [...formData.files, '']
-    });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+    }
   };
 
-  const handleResourceChange = (index: number, value: string) => {
-    const updatedResources = [...formData.files];
-    updatedResources[index] = value;
-    setFormData({
-      ...formData,
-      files: updatedResources
-    });
-  };
-
-  const handleRemoveResource = (index: number) => {
-    const updatedResources = [...formData.files];
-    updatedResources.splice(index, 1);
-    setFormData({
-      ...formData,
-      files: updatedResources
-    });
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleServiceToggle = (service: string) => {
@@ -220,28 +212,52 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
         throw new Error('Exercise title is required');
       }
 
-      // Filter out empty resources
-      const filteredResources = formData.files.filter(r => r.trim() !== '');
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
       
-      const dataToSubmit = {
-        ...formData,
-        files: filteredResources
-      };
-
+      // Add all uploaded files
+      uploadedFiles.forEach(file => {
+        formDataToSend.append('files', file);
+      });
+      
+      // Add other form data
+      formDataToSend.append('instructions', formData.instructions);
+      formDataToSend.append('services', JSON.stringify(formData.services));
+      formDataToSend.append('credentials', JSON.stringify(formData.credentials));
+      formDataToSend.append('cleanupPolicy', JSON.stringify(formData.cleanupPolicy));
+      
+      // Add existing files if we're updating
+      if (labExercise && labExercise.files) {
+        formDataToSend.append('existingFiles', JSON.stringify(labExercise.files));
+      }
+      
       try {
         // Determine if this is an update or create operation
         if (labExercise) {
-          console.log('Updating lab exercise:', dataToSubmit);
           // Update existing lab exercise
-          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabExercise`, {
-            ...dataToSubmit,
-            exerciseId
-          });
+          formDataToSend.append('exerciseId', exerciseId);
+          formDataToSend.append('labExerciseId', labExercise.id);
+          
+          const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateLabExercise`, 
+            formDataToSend, 
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
           
           if (response.data.success) {
             setSuccess('Lab exercise updated successfully');
+            
+            // Get the updated files list from the response
+            const updatedLabExercise = {
+              ...formData,
+              files: response.data.data?.files || formData.files
+            };
+            
             // Save lab exercise
-            onSave(exerciseId, dataToSubmit);
+            onSave(exerciseId, updatedLabExercise);
             setTimeout(() => {
               onClose();
             }, 1500);
@@ -252,16 +268,22 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
           // Create new exercise and lab exercise in a single request
           setIsLoading(true);
           
-          // Create the exercise and lab exercise in a single request
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createLabExercise`, {
-            title: exerciseTitle,
-            description: exerciseDescription,
-            type: 'lab',
-            order: 1, // Default order
-            duration: exerciseDuration,
-            moduleId: exerciseId.split('-')[0], // Extract module ID from exerciseId
-            labData: dataToSubmit // Pass the lab data directly
-          });
+          // Add exercise details to the form data
+          formDataToSend.append('title', exerciseTitle);
+          formDataToSend.append('description', exerciseDescription);
+          formDataToSend.append('type', 'lab');
+          formDataToSend.append('order', '1'); // Default order
+          formDataToSend.append('duration', exerciseDuration.toString());
+          formDataToSend.append('exerciseId', exerciseId); // Extract module ID from exerciseId
+          
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createLabExercise`, 
+            formDataToSend,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data'
+              }
+            }
+          );
           
           if (response.data.success) {
             setSuccess('Lab exercise created successfully');
@@ -271,9 +293,10 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             
             // Save lab exercise with the ID from the response
             const savedLabExercise = {
-              ...dataToSubmit,
-              id: response.data.data?.labId || dataToSubmit.id,
-              exercise_id: newExerciseId
+              ...formData,
+              id: response.data.data?.labId || formData.id,
+              exercise_id: newExerciseId,
+              files: response.data.data?.files || []
             };
             
             onSave(newExerciseId, savedLabExercise);
@@ -393,37 +416,70 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
               <label className="block text-sm font-medium text-gray-300">
                 Resources
               </label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                multiple
+              />
               <button
                 type="button"
-                onClick={handleAddResource}
+                onClick={() => fileInputRef.current?.click()}
                 className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Resource
+                <Upload className="h-4 w-4 mr-1" />
+                Upload Resources
               </button>
             </div>
-            <div className="space-y-3">
-              {formData.files.map((resource, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <LinkIcon className="h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={resource}
-                    onChange={(e) => handleResourceChange(index, e.target.value)}
-                    placeholder="Enter resource URL"
-                    className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  />
+            
+            {/* File upload area */}
+            <div 
+              className="border-2 border-dashed border-primary-500/20 rounded-lg p-6 mb-4 text-center cursor-pointer hover:border-primary-500/40 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-12 w-12 text-primary-400/50 mx-auto mb-2" />
+              <p className="text-gray-400">Click to browse or drag and drop files here</p>
+              <p className="text-xs text-gray-500 mt-1">Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG</p>
+            </div>
+            
+            {/* Uploaded files list */}
+            <div className="space-y-2">
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-dark-300/50 rounded-lg">
+                  <div className="flex items-center">
+                    <File className="h-5 w-5 text-primary-400 mr-2" />
+                    <span className="text-sm text-gray-300 truncate">{file.name}</span>
+                    <span className="text-xs text-gray-500 ml-2">({(file.size / 1024).toFixed(1)} KB)</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleRemoveResource(index)}
-                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                    onClick={() => handleRemoveFile(index)}
+                    className="p-1 hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <X className="h-4 w-4 text-red-400" />
                   </button>
                 </div>
               ))}
             </div>
+            
+            {/* Existing files (if editing) */}
+            {labExercise && labExercise.files && labExercise.files.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-300 mb-2">Existing Resources:</h4>
+                <div className="space-y-2">
+                  {labExercise.files.map((filePath, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-dark-300/50 rounded-lg">
+                      <div className="flex items-center">
+                        <File className="h-5 w-5 text-primary-400 mr-2" />
+                        <span className="text-sm text-gray-300 truncate">{filePath}</span>
+                      </div>
+                      <LinkIcon className="h-4 w-4 text-primary-400" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cleanup Policy Section */}

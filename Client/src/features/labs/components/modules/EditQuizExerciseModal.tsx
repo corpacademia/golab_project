@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, AlertCircle, Loader, Clock, Check } from 'lucide-react';
+import { 
+  X, 
+  Plus, 
+  Minus, 
+  AlertCircle, 
+  Loader, 
+  Clock, 
+  Check 
+} from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { QuizExercise } from '../../types/modules';
 import axios from 'axios';
@@ -27,16 +35,17 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     questions: [{
       id: `question-${Date.now()}`,
       text: '',
+      description: '', // Added description field for question
+      marks: 1, // Marks assigned to the question instead of options
       options: [
-        { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
-        { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
+        { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+        { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
       ]
     }]
   });
   
   // New fields for adding a new exercise
   const [exerciseTitle, setExerciseTitle] = useState('');
-  const [exerciseDescription, setExerciseDescription] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +56,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   useEffect(() => {
     if (quizExercise) {
       setFormData({ ...quizExercise, duration: quizExercise.questions[0].duration });
-      // Don't set title/description for existing quizzes
+      // Don't set title for existing quizzes
     } else {
       setFormData({
         id: `quiz-${Date.now()}`,
@@ -56,15 +65,16 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         questions: [{
           id: uuidv4(),
           text: '',
+          description: '', // Added description field for question
+          marks: 1, // Marks assigned to the question
           options: [
-            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
-            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }]
       });
-      // Reset title/description for new quizzes
+      // Reset title for new quizzes
       setExerciseTitle('');
-      setExerciseDescription('');
     }
   }, [quizExercise, exerciseId, isOpen]);
 
@@ -84,9 +94,11 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         {
           id: newQuestionId,
           text: '',
+          description: '', // Added description field for new question
+          marks: 1, // Default marks for new question
           options: [
-            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
-            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
           ]
         }
       ]
@@ -96,6 +108,15 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
   const handleQuestionChange = (questionIndex: number, text: string) => {
     const updatedQuestions = [...formData.questions];
     updatedQuestions[questionIndex] = { ...updatedQuestions[questionIndex], text };
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleQuestionDescriptionChange = (questionIndex: number, description: string) => {
+    const updatedQuestions = [...formData.questions];
+    updatedQuestions[questionIndex] = { ...updatedQuestions[questionIndex], description };
     setFormData({
       ...formData,
       questions: updatedQuestions
@@ -116,7 +137,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     const question = updatedQuestions[questionIndex];
     question.options = [
       ...question.options,
-      { option_id: `option-${Date.now()}`, text: '', is_correct: false, marks: 1 }
+      { option_id: `option-${Date.now()}`, text: '', is_correct: false }
     ];
     setFormData({
       ...formData,
@@ -156,11 +177,10 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     });
   };
 
-  const handleMarksChange = (questionIndex: number, optionIndex: number, marks: number) => {
+  const handleMarksChange = (questionIndex: number, marks: number) => {
     const updatedQuestions = [...formData.questions];
-    const question = updatedQuestions[questionIndex];
-    question.options[optionIndex] = { 
-      ...question.options[optionIndex], 
+    updatedQuestions[questionIndex] = { 
+      ...updatedQuestions[questionIndex], 
       marks: marks 
     };
     
@@ -213,8 +233,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       try {
         // Determine if this is an update or create operation
         if (quizExercise) {
+          console.log('Updating quiz exercise:', formData)
           // Update existing quiz
-          console.log(formData)
           setIsLoading(true);
           const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizExercise`, {
             ...formData,
@@ -234,11 +254,10 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         } else {
           // Create new quiz - directly using a single endpoint
           setIsLoading(true);
-          
+          console.log(formData)
           // Create the exercise and quiz in a single request
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createQuizExercise`, {
             title: exerciseTitle,
-            description: exerciseDescription,
             type: 'questions',
             order: 1, // Default order
             duration: formData.duration,
@@ -295,38 +314,22 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Only show title and description fields for new exercises */}
+          {/* Only show title field for new exercises */}
           {!quizExercise && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Exercise Title
-                </label>
-                <input
-                  type="text"
-                  value={exerciseTitle}
-                  onChange={(e) => setExerciseTitle(e.target.value)}
-                  placeholder="Enter exercise title"
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Exercise Description
-                </label>
-                <textarea
-                  value={exerciseDescription}
-                  onChange={(e) => setExerciseDescription(e.target.value)}
-                  placeholder="Enter exercise description"
-                  rows={2}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-              </div>
-            </>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Exercise Title
+              </label>
+              <input
+                type="text"
+                value={exerciseTitle}
+                onChange={(e) => setExerciseTitle(e.target.value)}
+                placeholder="Enter exercise title"
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              />
+            </div>
           )}
           
           {/* Duration Input */}
@@ -375,6 +378,37 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                 </button>
               </div>
 
+              {/* Question Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Question Description
+                </label>
+                <textarea
+                  value={question.description || ''}
+                  onChange={(e) => handleQuestionDescriptionChange(questionIndex, e.target.value)}
+                  placeholder="Enter additional details or context for this question"
+                  rows={2}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+
+              {/* Marks input for the question */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Marks for this question
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={question.marks || 1}
+                  onChange={(e) => handleMarksChange(questionIndex, parseInt(e.target.value) || 1)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                />
+              </div>
+
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <label className="block text-sm font-medium text-gray-300">
@@ -408,25 +442,14 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                                text-gray-300 focus:border-primary-500/40 focus:outline-none"
                       required
                     />
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        placeholder="Marks"
-                        value={option.marks || 1}
-                        onChange={(e) => handleMarksChange(questionIndex, optionIndex, parseInt(e.target.value) || 1)}
-                        className="w-20 px-2 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                        min="0"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveOption(questionIndex, optionIndex)}
-                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                        disabled={question.options.length <= 2}
-                      >
-                        <X className="h-4 w-4 text-red-400" />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                      className="p-1 hover:bg-red-500/10 rounded-lg transition-colors"
+                      disabled={question.options.length <= 2}
+                    >
+                      <X className="h-4 w-4 text-red-400" />
+                    </button>
                   </div>
                 ))}
               </div>

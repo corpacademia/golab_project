@@ -693,7 +693,6 @@ export const CreateModulesPage: React.FC = () => {
       });
       
       // Submit to backend
-      console.log(submissionData)
       const response = await axios.post(
         'http://localhost:3000/api/v1/cloud_slice_ms/createLabModules', 
         formData,
