@@ -28,11 +28,16 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       id: `question-${Date.now()}`,
       text: '',
       options: [
-        { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
-        { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
+        { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
+        { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
       ]
     }]
   });
+  
+  // New fields for adding a new exercise
+  const [exerciseTitle, setExerciseTitle] = useState('');
+  const [exerciseDescription, setExerciseDescription] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -41,7 +46,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
 
   useEffect(() => {
     if (quizExercise) {
-      setFormData({ ...quizExercise,duration:quizExercise.questions[0].duration });
+      setFormData({ ...quizExercise, duration: quizExercise.questions[0].duration });
+      // Don't set title/description for existing quizzes
     } else {
       setFormData({
         id: `quiz-${Date.now()}`,
@@ -51,11 +57,14 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           id: uuidv4(),
           text: '',
           options: [
-            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
-            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
           ]
         }]
       });
+      // Reset title/description for new quizzes
+      setExerciseTitle('');
+      setExerciseDescription('');
     }
   }, [quizExercise, exerciseId, isOpen]);
 
@@ -76,8 +85,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           id: newQuestionId,
           text: '',
           options: [
-            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false },
-            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false }
+            { option_id: `option-${Date.now()}-1`, text: '', is_correct: false, marks: 1 },
+            { option_id: `option-${Date.now()}-2`, text: '', is_correct: false, marks: 1 }
           ]
         }
       ]
@@ -107,7 +116,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     const question = updatedQuestions[questionIndex];
     question.options = [
       ...question.options,
-      { option_id: `option-${Date.now()}`, text: '', is_correct: false }
+      { option_id: `option-${Date.now()}`, text: '', is_correct: false, marks: 1 }
     ];
     setFormData({
       ...formData,
@@ -139,6 +148,20 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
     question.options[optionIndex] = { 
       ...question.options[optionIndex], 
       is_correct: true 
+    };
+    
+    setFormData({
+      ...formData,
+      questions: updatedQuestions
+    });
+  };
+
+  const handleMarksChange = (questionIndex: number, optionIndex: number, marks: number) => {
+    const updatedQuestions = [...formData.questions];
+    const question = updatedQuestions[questionIndex];
+    question.options[optionIndex] = { 
+      ...question.options[optionIndex], 
+      marks: marks 
     };
     
     setFormData({
@@ -181,6 +204,11 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
       if (formData.duration <= 0) {
         throw new Error('Duration must be greater than 0');
       }
+      
+      // For new exercises, validate title
+      if (!quizExercise && !exerciseTitle.trim()) {
+        throw new Error('Exercise title is required');
+      }
 
       try {
         // Determine if this is an update or create operation
@@ -204,21 +232,34 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
             setApiError(response.data.message || 'Failed to update quiz');
           }
         } else {
-          // Create new quiz
+          // Create new quiz - directly using a single endpoint
           setIsLoading(true);
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createQuizExercise`, {
-            ...formData,
-            exerciseId
+          
+          // Create the exercise and quiz in a single request
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+            title: exerciseTitle,
+            description: exerciseDescription,
+            type: 'questions',
+            order: 1, // Default order
+            duration: formData.duration,
+            moduleId: exerciseId.split('-')[0], // Extract module ID from exerciseId
+            quizData: formData // Pass the quiz data directly
           });
           
           if (response.data.success) {
             setSuccess('Quiz created successfully');
+            
+            // Get the new exercise ID from the response
+            const newExerciseId = response.data.data.id;
+            
             // Save quiz with the ID from the response
             const savedQuiz = {
               ...formData,
-              id: response.data.data?.id || formData.id
+              id: response.data.data?.quizId || formData.id,
+              exerciseId: newExerciseId
             };
-            onSave(exerciseId, savedQuiz);
+            
+            onSave(newExerciseId, savedQuiz);
             setTimeout(() => {
               onClose();
             }, 1500);
@@ -254,6 +295,40 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Only show title and description fields for new exercises */}
+          {!quizExercise && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Exercise Title
+                </label>
+                <input
+                  type="text"
+                  value={exerciseTitle}
+                  onChange={(e) => setExerciseTitle(e.target.value)}
+                  placeholder="Enter exercise title"
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Exercise Description
+                </label>
+                <textarea
+                  value={exerciseDescription}
+                  onChange={(e) => setExerciseDescription(e.target.value)}
+                  placeholder="Enter exercise description"
+                  rows={2}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+            </>
+          )}
+          
           {/* Duration Input */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -316,7 +391,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                 </div>
 
                 {question.options.map((option, optionIndex) => (
-                  <div key={option.id} className="flex items-center space-x-2">
+                  <div key={option.option_id} className="flex items-center space-x-2">
                     <input
                       type="radio"
                       name={`correct-${question.id}`}
@@ -333,14 +408,25 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                                text-gray-300 focus:border-primary-500/40 focus:outline-none"
                       required
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveOption(questionIndex, optionIndex)}
-                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                      disabled={question.options.length <= 2}
-                    >
-                      <X className="h-4 w-4 text-red-400" />
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        placeholder="Marks"
+                        value={option.marks || 1}
+                        onChange={(e) => handleMarksChange(questionIndex, optionIndex, parseInt(e.target.value) || 1)}
+                        className="w-20 px-2 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        min="0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(questionIndex, optionIndex)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                        disabled={question.options.length <= 2}
+                      >
+                        <X className="h-4 w-4 text-red-400" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

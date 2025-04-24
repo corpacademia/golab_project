@@ -46,6 +46,12 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       password: ''
     }
   });
+  
+  // New fields for adding a new exercise
+  const [exerciseTitle, setExerciseTitle] = useState('');
+  const [exerciseDescription, setExerciseDescription] = useState('');
+  const [exerciseDuration, setExerciseDuration] = useState(30);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -101,6 +107,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
           ...labExercise,
           cleanupPolicy: labExercise.cleanuppolicy 
         });
+        // Don't set title/description for existing exercises
       } else {
         // Otherwise initialize with default values
         setFormData({
@@ -121,6 +128,10 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             durationUnit: 'minutes'
           }
         });
+        // Reset title/description for new exercises
+        setExerciseTitle('');
+        setExerciseDescription('');
+        setExerciseDuration(30);
       }
     }
   }, [labExercise, exerciseId, isOpen]);
@@ -203,6 +214,11 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       if (!formData.instructions.trim()) {
         throw new Error('Instructions are required');
       }
+      
+      // For new exercises, validate title
+      if (!labExercise && !exerciseTitle.trim()) {
+        throw new Error('Exercise title is required');
+      }
 
       // Filter out empty resources
       const filteredResources = formData.files.filter(r => r.trim() !== '');
@@ -233,20 +249,34 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             setApiError(response.data.message || 'Failed to update lab exercise');
           }
         } else {
-          // Create new lab exercise
+          // Create new exercise and lab exercise in a single request
+          setIsLoading(true);
+          
+          // Create the exercise and lab exercise in a single request
           const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createLabExercise`, {
-            ...dataToSubmit,
-            exerciseId
+            title: exerciseTitle,
+            description: exerciseDescription,
+            type: 'lab',
+            order: 1, // Default order
+            duration: exerciseDuration,
+            moduleId: exerciseId.split('-')[0], // Extract module ID from exerciseId
+            labData: dataToSubmit // Pass the lab data directly
           });
           
           if (response.data.success) {
             setSuccess('Lab exercise created successfully');
+            
+            // Get the new exercise ID from the response
+            const newExerciseId = response.data.data.id;
+            
             // Save lab exercise with the ID from the response
             const savedLabExercise = {
               ...dataToSubmit,
-              id: response.data.data?.id || dataToSubmit.id
+              id: response.data.data?.labId || dataToSubmit.id,
+              exercise_id: newExerciseId
             };
-            onSave(exerciseId, savedLabExercise);
+            
+            onSave(newExerciseId, savedLabExercise);
             setTimeout(() => {
               onClose();
             }, 1500);
@@ -256,6 +286,8 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
         }
       } catch (err: any) {
         setApiError(err.response?.data?.message || 'An error occurred while saving the lab exercise');
+      } finally {
+        setIsLoading(false);
       }
     } catch (err: any) {
       setError(err.message);
@@ -293,6 +325,55 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Only show title, description, and duration fields for new exercises */}
+          {!labExercise && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Exercise Title
+                </label>
+                <input
+                  type="text"
+                  value={exerciseTitle}
+                  onChange={(e) => setExerciseTitle(e.target.value)}
+                  placeholder="Enter exercise title"
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Exercise Description
+                </label>
+                <textarea
+                  value={exerciseDescription}
+                  onChange={(e) => setExerciseDescription(e.target.value)}
+                  placeholder="Enter exercise description"
+                  rows={2}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={exerciseDuration}
+                  onChange={(e) => setExerciseDuration(parseInt(e.target.value) || 30)}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                />
+              </div>
+            </>
+          )}
+          
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Instructions
@@ -753,4 +834,4 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       </div>
     </div>
   );
-};'/'
+}
