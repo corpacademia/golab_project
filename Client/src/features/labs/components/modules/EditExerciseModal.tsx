@@ -53,15 +53,14 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
     setApiError(null);
 
     try {
-      // Validate form
-      if (!formData.title.trim()) {
-        throw new Error('Exercise title is required');
-      }
-
-      // Determine if this is an update or create operation
+      // For editing an existing exercise, we need all fields
       if (exercise) {
+        // Validate form
+        if (!formData.title.trim()) {
+          throw new Error('Exercise title is required');
+        }
+
         // Update existing exercise
-        console.log(formData)
         try {
           const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateExercise`, {
             ...formData,
@@ -79,17 +78,28 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
           setApiError(err.response?.data?.message || 'An error occurred while updating the exercise');
         }
       } else {
-        // Create new exercise
+        // For new exercises, we only need type and order initially
+        // The title, description, and duration will be set in the specific modals
+        
+        // Create new exercise with minimal data
         try {
-          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+          // Set placeholder title that will be updated in the specific modal
+          const initialExercise = {
             ...formData,
+            title: formData.type === 'lab' ? 'New Lab Exercise' : 'New Quiz',
+            description: '',
+            duration: 30
+          };
+          
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createExercise`, {
+            ...initialExercise,
             moduleId
           });
           
           if (response.data.success) {
             // Save exercise with the ID from the response
             const savedExercise = {
-              ...formData,
+              ...initialExercise,
               id: response.data.data.id || formData.id
             };
             onSave(moduleId, savedExercise);
@@ -126,19 +136,21 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Exercise Title
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+          {exercise && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Exercise Title
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              required
-            />
-          </div>
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -166,7 +178,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
             </div>
           </div>
 
-          {formData.type === 'questions' && (
+          {exercise && formData.type === 'questions' && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Description
@@ -181,20 +193,21 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Order
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Order
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={formData.order}
+              onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            />
+          </div>
+
+          {exercise && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Duration (minutes)
@@ -208,7 +221,7 @@ export const EditExerciseModal: React.FC<EditExerciseModalProps> = ({
                          text-gray-300 focus:border-primary-500/40 focus:outline-none"
               />
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">

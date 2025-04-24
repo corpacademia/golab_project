@@ -247,6 +247,17 @@ export const CloudSliceModulesPage: React.FC = () => {
 
     updatedModules[moduleIndex] = module;
     setModules(updatedModules);
+    
+    // If it's a lab exercise, open the lab exercise modal
+    if (exercise.type === 'lab') {
+      setSelectedExercise(exercise);
+      setIsEditLabExerciseModalOpen(true);
+    } 
+    // If it's a quiz, open the quiz modal
+    else if (exercise.type === 'questions') {
+      setSelectedExercise(exercise);
+      setIsEditQuizExerciseModalOpen(true);
+    }
   };
 
   // CRUD operations for lab exercises
@@ -639,7 +650,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       <EditLabExerciseModal
         isOpen={isEditLabExerciseModalOpen}
         onClose={() => setIsEditLabExerciseModalOpen(false)}
-        exerciseId={activeExercise || ''}
+        exerciseId={selectedExercise?.id || ''}
         labExercise={selectedLabExercise}
         onSave={handleSaveLabExercise}
       />
@@ -647,7 +658,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       <EditQuizExerciseModal
         isOpen={isEditQuizExerciseModalOpen}
         onClose={() => setIsEditQuizExerciseModalOpen(false)}
-        exerciseId={activeExercise || ''}
+        exerciseId={selectedExercise?.id || ''}
         quizExercise={selectedQuizExercise}
         onSave={handleSaveQuizExercise}
       />
