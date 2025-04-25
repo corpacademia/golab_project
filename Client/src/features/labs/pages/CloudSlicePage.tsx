@@ -3,7 +3,7 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
 import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
 import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
-import { Plus, Search, Filter, FolderX, Loader, MapPin, Calendar, Trash2, Check, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, FolderX, Loader, Trash2, Check, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -54,47 +54,45 @@ export const CloudSlicePage: React.FC = () => {
     fetchUserProfile();
   }, []);
 
-  useEffect(() => {
-    const fetchCloudSlices = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
-          params: { userId: user.id }
-        });
-        
-        if (response.data.success) {
-          const slices = response.data.data || [];
-          setCloudSlices(slices);
-          setFilteredSlices(slices);
-        } else {
-          console.error('Failed to fetch cloud slices:', response.data.message);
-        }
-      } catch (error) {
-        console.error('Error fetching cloud slices:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchCloudSlices = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
+        params: { userId: user.id }
+      });
 
+      if (response.data.success) {
+        const slices = response.data.data || [];
+        setCloudSlices(slices);
+        setFilteredSlices(slices);
+      } else {
+        console.error('Failed to fetch cloud slices:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching cloud slices:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCloudSlices();
   }, [user]);
 
   useEffect(() => {
-    // Apply filters
     const filtered = cloudSlices.filter(slice => {
-      const matchesSearch = !filters.search || 
+      const matchesSearch = !filters.search ||
         slice.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         slice.description.toLowerCase().includes(filters.search.toLowerCase());
-      
+
       const matchesProvider = !filters.provider || slice.provider === filters.provider;
       const matchesStatus = !filters.status || slice.status === filters.status;
       const matchesRegion = !filters.region || slice.region === filters.region;
-      
+
       return matchesSearch && matchesProvider && matchesStatus && matchesRegion;
     });
-    
+
     setFilteredSlices(filtered);
   }, [filters, cloudSlices]);
 
@@ -110,83 +108,63 @@ export const CloudSlicePage: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
-        params: { userId: user.id }
-      });
-      if (response.data.success) {
-        const slices = response.data.data || [];
-        setFilteredSlices(slices);
-      }
-    } catch (error) {
-      console.error('Error refreshing cloud slices:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    fetchCloudSlices();
   };
 
   const handleSelectAll = () => {
     if (selectedSlices.length === filteredSlices.length) {
-      // If all are selected, deselect all
       setSelectedSlices([]);
     } else {
-      // Otherwise, select all
       setSelectedSlices(filteredSlices.map(slice => slice.id));
     }
   };
 
   const handleSelectSlice = (sliceId: string) => {
-    setSelectedSlices(prev => 
-      prev.includes(sliceId)
-        ? prev.filter(id => id !== sliceId)
-        : [...prev, sliceId]
+    setSelectedSlices(prev =>
+      prev.includes(sliceId) ? prev.filter(id => id !== sliceId) : [...prev, sliceId]
     );
   };
 
   const handleDeleteSelected = async () => {
     if (selectedSlices.length === 0) return;
-    
+
     setIsDeleting(true);
     setNotification(null);
-    
+
     try {
-      // Delete each selected slice
-      const promises = selectedSlices.map(labid => 
+      const promises = selectedSlices.map(labid =>
         axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${labid}`)
       );
-      
+
       await Promise.all(promises);
-      
-      setNotification({ 
-        type: 'success', 
-        message: `Successfully deleted ${selectedSlices.length} cloud slice${selectedSlices.length > 1 ? 's' : ''}` 
+
+      // ✅ Instantly update UI
+      setCloudSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
+      setFilteredSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
+
+      setNotification({
+        type: 'success',
+        message: `Successfully deleted ${selectedSlices.length} cloud slice${selectedSlices.length > 1 ? 's' : ''}`
       });
-      
-      // Clear selection and refresh the list
+
       setSelectedSlices([]);
       handleRefresh();
-      
-      // Clear notification after 3 seconds
+
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
-      setNotification({ 
-        type: 'error', 
-        message: 'Failed to delete selected cloud slices' 
+      console.error(error);
+      setNotification({
+        type: 'error',
+        message: 'Failed to delete selected cloud slices'
       });
-      
-      // Clear notification after 3 seconds
+
       setTimeout(() => setNotification(null), 3000);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Get unique regions and providers for filter dropdowns
   const regions = [...new Set(cloudSlices.map(slice => slice.region))];
-  const providers = [...new Set(cloudSlices.map(slice => slice.provider))];
 
   return (
     <div className="space-y-6">
@@ -203,7 +181,7 @@ export const CloudSlicePage: React.FC = () => {
             </div>
             <div className="flex space-x-4">
               {selectedSlices.length > 0 && (
-                <button 
+                <button
                   onClick={handleDeleteSelected}
                   disabled={isDeleting}
                   className="btn-secondary text-red-400 hover:text-red-300"
@@ -212,7 +190,7 @@ export const CloudSlicePage: React.FC = () => {
                   Delete Selected ({selectedSlices.length})
                 </button>
               )}
-              <button 
+              <button
                 onClick={() => navigate('/dashboard/labs/create')}
                 className="btn-primary"
               >
@@ -231,7 +209,7 @@ export const CloudSlicePage: React.FC = () => {
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
-                           text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none"
+                             text-gray-300 placeholder-gray-500 focus:border-primary-500/40 focus:outline-none"
                 />
                 <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
               </div>
@@ -241,25 +219,20 @@ export const CloudSlicePage: React.FC = () => {
                   value={filters.provider}
                   onChange={(e) => setFilters(prev => ({ ...prev, provider: e.target.value }))}
                   className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
                   <option value="">All Providers</option>
                   <option value="aws">AWS</option>
                   <option value="azure">Azure</option>
                   <option value="gcp">GCP</option>
                   <option value="oracle">Oracle</option>
-                  {/* {providers.map(provider => (
-                    <option key={provider} value={provider}>
-                      {provider.toUpperCase()}
-                    </option>
-                  ))} */}
                 </select>
 
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
                   className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
                   <option value="">All Status</option>
                   <option value="active">Active</option>
@@ -272,7 +245,7 @@ export const CloudSlicePage: React.FC = () => {
                   value={filters.region}
                   onChange={(e) => setFilters(prev => ({ ...prev, region: e.target.value }))}
                   className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
-                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
                 >
                   <option value="">All Regions</option>
                   {regions.map(region => (
@@ -280,7 +253,7 @@ export const CloudSlicePage: React.FC = () => {
                   ))}
                 </select>
 
-                <button 
+                <button
                   onClick={() => setFilters({ search: '', provider: '', status: '', region: '' })}
                   className="btn-secondary"
                 >
@@ -293,8 +266,8 @@ export const CloudSlicePage: React.FC = () => {
 
           {notification && (
             <div className={`p-4 rounded-lg flex items-center space-x-2 ${
-              notification.type === 'success' 
-                ? 'bg-emerald-500/20 border border-emerald-500/20' 
+              notification.type === 'success'
+                ? 'bg-emerald-500/20 border border-emerald-500/20'
                 : 'bg-red-500/20 border border-red-500/20'
             }`}>
               {notification.type === 'success' ? (
@@ -345,7 +318,7 @@ export const CloudSlicePage: React.FC = () => {
                       <span>Select All</span>
                     </label>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredSlices.map((slice) => (
                       <CloudSliceCard
@@ -375,11 +348,14 @@ export const CloudSlicePage: React.FC = () => {
             onClose={() => setDeleteSlice(null)}
             sliceId={deleteSlice?.id || null}
             sliceName={deleteSlice?.name || null}
-            onSuccess={handleRefresh}
+            onSuccess={(deletedId) => {
+              setCloudSlices(prev => prev.filter(slice => slice.id !== deletedId));
+              setFilteredSlices(prev => prev.filter(slice => slice.id !== deletedId));
+              handleRefresh();
+            }}
           />
         </>
       ) : (
-        // This would be replaced with the actual cloud slice creation form
         <div>
           <button onClick={() => setIsCreating(false)} className="btn-secondary mb-4">
             Back to Cloud Slices

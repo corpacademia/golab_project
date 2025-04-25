@@ -54,51 +54,49 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (slice) {
+    const fetchSliceDetails = async () => {
+      if (!isOpen || !slice?.labid) return;
+      
       setIsLoading(true);
+      
       try {
-        // Format dates safely
-        let startDateFormatted = '';
-        let endDateFormatted = '';
-        
-        try {
-          const startDate = new Date(slice.startDate);
-          if (!isNaN(startDate.getTime())) {
-            startDateFormatted = startDate.toISOString().slice(0, 16);
-          }
-        } catch (e) {
-          console.error("Error formatting start date:", e);
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
+        if (response.data.success) {
+          const sliceData = response.data.data;
+          setFormData({
+            title: sliceData.title || '',
+            description: sliceData.description || '',
+            status: sliceData.status || '',
+            region: sliceData.region || '',
+            startDate: formatDateForInput(sliceData.startdate) || '',
+            endDate: formatDateForInput(sliceData.enddate) || '',
+            cleanupPolicy: sliceData.cleanuppolicy || ''
+          });
         }
-        
-        try {
-          const endDate = new Date(slice.endDate);
-          if (!isNaN(endDate.getTime())) {
-            endDateFormatted = endDate.toISOString().slice(0, 16);
-          }
-        } catch (e) {
-          console.error("Error formatting end date:", e);
-        }
-        
-        setFormData({
-          title: slice.title || '',
-          description: slice.description || '',
-          status: slice.status || '',
-          region: slice.region || '',
-          startDate: startDateFormatted,
-          endDate: endDateFormatted,
-          cleanupPolicy: slice.cleanupPolicy || ''
-        });
-      } catch (e) {
-        console.error("Error setting form data:", e);
-        setError("Error loading cloud slice data");
+      } catch (err) {
+        console.error('Failed to fetch slice details:', err);
+        setError('Failed to load cloud slice details');
       } finally {
         setIsLoading(false);
       }
+    };
+
+    fetchSliceDetails();
+  }, [isOpen, slice?.id]);
+
+  const formatDateForInput = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().slice(0, 16);
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return '';
     }
-  }, [slice]);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -145,7 +143,7 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
       const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSlice/${slice?.id}`, {
         ...formData
       });
-
+      
       if (response.data.success) {
         setSuccess('Cloud slice updated successfully');
         setTimeout(() => {
@@ -167,8 +165,9 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-dark-200 rounded-lg p-6">
+        <div className="bg-dark-200 rounded-lg p-6 flex items-center space-x-3">
           <Loader className="animate-spin h-6 w-6 text-primary-400" />
+          <span className="text-gray-200">Loading cloud slice details...</span>
         </div>
       </div>
     );
@@ -273,21 +272,24 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Cleanup Policy</label>
-            <select
-              name="cleanupPolicy"
-              value={formData.cleanupPolicy}
-              onChange={handleChange}
-              className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
-              required
-            >
-              <option value="1">1-day cleanup</option>
-              <option value="2">2-day cleanup</option>
-              <option value="3">3-day cleanup</option>
-              <option value="7">7-day cleanup</option>
-            </select>
-          </div>
+          {/* Only show cleanup policy for labs without modules (standard labs) */}
+          {slice.modules === 'without-modules' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Cleanup Policy</label>
+              <select
+                name="cleanupPolicy"
+                value={formData.cleanupPolicy}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                required
+              >
+                <option value="1">1-day cleanup</option>
+                <option value="2">2-day cleanup</option>
+                <option value="3">3-day cleanup</option>
+                <option value="7">7-day cleanup</option>
+              </select>
+            </div>
+          )}
 
           {error && (
             <div className="p-3 bg-red-900/20 border border-red-500/20 rounded-lg flex items-center space-x-2">

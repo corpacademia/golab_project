@@ -89,11 +89,13 @@ export const CloudSliceModulesPage: React.FC = () => {
         }
        
       } catch (err: any) {
-        if(err.status === 404){
-          return null
+        if(err.response && err.response.status === 404){
+          console.warn("No modules found. Setting modules to an empty list.");
+          setModules([]);  // Set modules to an empty array instead of stopping the UI
+        } else {
+          console.error("Failed to fetch modules:", err);
+          setError(err.response?.data?.message || 'Failed to fetch modules');
         }
-        setError(err.response?.data?.message || 'Failed to fetch modules');
-        setModules([]);
       } finally {
         setIsLoadingModules(false);
       }
@@ -201,7 +203,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       const result = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateModule`, module);
       if(result.data.success){
         setModules(modules.map(m => m.id === module.id ? module : m));
-      showNotification('success', 'Module updated successfully');
+        showNotification('success', 'Module updated successfully');
       }
       
     } else {
@@ -254,12 +256,16 @@ export const CloudSliceModulesPage: React.FC = () => {
     // If it's a lab exercise, open the lab exercise modal
     if (exercise.type === 'lab') {
       setSelectedExercise(exercise);
-      // setIsEditLabExerciseModalOpen(true);
+      setTimeout(() => {
+        setIsEditLabExerciseModalOpen(true);
+      }, 100);
     } 
     // If it's a quiz, open the quiz modal
     else if (exercise.type === 'questions') {
       setSelectedExercise(exercise);
-      // setIsEditQuizExerciseModalOpen(true);
+      setTimeout(() => {
+        setIsEditQuizExerciseModalOpen(true);
+      }, 100);
     }
   };
 

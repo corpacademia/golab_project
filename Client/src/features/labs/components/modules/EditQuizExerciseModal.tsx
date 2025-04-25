@@ -254,7 +254,6 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         } else {
           // Create new quiz - directly using a single endpoint
           setIsLoading(true);
-          console.log(formData)
           // Create the exercise and quiz in a single request
           const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/createQuizExercise`, {
             title: exerciseTitle,
@@ -268,17 +267,14 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           if (response.data.success) {
             setSuccess('Quiz created successfully');
             
-            // Get the new exercise ID from the response
-            const newExerciseId = response.data.data.id;
-            
             // Save quiz with the ID from the response
             const savedQuiz = {
               ...formData,
-              id: response.data.data?.quizId || formData.id,
-              exerciseId: newExerciseId
+              id: response.data.data?.id || formData.id,
+              exerciseId: formData.id
             };
             
-            onSave(newExerciseId, savedQuiz);
+            onSave(formData.id, savedQuiz);
             setTimeout(() => {
               onClose();
             }, 1500);
@@ -287,6 +283,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           }
         }
       } catch (err: any) {
+        console.log(err)
         setApiError(err.response?.data?.message || 'An error occurred while saving the quiz');
       } finally {
         setIsLoading(false);
