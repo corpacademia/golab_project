@@ -103,7 +103,7 @@ export const CloudSlicePage: React.FC = () => {
   };
 
   const handleDeleteSlice = (sliceId: string) => {
-    const slice = cloudSlices.find(s => s.id === sliceId);
+    const slice = cloudSlices.find(s => s.labid === sliceId);
     if (slice) {
       setDeleteSlice({ id: sliceId, name: slice.title });
     }
@@ -117,10 +117,8 @@ export const CloudSlicePage: React.FC = () => {
       const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
         params: { userId: user.id }
       });
-      
       if (response.data.success) {
         const slices = response.data.data || [];
-        setCloudSlices(slices);
         setFilteredSlices(slices);
       }
     } catch (error) {
@@ -156,8 +154,8 @@ export const CloudSlicePage: React.FC = () => {
     
     try {
       // Delete each selected slice
-      const promises = selectedSlices.map(sliceId => 
-        axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${sliceId}`)
+      const promises = selectedSlices.map(labid => 
+        axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${labid}`)
       );
       
       await Promise.all(promises);

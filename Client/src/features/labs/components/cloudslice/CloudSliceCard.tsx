@@ -188,7 +188,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(slice.id);
+                onDelete(slice.labid);
               }}
               className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
             >

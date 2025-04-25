@@ -254,12 +254,12 @@ export const CloudSliceModulesPage: React.FC = () => {
     // If it's a lab exercise, open the lab exercise modal
     if (exercise.type === 'lab') {
       setSelectedExercise(exercise);
-      setIsEditLabExerciseModalOpen(true);
+      // setIsEditLabExerciseModalOpen(true);
     } 
     // If it's a quiz, open the quiz modal
     else if (exercise.type === 'questions') {
       setSelectedExercise(exercise);
-      setIsEditQuizExerciseModalOpen(true);
+      // setIsEditQuizExerciseModalOpen(true);
     }
   };
 
