@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { Plus, BookOpen } from 'lucide-react';
@@ -6,11 +6,13 @@ import { LabTypeCard } from '../components/LabTypeCard';
 import { LabTypeOverview } from '../components/admin/LabTypeOverview';
 import { LabManagementTabs } from '../components/admin/LabManagementTabs';
 import { LabType } from '../types';
+import axios from 'axios';
 
 export const LabsPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<LabType | null>(null);
   const [activeTab, setActiveTab] = useState('settings');
+  const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState({
     workspace: {
       activeUsers: 856,
@@ -63,13 +65,13 @@ export const LabsPage: React.FC = () => {
     },
   });
   const [labCounts, setLabCounts] = useState({
-    workspace: 156,
-    catalogue: 245,
-    'cloud-vm': 128,
-    'dedicated-vm': 64,
-    cluster: 32,
-    'cloud-slice': 96,
-    emulator: 48
+    workspace: 0,
+    catalogue: 0,
+    'cloud-vm': 0,
+    'dedicated-vm': 0,
+    cluster: 0,
+    'cloud-slice': 0,
+    emulator: 0
   });
 
   const handleTypeSelect = (type: LabType) => {
@@ -87,6 +89,38 @@ export const LabsPage: React.FC = () => {
     }
   };
 
+  useEffect
+(() => {
+    const fetchLabCounts = async () => {
+      setLoading(true);
+      try {
+        // Simulate an API call to fetch lab counts
+        const user_profile = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile'); // Replace with actual API endpoint
+      
+        const response = await axios.get(`http://localhost:3000/api/v1/lab_ms/getCountoflabs/${user_profile.data.user.id}`); // Replace with actual API endpoint
+        
+        setLabCounts((prev) => ({
+          ...prev, // keep all old fields
+          ...response.data.data.counts // overwrite only fields present in response
+        }));
+        
+      } catch (error) {
+        console.error('Error fetching lab counts:', error);
+      } finally {
+        setLoading(true);
+      }
+    };
+
+    fetchLabCounts();
+  }, []);
+
+  if(!loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">

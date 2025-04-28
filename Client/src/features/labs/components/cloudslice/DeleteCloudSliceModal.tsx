@@ -35,6 +35,7 @@ export const DeleteCloudSliceModal: React.FC<DeleteCloudSliceModalProps> = ({
       if (response.data.success) {
         setSuccess('Cloud slice deleted successfully');
         setTimeout(() => {
+          setSuccess(null);
           onSuccess();
           onClose();
         }, 1500);
@@ -43,6 +44,7 @@ export const DeleteCloudSliceModal: React.FC<DeleteCloudSliceModalProps> = ({
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete cloud slice');
+      setTimeout(() => setError(null), 3000);
     } finally {
       setIsDeleting(false);
     }

@@ -9,17 +9,18 @@ import { useNavigate } from 'react-router-dom';
 
 interface CloudSlice {
   id: string;
+  labid: string;
   title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
   region: string;
   services: string[];
   status: 'active' | 'inactive' | 'pending' | 'expired';
-  startDate: string;
-  endDate: string;
+  startdate: string;
+  enddate: string;
   cleanupPolicy: string;
   credits: number;
-  labType: 'without-modules' | 'with-modules';
+  modules: 'without-modules' | 'with-modules';
 }
 
 export const CloudSlicePage: React.FC = () => {
@@ -64,8 +65,13 @@ export const CloudSlicePage: React.FC = () => {
 
       if (response.data.success) {
         const slices = response.data.data || [];
-        setCloudSlices(slices);
-        setFilteredSlices(slices);
+        // Ensure each slice has an id property (use labid if id is not present)
+        const processedSlices = slices.map(slice => ({
+          ...slice,
+          id: slice.id || slice.labid // Use existing id or fallback to labid
+        }));
+        setCloudSlices(processedSlices);
+        setFilteredSlices(processedSlices);
       } else {
         console.error('Failed to fetch cloud slices:', response.data.message);
       }
@@ -132,9 +138,14 @@ export const CloudSlicePage: React.FC = () => {
     setNotification(null);
 
     try {
-      const promises = selectedSlices.map(labid =>
-        axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${labid}`)
-      );
+      const promises = selectedSlices.map(id => {
+        // Find the slice with this id to get its labid
+        const slice = cloudSlices.find(s => s.id === id);
+        if (!slice) return Promise.reject(new Error(`Slice with id ${id} not found`));
+        
+        // Use labid for the API call
+        return axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${slice.labid}`);
+      });
 
       await Promise.all(promises);
 

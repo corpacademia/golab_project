@@ -1,25 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Cloud, 
-  Pencil, 
-  Trash2, 
   MapPin, 
   Calendar, 
-  Server,
   Play,
   Loader,
   AlertCircle,
   Check,
   X,
+  Send,
   ExternalLink,
   List,
-  FileText
+  FileText,
+  Download,
+  Trash2,
+  Pencil,
+  Server,
+  
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface CloudSlice {
+  id: string;
   labid: string;
   title: string;
   description: string;
@@ -118,7 +122,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onSelect) {
-      onSelect(slice.labid);
+      onSelect(slice.id);
     }
   };
 
@@ -157,13 +161,8 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                 <input
                   type="checkbox"
                   checked={isSelected}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    if (onSelect) {
-                      onSelect(slice.labid);
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => {}}
+                  onClick={handleCheckboxClick}
                   className="form-checkbox h-4 w-4 text-primary-500 rounded border-gray-500/20"
                 />
               </div>

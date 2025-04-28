@@ -4,7 +4,7 @@ import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 
 interface CloudSlice {
-  id: string;
+  labid: string;
   title: string;
   description: string;
   provider: 'aws' | 'azure' | 'gcp' | 'oracle' | 'ibm' | 'alibaba';
@@ -15,7 +15,7 @@ interface CloudSlice {
   endDate: string;
   cleanupPolicy: string;
   credits: number;
-  labType: 'without-modules' | 'with-modules';
+  modules: 'without-modules' | 'with-modules';
 }
 
 interface EditCloudSliceModalProps {
@@ -48,7 +48,9 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
     region: '',
     startDate: '',
     endDate: '',
-    cleanupPolicy: ''
+    cleanupPolicy: '',
+    credits: 0,
+    modules:''
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,6 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
       if (!isOpen || !slice?.labid) return;
       
       setIsLoading(true);
-      
       try {
         const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
         if (response.data.success) {
@@ -73,7 +74,9 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
             region: sliceData.region || '',
             startDate: formatDateForInput(sliceData.startdate) || '',
             endDate: formatDateForInput(sliceData.enddate) || '',
-            cleanupPolicy: sliceData.cleanuppolicy || ''
+            cleanupPolicy: sliceData.cleanuppolicy || '',
+            credits: sliceData.credits || 0,
+            modules: sliceData.modules || ''
           });
         }
       } catch (err) {
@@ -140,13 +143,14 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
     setSuccess(null);
 
     try {
-      const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSlice/${slice?.id}`, {
+      const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSlice/${slice?.labid}`, {
         ...formData
       });
       
       if (response.data.success) {
         setSuccess('Cloud slice updated successfully');
         setTimeout(() => {
+          setSuccess(null);
           onSuccess();
           onClose();
         }, 1500);
@@ -155,6 +159,7 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update cloud slice');
+      setTimeout(() => setError(null), 3000);
     } finally {
       setIsSubmitting(false);
     }
@@ -274,21 +279,35 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
 
           {/* Only show cleanup policy for labs without modules (standard labs) */}
           {slice.modules === 'without-modules' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Cleanup Policy</label>
-              <select
-                name="cleanupPolicy"
-                value={formData.cleanupPolicy}
-                onChange={handleChange}
-                className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                required
-              >
-                <option value="1">1-day cleanup</option>
-                <option value="2">2-day cleanup</option>
-                <option value="3">3-day cleanup</option>
-                <option value="7">7-day cleanup</option>
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Cleanup Policy</label>
+                <select
+                  name="cleanupPolicy"
+                  value={formData.cleanupPolicy}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                >
+                  <option value="1">1-day cleanup</option>
+                  <option value="2">2-day cleanup</option>
+                  <option value="3">3-day cleanup</option>
+                  <option value="7">7-day cleanup</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Credits</label>
+                <input
+                  type="number"
+                  name="credits"
+                  value={formData.credits}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+            </>
           )}
 
           {error && (
