@@ -11,9 +11,10 @@ import {
   Check, 
   Clock,
   Layers,
-  DollarSign
+  DollarSign,
+  Users,
+  Shield
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface CloudSliceConfigProps {
   onBack: () => void;
@@ -67,6 +68,7 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
   const [success, setSuccess] = useState<string | null>(null);
   const [credits, setCredits] = useState(100); // Example credit amount
   const [labType, setLabType] = useState<'without-modules' | 'with-modules'>('without-modules');
+  const [accountType, setAccountType] = useState<'iam' | 'organization'>('iam');
 
 
   const filteredRegions = regions.filter(region => 
@@ -130,7 +132,8 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
         startDate,
         endDate,
         labType,
-        credits:credits ? credits : 0,
+        credits: credits ? credits : 0,
+        accountType
       };
 
       // Only add cleanupPolicy for labs without modules
@@ -220,6 +223,47 @@ export const CloudSliceConfig: React.FC<CloudSliceConfigProps> = ({ onBack, labD
               <span className="text-gray-300">Lab With Modules</span>
               <p className="text-sm text-gray-400">Lab with structured learning modules and step-by-step guides</p>
             </div>
+          </label>
+        </div>
+      </div>
+
+      {/* Account Type Selection */}
+      <div className="glass-panel space-y-4">
+        <h3 className="text-lg font-semibold text-gray-200">Account Type</h3>
+        
+        <div className="flex flex-col space-y-3">
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="radio"
+              name="accountType"
+              value="iam"
+              checked={accountType === 'iam'}
+              onChange={() => setAccountType('iam')}
+              className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+            />
+            <div>
+              <span className="text-gray-300">IAM Account</span>
+              <p className="text-sm text-gray-400">Standard AWS account with IAM users and roles</p>
+            </div>
+          </label>
+          
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="radio"
+              name="accountType"
+              value="organization"
+              checked={accountType === 'organization'}
+              onChange={() => setAccountType('organization')}
+              className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
+            />
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-300">Organization Account</span>
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                <Users className="h-3 w-3 inline mr-1" />
+                15 users max
+              </span>
+            </div>
+            <p className="text-sm text-gray-400">AWS Organizations account with centralized management</p>
           </label>
         </div>
       </div>

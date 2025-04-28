@@ -16,11 +16,14 @@ import {
   Trash2,
   Pencil,
   Server,
-  
+  Users,
+  Shield,
+  BookOpen
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
 
 interface CloudSlice {
   id: string;
@@ -36,6 +39,7 @@ interface CloudSlice {
   cleanupPolicy: string;
   credits: number;
   modules: 'without-modules' | 'with-modules';
+  accountType?: 'iam' | 'organization';
 }
 
 interface CloudSliceCardProps {
@@ -56,6 +60,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   const navigate = useNavigate();
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
 
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,6 +137,15 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
       return <Server className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
     } else {
       return <List className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
+    }
+  };
+
+  // Get the appropriate icon for account type
+  const getAccountTypeIcon = () => {
+    if (slice.accountType === 'organization') {
+      return <Users className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
+    } else {
+      return <Shield className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
     }
   };
 
@@ -223,11 +237,25 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center text-xs text-gray-400 mb-2">
-          {getLabTypeIcon()}
-          <span className="truncate">
-            {slice.modules === 'without-modules' ? 'Standard Lab' : 'Modular Lab'}
-          </span>
+        <div className="flex flex-wrap items-center text-xs text-gray-400 mb-2 gap-2">
+          <div className="flex items-center">
+            {getLabTypeIcon()}
+            <span className="truncate">
+              {slice.modules === 'with-modules' ? 'Modular Lab' : 'Standard Lab'}
+            </span>
+          </div>
+          
+          <div className="flex items-center">
+            {getAccountTypeIcon()}
+            <span className="truncate">
+              {slice.accountType === 'organization' ? 'Organization Account' : 'IAM Account'}
+            </span>
+            {slice.accountType === 'organization' && (
+              <span className="ml-1 px-1 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                15 max
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mb-2 overflow-y-auto max-h-[60px]">
@@ -243,27 +271,53 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         </div>
 
         <div className="mt-auto pt-2 border-t border-primary-500/10">
-          <button
-            onClick={handleLaunch}
-            className="w-full h-8 px-3 rounded-lg text-xs font-medium
-                     bg-gradient-to-r from-primary-500 to-secondary-500
-                     hover:from-primary-400 hover:to-secondary-400
-                     transform hover:scale-105 transition-all duration-300
-                     text-white shadow-lg shadow-primary-500/20
-                     disabled:opacity-50 disabled:cursor-not-allowed
-                     flex items-center justify-center"
-          >
-            {isLaunching ? (
-              <Loader className="animate-spin h-3.5 w-3.5" />
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 mr-1.5" />
-                Launch Lab
-              </>
-            )}
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={handleLaunch}
+              disabled={isLaunching}
+              className="flex-1 h-8 px-3 rounded-lg text-xs font-medium
+                       bg-gradient-to-r from-primary-500 to-secondary-500
+                       hover:from-primary-400 hover:to-secondary-400
+                       transform hover:scale-105 transition-all duration-300
+                       text-white shadow-lg shadow-primary-500/20
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       flex items-center justify-center"
+            >
+              {isLaunching ? (
+                <Loader className="animate-spin h-3.5 w-3.5" />
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5 mr-1.5" />
+                  Launch Lab
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsConvertModalOpen(true);
+              }}
+              className="flex-1 h-8 px-3 rounded-lg text-xs font-medium
+                       bg-dark-400/80 hover:bg-dark-300/80
+                       border border-primary-500/20 hover:border-primary-500/30
+                       text-primary-300
+                       flex items-center justify-center"
+            >
+              <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+              Convert to Catalogue
+            </button>
+          </div>
         </div>
       </div>
+
+      {isConvertModalOpen && (
+        <ConvertToCatalogueModal
+          isOpen={isConvertModalOpen}
+          onClose={() => setIsConvertModalOpen(false)}
+          sliceId={slice.labid}
+        />
+      )}
     </div>
   );
 };
