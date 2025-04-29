@@ -49,7 +49,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     setSuccess(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/convertToCatalogue', {
+      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/cloudSliceOrgAssignment', {
         sliceId,
         organizationId: organization,
         isPublic: isPublic === 'yes'

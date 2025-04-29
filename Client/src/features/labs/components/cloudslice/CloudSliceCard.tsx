@@ -1,29 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Cloud, 
-  MapPin, 
-  Calendar, 
-  Play,
-  Loader,
-  AlertCircle,
-  Check,
-  X,
-  Send,
-  ExternalLink,
-  List,
-  FileText,
-  Download,
-  Trash2,
-  Pencil,
+  Plus, 
+  Check, 
+  AlertCircle, 
+  X, 
+  Cpu, 
+  Hash,
+  FileCode,
+  HardDrive,
   Server,
+  UserPlus,
+  Loader,
+  Pencil, 
+  Trash2,
+  Tag,
+  Play,
+  Square,
   Users,
+  BookOpen,
+  List,
+  Calendar,
+  MapPin,
   Shield,
-  BookOpen
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
+import { EditModal } from './EditModal';
+import { DeleteModal } from './DeleteModal';
+import axios from 'axios';
 
 interface CloudSlice {
   id: string;
@@ -39,7 +44,7 @@ interface CloudSlice {
   cleanupPolicy: string;
   credits: number;
   modules: 'without-modules' | 'with-modules';
-  accountType?: 'iam' | 'organization';
+  createdBy?: string;
 }
 
 interface CloudSliceCardProps {
@@ -48,6 +53,7 @@ interface CloudSliceCardProps {
   onDelete: (sliceId: string) => void;
   isSelected?: boolean;
   onSelect?: (sliceId: string) => void;
+  onAssignUsers?: (slice: CloudSlice) => void;
 }
 
 export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ 
@@ -55,9 +61,9 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   onEdit,
   onDelete,
   isSelected = false,
-  onSelect
+  onSelect,
+  onAssignUsers
 }) => {
-  const navigate = useNavigate();
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
@@ -74,19 +80,9 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
       if (response.data.success) {
         // Navigate to the appropriate page based on labType
         if (slice.modules === 'without-modules') {
-          navigate(`/dashboard/labs/cloud-slices/${slice.labid}/lab`, { 
-            state: { 
-              sliceDetails: response.data.data,
-              modules: 'without-modules'
-            } 
-          });
+          window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/lab`;
         } else {
-          navigate(`/dashboard/labs/cloud-slices/${slice.labid}/modules`, { 
-            state: { 
-              sliceDetails: response.data.data,
-              modules: 'with-modules'
-            } 
-          });
+          window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/modules`;
         }
       } else {
         throw new Error(response.data.message || 'Failed to launch cloud slice');
@@ -297,7 +293,11 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsConvertModalOpen(true);
+                  if (onAssignUsers) {
+                    onAssignUsers(slice);
+                  } else {
+                    setIsConvertModalOpen(true);
+                  }
                 }}
                 className="flex-1 h-8 px-3 rounded-lg text-xs font-medium
                        bg-dark-400/80 hover:bg-dark-300/80
@@ -305,8 +305,17 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                        text-primary-300
                        flex items-center justify-center"
               >
-                <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                Convert to Catalogue
+                {onAssignUsers ? (
+                  <>
+                    <Users className="h-3.5 w-3.5 mr-1.5" />
+                    Assign Users
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                    Convert to Catalogue
+                  </>
+                )}
               </button>
             </div>
           </div>

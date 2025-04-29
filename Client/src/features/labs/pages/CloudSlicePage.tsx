@@ -3,6 +3,7 @@ import { GradientText } from '../../../components/ui/GradientText';
 import { CloudSliceCard } from '../components/cloudslice/CloudSliceCard';
 import { EditCloudSliceModal } from '../components/cloudslice/EditCloudSliceModal';
 import { DeleteCloudSliceModal } from '../components/cloudslice/DeleteCloudSliceModal';
+import { AssignUsersModal } from '../components/catalogue/AssignUsersModal';
 import { Plus, Search, Filter, FolderX, Loader, Trash2, Check, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ interface CloudSlice {
   cleanupPolicy: string;
   credits: number;
   modules: 'without-modules' | 'with-modules';
+  createdby?: string;
 }
 
 export const CloudSlicePage: React.FC = () => {
@@ -41,6 +43,7 @@ export const CloudSlicePage: React.FC = () => {
   const [selectedSlices, setSelectedSlices] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [assignSlice, setAssignSlice] = useState<CloudSlice | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -64,6 +67,7 @@ export const CloudSlicePage: React.FC = () => {
       });
 
       if (response.data.success) {
+        // const slices = [...response.data.data, ...orgAssignedSlices];
         const slices = response.data.data || [];
         // Ensure each slice has an id property (use labid if id is not present)
         const processedSlices = slices.map(slice => ({
@@ -75,9 +79,32 @@ export const CloudSlicePage: React.FC = () => {
       } else {
         console.error('Failed to fetch cloud slices:', response.data.message);
       }
+   
     } catch (error) {
       console.error('Error fetching cloud slices:', error);
     } finally {
+      setIsLoading(false);
+    }
+
+    try {
+      const getOrgAssignedSlices = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`);
+      if(getOrgAssignedSlices.data.success) {
+        const orgAssignedSlices = getOrgAssignedSlices.data.data || [];
+        const processedOrgAssignedSlices = orgAssignedSlices.map(slice => ({
+          ...slice,
+          id: slice.id || slice.labid // Use existing id or fallback to labid
+        }));
+        setCloudSlices(prev => [...prev, ...processedOrgAssignedSlices]);
+        setFilteredSlices(prev => [...prev, ...processedOrgAssignedSlices]);
+      }
+      else {
+        console.error('Failed to fetch organization assigned slices:', getOrgAssignedSlices.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching organization assigned slices:', error);
+      
+    }
+    finally{
       setIsLoading(false);
     }
   };
@@ -111,6 +138,10 @@ export const CloudSlicePage: React.FC = () => {
     if (slice) {
       setDeleteSlice({ id: sliceId, name: slice.title });
     }
+  };
+
+  const handleAssignUsers = (slice: CloudSlice) => {
+    setAssignSlice(slice);
   };
 
   const handleRefresh = async () => {
@@ -339,6 +370,7 @@ export const CloudSlicePage: React.FC = () => {
                         onDelete={handleDeleteSlice}
                         isSelected={selectedSlices.includes(slice.id)}
                         onSelect={handleSelectSlice}
+                        onAssignUsers={user?.role === 'orgadmin' && slice.createdby && slice.createdby !== user.id ? handleAssignUsers : undefined}
                       />
                     ))}
                   </div>
@@ -365,6 +397,14 @@ export const CloudSlicePage: React.FC = () => {
               handleRefresh();
             }}
           />
+
+          {assignSlice && (
+            <AssignUsersModal
+              isOpen={!!assignSlice}
+              onClose={() => setAssignSlice(null)}
+              lab={assignSlice}
+            />
+          )}
         </>
       ) : (
         <div>
