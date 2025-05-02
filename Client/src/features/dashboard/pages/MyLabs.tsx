@@ -6,6 +6,7 @@ import {
   Cpu, Server, HardDrive, X, Loader, AlertCircle, Check
 } from 'lucide-react';
 import axios from 'axios';
+import { CloudSliceCard } from '../../labs/components/user/CloudSliceCard';
 
 interface Instance {
   username: string;
@@ -124,21 +125,17 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
           </p>
 
           {notification && (
-            <div className={`p-4 rounded-lg flex items-center space-x-2 ${
-              notification.type === 'success' 
-                ? 'bg-emerald-500/20 border border-emerald-500/20' 
-                : 'bg-red-500/20 border border-red-500/20'
-            }`}>
-              {notification.type === 'success' ? (
-                <Check className="h-5 w-5 text-emerald-400" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-400" />
-              )}
-              <span className={`text-sm ${
-                notification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
-              }`}>
-                {notification.message}
-              </span>
+            <div className={`rounded-md bg-${notification.type === 'success' ? 'emerald' : 'red'}-900/50 border border-${notification.type === 'success' ? 'emerald' : 'red'}-500/50 p-4`}>
+              <div className="flex">
+                {notification.type === 'success' ? (
+                  <Check className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                )}
+                <div className="ml-3">
+                  <h3 className={`text-sm font-medium text-${notification.type === 'success' ? 'emerald' : 'red'}-200`}>{notification.message}</h3>
+                </div>
+              </div>
             </div>
           )}
 
@@ -173,7 +170,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
 
 export const MyLabs: React.FC = () => {
   const [labs, setLabs] = useState([]);
+  const [cloudSliceLabs, setCloudSliceLabs] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
+  const [filteredCloudSliceLabs, setFilteredCloudSliceLabs] = useState([]);
   const [labStatus, setLabStatus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cloudInstanceDetails, setCloudInstanceDetails] = useState<LabDetails | undefined>(undefined);
@@ -196,9 +195,8 @@ export const MyLabs: React.FC = () => {
     status: ''
   });
 
-  const [user,setUser] = useState({});
+  const [user, setUser] = useState({});
 
-  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
@@ -206,10 +204,12 @@ export const MyLabs: React.FC = () => {
     };
     getUserDetails();
   }, []);
+
   // Combine all fetch calls into a single useEffect
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch regular labs
         const [cataloguesRes, labsRes, softwareRes] = await Promise.all([
           axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues'),
           axios.post('http://localhost:3000/api/v1/lab_ms/getAssignedLabs', { userId: user.id }),
@@ -237,23 +237,40 @@ export const MyLabs: React.FC = () => {
         setFilteredLabs(updatedLabs);
         setLabStatus(labss);
 
-          // Check status for each lab
-      for (const lab of updatedLabs) {
-        await checkLabStatus(lab.lab_id);
-      }
+        // Fetch cloud slice labs
+        
 
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
+      try {
+        console.log(user)
+        const cloudSliceResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
+        if (cloudSliceResponse.data.success) {
+          const cloudSlices = cloudSliceResponse.data.data || [];
+          setCloudSliceLabs(cloudSlices);
+          setFilteredCloudSliceLabs(cloudSlices);
+        }
+      } catch (error) {
+        console.error('Error fetching cloud slice labs:', error);
+      }
+
+      // Check status for each lab
+      for (const lab of updatedLabs) {
+        await checkLabStatus(lab.lab_id);
+      }
     };
 
-    fetchData();
+    if (user.id) {
+      fetchData();
+    }
   }, [user.id]);
 
   // Apply filters effect
   useEffect(() => {
+    // Filter regular labs
     let result = [...labs];
 
     if (filters.search) {
@@ -275,9 +292,32 @@ export const MyLabs: React.FC = () => {
     }
 
     setFilteredLabs(result);
-  }, [filters, labs, labStatus]);
 
- 
+    // Filter cloud slice labs
+    let cloudSliceResult = [...cloudSliceLabs];
+
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      cloudSliceResult = cloudSliceResult.filter(lab => 
+        lab.title.toLowerCase().includes(searchTerm) ||
+        lab.description.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if (filters.provider) {
+      cloudSliceResult = cloudSliceResult.filter(lab => 
+        lab.provider.toLowerCase() === filters.provider.toLowerCase()
+      );
+    }
+
+    if (filters.status) {
+      cloudSliceResult = cloudSliceResult.filter(lab => 
+        lab.status === filters.status
+      );
+    }
+
+    setFilteredCloudSliceLabs(cloudSliceResult);
+  }, [filters, labs, labStatus, cloudSliceLabs]);
 
   const checkLabStatus = async (labId: string) => {
     try {
@@ -320,8 +360,6 @@ export const MyLabs: React.FC = () => {
         throw new Error('Failed to retrieve instance details');
       }
   
-      // setCloudInstanceDetails(cloudInstanceDetails.data.data);
-  
       // First API: Launch instance (Keep loading active)
       const response = await axios.post('http://localhost:3000/api/v1/aws_ms/launchInstance', {
         name: user.name,
@@ -334,18 +372,6 @@ export const MyLabs: React.FC = () => {
       });
       // Only proceed if launchInstance is successful
       if (response.data.success) {
-        // const cloudInstanceDetails = await axios.post('http://localhost:3000/api/v1/getAssignedInstance', {
-        //   user_id: user.id,
-        //   lab_id: lab.lab_id,
-        // })
-        // // Second API: Decrypt password (Keep loading active)
-        // const decryptResponse = await axios.post("http://localhost:3000/api/v1/userDecryptPassword", {
-        //   user_id: user.id,
-        //   public_ip: cloudInstanceDetails.data.data.public_ip,
-        //   instance_id: cloudInstanceDetails.data.data.instance_id,
-        // });
-  
-        // Update state only after decryption completes
         setLabControls(prev => ({
           ...prev,
           [lab.lab_id]: {
@@ -359,15 +385,15 @@ export const MyLabs: React.FC = () => {
           }
         }));
         // Remove notification after 3 seconds
-setTimeout(() => {
-  setLabControls(prev => ({
-    ...prev,
-    [lab.lab_id]: {
-      ...prev[lab.lab_id],
-      notification: null // Clear notification
-    }
-  }));
-}, 3000);
+        setTimeout(() => {
+          setLabControls(prev => ({
+            ...prev,
+            [lab.lab_id]: {
+              ...prev[lab.lab_id],
+              notification: null // Clear notification
+            }
+          }));
+        }, 3000);
       } else {
         throw new Error(response.data.message || 'Failed to launch lab');
       }
@@ -385,15 +411,15 @@ setTimeout(() => {
         }
       }));
       // Remove notification after 3 seconds
-setTimeout(() => {
-  setLabControls(prev => ({
-    ...prev,
-    [lab.lab_id]: {
-      ...prev[lab.lab_id],
-      notification: null // Clear notification
-    }
-  }));
-}, 3000);
+      setTimeout(() => {
+        setLabControls(prev => ({
+          ...prev,
+          [lab.lab_id]: {
+            ...prev[lab.lab_id],
+            notification: null // Clear notification
+          }
+        }));
+      }, 3000);
     }
   };
   
@@ -524,9 +550,6 @@ setTimeout(() => {
               window.open(guacUrl, '_blank');
             }
           }
-          
-       
-          
         }
       }
       
@@ -584,6 +607,14 @@ setTimeout(() => {
     const date = new Date(inputDate);
     return date.toISOString().slice(0, 19).replace('T', ' ');
   }
+
+  const handleDeleteCloudSlice = (labId: string) => {
+    // This function will be passed to the CloudSliceCard component
+    // It will be called when the user clicks the delete button on a cloud slice lab
+    console.log('Deleting cloud slice lab:', labId);
+    setCloudSliceLabs(prev => prev.filter(lab => lab.id !== labId));
+    setFilteredCloudSliceLabs(prev => prev.filter(lab => lab.id !== labId));
+  };
 
   if (isLoading) {
     return (
@@ -655,18 +686,18 @@ setTimeout(() => {
       </div>
 
       {/* Lab Cards */}
-      {filteredLabs.length === 0 ? (
+      {filteredLabs.length === 0 && filteredCloudSliceLabs.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
           <FolderX className="h-16 w-16 text-gray-400 mb-4" />
           <h2 className="text-xl font-semibold mb-2">
             <GradientText>No Labs Found</GradientText>
           </h2>
           <p className="text-gray-400 text-center max-w-md mb-6">
-            {labs.length === 0 
+            {labs.length === 0 && cloudSliceLabs.length === 0
               ? "You haven't been assigned any labs yet. Check out our lab catalogue to get started."
               : "No labs match your current filters. Try adjusting your search criteria."}
           </p>
-          {labs.length === 0 && (
+          {labs.length === 0 && cloudSliceLabs.length === 0 && (
             <a 
               href="/dashboard/labs/catalogue"
               className="btn-primary"
@@ -677,127 +708,155 @@ setTimeout(() => {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {filteredLabs.map((lab, index) => (
-            <div key={lab.lab_id} 
-                className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
-                          hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
-                          transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
-                          hover:translate-y-[-2px] group relative">
-              {labControls[lab.lab_id]?.notification && (
-                <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
-                  labControls[lab.lab_id].notification.type === 'success' 
-                    ? 'bg-emerald-500/20 text-emerald-300' 
-                    : 'bg-red-500/20 text-red-300'
-                }`}>
-                  {labControls[lab.lab_id].notification.type === 'success' ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4" />
-                  )}
-                  <span className="text-sm">{labControls[lab.lab_id].notification.message}</span>
-                </div>
-              )}
-              
-              <div className="p-4 flex flex-col h-full">
-                <div className="flex justify-between items-start gap-4 mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">
-                      <GradientText>{lab.title}</GradientText>
-                    </h3>
-                    <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setDeleteModal({
-                        isOpen: true,
-                        labId: lab.lab_id,
-                        labTitle: lab.title,
-                        userId: user.id
-                      })}
-                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-400" />
-                    </button>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      labStatus[index]?.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
-                      labStatus[index]?.status === 'in_progress' ? 'bg-amber-500/20 text-amber-300' :
-                      'bg-primary-500/20 text-primary-300'
-                    }`}>
-                      {labStatus[index]?.status || 'Not Started'}
-                    </span>
-                  </div>
-                </div>
+        <div className="space-y-6">
+          {/* Regular VM Labs */}
+          {filteredLabs.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">
+                <GradientText>Virtual Machine Labs</GradientText>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredLabs.map((lab, index) => (
+                  <div key={lab.lab_id} 
+                      className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
+                                hover:border-primary-500/30 bg-dark-200/80 backdrop-blur-sm
+                                transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10 
+                                hover:translate-y-[-2px] group relative">
+                    {labControls[lab.lab_id]?.notification && (
+                      <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
+                        labControls[lab.lab_id].notification.type === 'success' 
+                          ? 'bg-emerald-500/20 text-emerald-300' 
+                          : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        {labControls[lab.lab_id].notification.type === 'success' ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4" />
+                        )}
+                        <span className="text-sm">{labControls[lab.lab_id].notification.message}</span>
+                      </div>
+                    )}
+                    
+                    <div className="p-4 flex flex-col h-full">
+                      <div className="flex justify-between items-start gap-4 mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold mb-1">
+                            <GradientText>{lab.title}</GradientText>
+                          </h3>
+                          <p className="text-sm text-gray-400 line-clamp-2">{lab.description}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setDeleteModal({
+                              isOpen: true,
+                              labId: lab.lab_id,
+                              labTitle: lab.title,
+                              userId: user.id
+                            })}
+                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </button>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            labStatus[index]?.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                            labStatus[index]?.status === 'in_progress' ? 'bg-amber-500/20 text-amber-300' :
+                            'bg-primary-500/20 text-primary-300'
+                          }`}>
+                            {labStatus[index]?.status || 'Not Started'}
+                          </span>
+                        </div>
+                      </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">{lab.cpu} vCPU</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">{lab.ram}GB RAM</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-400">
-                    <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">Instance: {lab.instance}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-400">
-                    <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                    <span className="truncate">Storage: {lab.storage}GB</span>
-                  </div>
-                </div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center text-sm text-gray-400">
+                          <Cpu className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                          <span className="truncate">{lab.cpu} vCPU</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-400">
+                          <Tag className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                          <span className="truncate">{lab.ram}GB RAM</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-400">
+                          <Server className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                          <span className="truncate">Instance: {lab.instance}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-400">
+                          <HardDrive className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
+                          <span className="truncate">Storage: {lab.storage}GB</span>
+                        </div>
+                      </div>
 
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">Software Installed:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {lab.software?.map((software, idx) => (
-                      <span key={idx} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
-                        {software}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-400 mb-2">Software Installed:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {lab.software?.map((software, idx) => (
+                            <span key={idx} className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                              {software}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
 
-                <div className="mt-auto pt-3 border-t border-primary-500/10 flex justify-end space-x-3">
-                  {!labControls[lab.lab_id]?.isLaunched ? (
-                    <button
-                      onClick={() => handleLaunchLab(lab)}
-                      disabled={labControls[lab.lab_id]?.isLaunching}
-                      className="w-12 h-12 rounded-full flex items-center justify-center
-                               bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
-                               transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {labControls[lab.lab_id]?.isLaunching ? (
-                        <Loader className="animate-spin h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleStartStopLab(lab)}
-                      disabled={labControls[lab.lab_id]?.isProcessing}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center
-                               transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                               ${labControls[lab.lab_id]?.buttonLabel === 'Stop Lab'
-                                 ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
-                                 : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                               }`}
-                    >
-                      {labControls[lab.lab_id]?.isProcessing ? (
-                        <Loader className="animate-spin h-5 w-5" />
-                      ) : labControls[lab.lab_id]?.buttonLabel === 'Stop Lab' ? (
-                        <Square className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                    </button>
-                  )}
-                </div>
+                      <div className="mt-auto pt-3 border-t border-primary-500/10 flex justify-end space-x-3">
+                        {!labControls[lab.lab_id]?.isLaunched ? (
+                          <button
+                            onClick={() => handleLaunchLab(lab)}
+                            disabled={labControls[lab.lab_id]?.isLaunching}
+                            className="w-12 h-12 rounded-full flex items-center justify-center
+                                     bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30
+                                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {labControls[lab.lab_id]?.isLaunching ? (
+                              <Loader className="animate-spin h-5 w-5" />
+                            ) : (
+                              <Play className="h-5 w-5" />
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStartStopLab(lab)}
+                            disabled={labControls[lab.lab_id]?.isProcessing}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center
+                                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                                     ${labControls[lab.lab_id]?.buttonLabel === 'Stop Lab'
+                                       ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                       : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                                     }`}
+                          >
+                            {labControls[lab.lab_id]?.isProcessing ? (
+                              <Loader className="animate-spin h-5 w-5" />
+                            ) : labControls[lab.lab_id]?.buttonLabel === 'Stop Lab' ? (
+                              <Square className="h-5 w-5" />
+                            ) : (
+                              <Play className="h-5 w-5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Cloud Slice Labs */}
+          {filteredCloudSliceLabs.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4">
+                <GradientText>Cloud Slice Labs</GradientText>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredCloudSliceLabs.map((lab) => (
+                  <CloudSliceCard 
+                    key={lab.id} 
+                    lab={lab} 
+                    onDelete={handleDeleteCloudSlice} 
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

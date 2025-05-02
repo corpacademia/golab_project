@@ -23,9 +23,9 @@ interface CloudSliceCardProps {
     region: string;
     services: string[];
     status: 'active' | 'inactive' | 'pending' | 'expired';
-    startDate: string;
-    endDate: string;
-    labType: 'without-modules' | 'with-modules';
+    startdate: string;
+    enddate: string;
+    modules: 'without-modules' | 'with-modules';
   };
   onDelete: (labId: string) => void;
 }
@@ -36,7 +36,6 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
   const [isDeleting, setIsDeleting] = useState(false);
-
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsLaunching(true);
@@ -45,7 +44,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
     // Simulate API call
     setTimeout(() => {
       // Navigate to the appropriate page based on labType
-      if (lab.labType === 'without-modules') {
+      if (lab.modules === 'without-modules') {
         navigate(`/dashboard/my-labs/${lab.id}/standard`, { 
           state: { 
             labDetails: {
@@ -169,22 +168,22 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">Start: {formatDateTime(lab.startDate)}</span>
+            <span className="truncate">Start: {formatDateTime(lab.startdate)}</span>
           </div>
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
-            <span className="truncate">End: {formatDateTime(lab.endDate)}</span>
+            <span className="truncate">End: {formatDateTime(lab.enddate)}</span>
           </div>
         </div>
 
         <div className="flex items-center text-xs text-gray-400 mb-2">
-          {lab.labType === 'with-modules' ? (
+          {lab.modules === 'with-modules' ? (
             <Layers className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
           ) : (
             <FileText className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
           )}
           <span className="truncate">
-            {lab.labType === 'with-modules' ? 'Modular Lab' : 'Standard Lab'}
+            {lab.modules === 'with-modules' ? 'Modular Lab' : 'Standard Lab'}
           </span>
         </div>
 
