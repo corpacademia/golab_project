@@ -7,6 +7,7 @@ import { AssignUsersModal } from '../components/catalogue/AssignUsersModal';
 import { Plus, Search, Filter, FolderX, Loader, Trash2, Check, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { get } from 'http';
 
 interface CloudSlice {
   id: string;
@@ -67,7 +68,6 @@ export const CloudSlicePage: React.FC = () => {
       });
 
       if (response.data.success) {
-        // const slices = [...response.data.data, ...orgAssignedSlices];
         const slices = response.data.data || [];
         // Ensure each slice has an id property (use labid if id is not present)
         const processedSlices = slices.map(slice => ({
@@ -85,28 +85,37 @@ export const CloudSlicePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-
-    try {
-      const getOrgAssignedSlices = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`);
-      if(getOrgAssignedSlices.data.success) {
-        const orgAssignedSlices = getOrgAssignedSlices.data.data || [];
-        const processedOrgAssignedSlices = orgAssignedSlices.map(slice => ({
-          ...slice,
-          id: slice.id || slice.labid // Use existing id or fallback to labid
-        }));
-        setCloudSlices(prev => [...prev, ...processedOrgAssignedSlices]);
-        setFilteredSlices(prev => [...prev, ...processedOrgAssignedSlices]);
+      if(user.role === 'orgadmin'){
+        try {
+          const getOrgAssignedSlices = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`);
+          
+          if(getOrgAssignedSlices.data.success) {
+            let orgAssignedSlices =  [];
+            for (const slice of getOrgAssignedSlices.data.data) {
+              const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
+              if(response.data.success){
+                orgAssignedSlices.push(response.data.data);
+              }
+            }
+            const processedOrgAssignedSlices = orgAssignedSlices.map(slice => ({
+              ...slice,
+              id:  slice.labid // Use existing id or fallback to labid
+            }));
+            setCloudSlices(prev => [...prev, ...processedOrgAssignedSlices]);
+            setFilteredSlices(prev => [...prev, ...processedOrgAssignedSlices]);
+          }
+          else {
+            console.error('Failed to fetch organization assigned slices:', getOrgAssignedSlices.data.message);
+          }
+        } catch (error) {
+          console.error('Error fetching organization assigned slices:', error);
+          
+        }
+        finally{
+          setIsLoading(false);
+        }
       }
-      else {
-        console.error('Failed to fetch organization assigned slices:', getOrgAssignedSlices.data.message);
-      }
-    } catch (error) {
-      console.error('Error fetching organization assigned slices:', error);
-      
-    }
-    finally{
-      setIsLoading(false);
-    }
+   
   };
 
   useEffect(() => {
@@ -130,7 +139,10 @@ export const CloudSlicePage: React.FC = () => {
   }, [filters, cloudSlices]);
 
   const handleEditSlice = (slice: CloudSlice) => {
-    setEditSlice(slice);
+    // Only allow editing if the user is not an orgadmin or if they created the slice
+    if (user?.role !== 'orgadmin' || slice.createdby === user.id) {
+      setEditSlice(slice);
+    }
   };
 
   const handleDeleteSlice = (sliceId: string) => {
@@ -207,7 +219,6 @@ export const CloudSlicePage: React.FC = () => {
   };
 
   const regions = [...new Set(cloudSlices.map(slice => slice.region))];
-
   return (
     <div className="space-y-6">
       {!isCreating ? (
@@ -403,6 +414,7 @@ export const CloudSlicePage: React.FC = () => {
               isOpen={!!assignSlice}
               onClose={() => setAssignSlice(null)}
               lab={assignSlice}
+              type='cloudslice'
             />
           )}
         </>

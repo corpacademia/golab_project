@@ -22,7 +22,7 @@ export type EmulatorType =
   | 'netsim';
 
 export interface Lab {
-  id: string;
+  lab_id: string;
   title: string;
   description: string;
   type: LabType;

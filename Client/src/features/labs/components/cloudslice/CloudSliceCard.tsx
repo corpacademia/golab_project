@@ -22,7 +22,7 @@ import {
   List,
   Calendar,
   MapPin,
-  Shield,
+  Shield
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { ConvertToCatalogueModal } from './ConvertToCatalogueModal';
@@ -44,7 +44,8 @@ interface CloudSlice {
   cleanupPolicy: string;
   credits: number;
   modules: 'without-modules' | 'with-modules';
-  createdBy?: string;
+  createdby?: string;
+  accounttype?: 'iam' | 'organization';
 }
 
 interface CloudSliceCardProps {
@@ -67,6 +68,22 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -138,10 +155,51 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
 
   // Get the appropriate icon for account type
   const getAccountTypeIcon = () => {
-    if (slice.accountType === 'organization') {
+    if (slice.accounttype === 'organization') {
       return <Users className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
     } else {
       return <Shield className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />;
+    }
+  };
+
+  // Check if the user is an orgadmin and not the creator of this slice
+  const isOrgAdminNotCreator = user?.role === 'orgadmin' && slice.createdby && slice.createdby !== user.id;
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDeleteModalOpen(true);
+  };
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    
+    try {
+      // Use different API endpoint if user is orgadmin and not creator
+      if (isOrgAdminNotCreator) {
+        
+        // Call the different API endpoint for orgadmin deleting a slice they didn't create
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/orgAdminDeleteCloudSlice/${slice.id}`, {
+          orgId: user.org_id
+        });
+        
+        if (response.data.success) {
+          onDelete(slice.labid);
+        } else {
+          throw new Error(response.data.message || 'Failed to delete cloud slice');
+        }
+      } else {
+        // Regular delete
+        onDelete(slice.labid);
+      }
+    } catch (error: any) {
+      console.error('Failed to delete cloud slice:', error);
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete cloud slice'
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -186,20 +244,19 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-1 flex-shrink-0">
+              {!isOrgAdminNotCreator && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(slice);
+                  }}
+                  className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-primary-400" />
+                </button>
+              )}
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(slice);
-                }}
-                className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Pencil className="h-3.5 w-3.5 text-primary-400" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(slice.labid);
-                }}
+                onClick={handleDeleteClick}
                 className="p-1.5 hover:bg-dark-300/50 rounded-lg transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5 text-red-400" />
@@ -245,9 +302,9 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
             <div className="flex items-center">
               {getAccountTypeIcon()}
               <span className="truncate">
-                {slice.accountType === 'organization' ? 'Organization Account' : 'IAM Account'}
+                {slice.accounttype === 'organization' ? 'Organization Account' : 'IAM Account'}
               </span>
-              {slice.accountType === 'organization' && (
+              {slice.accounttype === 'organization' && (
                 <span className="ml-1 px-1 py-0.5 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
                   15 max
                 </span>
@@ -321,6 +378,53 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">
+                <GradientText>Confirm Deletion</GradientText>
+              </h2>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete <span className="font-semibold">{slice.title}</span>? This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="btn-secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="btn-primary bg-red-500 hover:bg-red-600"
+              >
+                {isDeleting ? (
+                  <span className="flex items-center">
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isConvertModalOpen && (
         <ConvertToCatalogueModal

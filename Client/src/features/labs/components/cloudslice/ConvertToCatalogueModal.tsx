@@ -49,9 +49,11 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
     setSuccess(null);
 
     try {
+      const user_profile = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/cloudSliceOrgAssignment', {
         sliceId,
         organizationId: organization,
+        userId: user_profile.data.user.id,
         isPublic: isPublic === 'yes'
       });
 
@@ -101,6 +103,7 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
                        text-gray-300 focus:border-primary-500/40 focus:outline-none"
               >
                 <option value="">Select an organization</option>
+                <option value="none">None</option>
                 {organizations.map(org => (
                   <option key={org.id} value={org.id}>
                     {org.organization_name}

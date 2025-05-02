@@ -17,12 +17,14 @@ interface AssignUsersModalProps {
   isOpen: boolean;
   onClose: () => void;
   lab: Lab | null;
+  type: string;
 }
 
 export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   isOpen,
   onClose,
-  lab
+  lab,
+  type
 }) => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,10 +32,9 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
   const [users, setUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(true);
   
   const [admin,setAdmin] = useState({});
-
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {
@@ -102,7 +103,28 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
     setNotification(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
+      
+    if(type ==='cloudslice'){
+      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/assignCloudSlice', {
+        lab: lab?.labid,
+        userId: selectedUsers,
+        assign_admin_id: admin.id,
+        start_date:lab.startdate,
+        end_date:lab.enddate,
+      });
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Lab assigned successfully' });
+        setTimeout(() => {
+          setNotification(null);
+          onClose();
+          setSelectedUsers([]);
+        }, 3000);
+      } else {
+        throw new Error(response.data.message || 'Failed to assign lab');
+      }
+    }
+    else{
+     const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
         lab: lab?.lab_id,
         userId: selectedUsers,
         assign_admin_id: admin.id
@@ -118,6 +140,10 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
       } else {
         throw new Error(response.data.message || 'Failed to assign lab');
       }
+    }
+       
+
+     
     } catch (err: any) {
       setNotification({ 
         type: 'error', 
