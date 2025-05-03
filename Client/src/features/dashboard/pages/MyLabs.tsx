@@ -715,7 +715,7 @@ export const MyLabs: React.FC = () => {
               <h2 className="text-xl font-semibold mb-4">
                 <GradientText>Virtual Machine Labs</GradientText>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredLabs.map((lab, index) => (
                   <div key={lab.lab_id} 
                       className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-primary-500/10 
@@ -846,7 +846,7 @@ export const MyLabs: React.FC = () => {
               <h2 className="text-xl font-semibold mb-4">
                 <GradientText>Cloud Slice Labs</GradientText>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCloudSliceLabs.map((lab) => (
                   <CloudSliceCard 
                     key={lab.id} 

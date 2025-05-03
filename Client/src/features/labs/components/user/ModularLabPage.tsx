@@ -7,120 +7,14 @@ import {
   Clock, 
   Layers, 
   ChevronRight,
+  ChevronDown,
   AlertCircle,
   Check,
   Loader,
   BookOpen,
   HelpCircle
 } from 'lucide-react';
-
-// Mock data for testing UI
-const mockLabDetails = {
-  id: 'lab-456',
-  title: 'AWS DevOps Pipeline Lab',
-  description: 'Learn to build and deploy a complete CI/CD pipeline using AWS services',
-  provider: 'aws',
-  region: 'us-west-2',
-  services: [
-    'CodeCommit', 
-    'CodeBuild', 
-    'CodeDeploy', 
-    'CodePipeline', 
-    'EC2', 
-    'S3', 
-    'CloudFormation'
-  ],
-  status: 'active',
-  startDate: '2024-04-01T00:00:00Z',
-  endDate: '2024-05-01T00:00:00Z',
-  credentials: {
-    username: 'lab-user-456',
-    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-  },
-  consoleUrl: 'https://console.aws.amazon.com'
-};
-
-const mockModules = [
-  {
-    id: 'module-1',
-    title: 'Source Control with CodeCommit',
-    description: 'Set up a Git repository in AWS CodeCommit and manage your code',
-    order: 1,
-    exercises: [
-      {
-        id: 'exercise-1',
-        title: 'Create a CodeCommit Repository',
-        description: 'Learn to create and configure a Git repository in AWS CodeCommit',
-        type: 'lab',
-        order: 1,
-        duration: 30,
-        status: 'completed'
-      },
-      {
-        id: 'exercise-2',
-        title: 'Git Basics Quiz',
-        description: 'Test your knowledge of Git fundamentals',
-        type: 'quiz',
-        order: 2,
-        duration: 15,
-        status: 'completed'
-      }
-    ]
-  },
-  {
-    id: 'module-2',
-    title: 'Build Automation with CodeBuild',
-    description: 'Configure automated builds for your application',
-    order: 2,
-    exercises: [
-      {
-        id: 'exercise-3',
-        title: 'Set Up a Build Project',
-        description: 'Create and configure a build project in AWS CodeBuild',
-        type: 'lab',
-        order: 1,
-        duration: 45,
-        status: 'in-progress'
-      },
-      {
-        id: 'exercise-4',
-        title: 'Create a buildspec.yml File',
-        description: 'Define your build process using a buildspec.yml file',
-        type: 'lab',
-        order: 2,
-        duration: 30,
-        status: 'not-started'
-      }
-    ]
-  },
-  {
-    id: 'module-3',
-    title: 'Deployment with CodeDeploy',
-    description: 'Learn to deploy applications to EC2 instances',
-    order: 3,
-    exercises: [
-      {
-        id: 'exercise-5',
-        title: 'Configure CodeDeploy',
-        description: 'Set up CodeDeploy to deploy your application',
-        type: 'lab',
-        order: 1,
-        duration: 60,
-        status: 'not-started'
-      },
-      {
-        id: 'exercise-6',
-        title: 'Deployment Strategies Quiz',
-        description: 'Test your knowledge of different deployment strategies',
-        type: 'quiz',
-        order: 2,
-        duration: 20,
-        status: 'not-started'
-      }
-    ]
-  }
-];
+import axios from 'axios';
 
 interface Module {
   id: string;
@@ -128,6 +22,7 @@ interface Module {
   description: string;
   order: number;
   exercises: Exercise[];
+  totalduration?: number;
 }
 
 interface Exercise {
@@ -145,19 +40,159 @@ export const ModularLabPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
-  const [modules, setModules] = useState<Module[]>(mockModules);
-  const [isLoading, setIsLoading] = useState(false);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
-  const [activeModuleId, setActiveModuleId] = useState<string | null>('module-1');
+  const [user, setUser] = useState<any>(null);
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const [labExercises, setLabExercises] = useState<Record<string, any>>({});
+  const [quizExercises, setQuizExercises] = useState<Record<string, any>>({});
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  // Fetch user details
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Fetch lab details if not provided in location state
+  useEffect(() => {
+    if (!labDetails && labId) {
+      const fetchLabDetails = async () => {
+        try {
+          const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${labDetails.labid}`);
+          if (response.data.success) {
+            setLabDetails(response.data.data);
+          } else {
+            setError('Failed to load cloud slice details');
+          }
+        } catch (err) {
+          setError('Failed to load cloud slice details');
+        }
+      };
+      
+      fetchLabDetails();
+    }
+  }, [labDetails.labid, labDetails]);
+
+  // Fetch modules
+  useEffect(() => {
+    const fetchModules = async () => {
+      if (!labDetails.labid) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${labDetails.labid}`);
+        if (response.data.success) {
+          const modulesData = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
+          
+          // Sort modules by order
+          const sortedModules = [...modulesData].sort((a, b) => a.order - b.order);
+          
+          // For each module, sort its exercises by order
+          const processedModules = sortedModules.map(module => ({
+            ...module,
+            exercises: module.exercises ? 
+              [...module.exercises].sort((a, b) => a.order - b.order) : 
+              []
+          }));
+          
+          setModules(processedModules);
+          
+          // Set the first module as active if there are modules
+          if (processedModules.length > 0) {
+            setActiveModuleId(processedModules[0].id);
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch modules');
+        }
+      } catch (err: any) {
+        if (err.response && err.response.status === 404) {
+          console.warn("No modules found. Setting modules to an empty list.");
+          setModules([]);
+        } else {
+          console.error("Failed to fetch modules:", err);
+          setError(err.response?.data?.message || 'Failed to fetch modules');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchModules();
+  }, [labDetails.labid]);
+
+  // Fetch lab exercises when a module is selected
+  useEffect(() => {
+    const fetchLabExercises = async () => { 
+      if (!activeModuleId) return;
+      
+      setIsLoadingExercises(true);
+      try {
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/lab-exercises/${activeModuleId}`);
+        if (response.data.success) {
+          const labExercisesData = response.data.data || [];
+          const labExercisesMap: Record<string, any> = {};
+          
+          labExercisesData.forEach((exercise: any) => {
+            labExercisesMap[exercise.exercise_id] = exercise;
+          });
+          setLabExercises(labExercisesMap);
+        }
+      } catch (err) {
+        console.error('Error fetching lab exercises:', err);
+      } finally {
+        setIsLoadingExercises(false);
+      }
+    };
+
+    fetchLabExercises();
+  }, [activeModuleId]);
+
+  // Fetch quiz exercises when a module is selected
+  useEffect(() => {
+    const fetchQuizExercises = async () => {
+      if (!activeModuleId) return;
+      
+      setIsLoadingExercises(true);
+      try {
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/quiz-exercises/${activeModuleId}`);
+        if (response.data.success) {
+          const quizExercisesData = response.data.data || [];
+          const quizExercisesMap: Record<string, any> = {};
+          
+          quizExercisesData.forEach((exercise: any) => {
+            quizExercisesMap[exercise.exerciseId] = exercise;
+          });
+          setQuizExercises(quizExercisesMap);
+        }
+      } catch (err) {
+        console.error('Error fetching quiz exercises:', err);
+      } finally {
+        setIsLoadingExercises(false);
+      }
+    };
+
+    fetchQuizExercises();
+  }, [activeModuleId]);
 
   // Calculate total duration
   const totalDuration = modules.reduce((total, module) => {
-    return total + module.exercises.reduce((moduleTotal, exercise) => {
+    return total + (module.totalduration || module.exercises.reduce((moduleTotal, exercise) => {
       return moduleTotal + exercise.duration;
-    }, 0);
+    }, 0));
   }, 0);
 
   // Format duration
@@ -171,21 +206,27 @@ export const ModularLabPage: React.FC = () => {
     return `${mins}m`;
   };
 
+  const handleModuleClick = (moduleId: string) => {
+    setActiveModuleId(activeModuleId === moduleId ? null : moduleId);
+  };
+
   const handleExerciseClick = (moduleId: string, exercise: Exercise) => {
     if (exercise.type === 'lab') {
-      navigate(`/dashboard/my-labs/${labId}/exercise/${exercise.id}`, {
+      navigate(`/dashboard/my-labs/${labDetails.labid}/exercise/${exercise.id}`, {
         state: { 
           exercise,
           labDetails,
-          moduleId
+          moduleId,
+          labExercise: labExercises[exercise.id]
         }
       });
     } else if (exercise.type === 'questions') {
-      navigate(`/dashboard/my-labs/${labId}/quiz/${exercise.id}`, {
+      navigate(`/dashboard/my-labs/${labDetails.labid}/quiz/${exercise.id}`, {
         state: { 
           exercise,
           labDetails,
-          moduleId
+          moduleId,
+          quizExercise: quizExercises[exercise.id]
         }
       });
     }
@@ -215,6 +256,7 @@ export const ModularLabPage: React.FC = () => {
       </div>
     );
   }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -276,26 +318,60 @@ export const ModularLabPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {modules.map((module, index) => (
-              <div key={module.id} className="space-y-2">
-                <button
-                  onClick={() => setActiveModuleId(module.id)}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
-                    activeModuleId === module.id 
-                      ? 'bg-primary-500/20 text-primary-300' 
-                      : 'bg-dark-300/50 text-gray-300 hover:bg-dark-300'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <div className="h-6 w-6 rounded-full bg-dark-400/80 flex items-center justify-center mr-3">
-                      <span className="text-xs font-medium">{index + 1}</span>
-                    </div>
-                    <span className="font-medium">{module.title}</span>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+            {modules.length === 0 ? (
+              <div className="p-4 bg-dark-300/50 rounded-lg text-center">
+                <p className="text-gray-400">No modules available</p>
               </div>
-            ))}
+            ) : (
+              modules.map((module, index) => (
+                <div key={module.id} className="space-y-2">
+                  <button
+                    onClick={() => handleModuleClick(module.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
+                      activeModuleId === module.id 
+                        ? 'bg-primary-500/20 text-primary-300' 
+                        : 'bg-dark-300/50 text-gray-300 hover:bg-dark-300'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <div className="h-6 w-6 rounded-full bg-dark-400/80 flex items-center justify-center mr-3">
+                        <span className="text-xs font-medium">{index + 1}</span>
+                      </div>
+                      <span className="font-medium">{module.title}</span>
+                    </div>
+                    {activeModuleId === module.id ? (
+                      <ChevronDown className="h-5 w-5" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5" />
+                    )}
+                  </button>
+
+                  {activeModuleId === module.id && module.exercises && (
+                    <div className="ml-6 space-y-1">
+                      {module.exercises.map((exercise) => (
+                        <div key={exercise.id} className="flex items-center">
+                          <button
+                            onClick={() => handleExerciseClick(module.id, exercise)}
+                            className={`flex-1 flex items-center space-x-2 p-2 rounded-lg text-left text-sm transition-colors ${
+                              exercise.status === 'completed' ? 'bg-emerald-500/10 text-emerald-300' :
+                              exercise.status === 'in-progress' ? 'bg-amber-500/10 text-amber-300' :
+                              'text-gray-400 hover:bg-dark-300/70 hover:text-gray-300'
+                            }`}
+                          >
+                            {exercise.type === 'lab' ? (
+                              <BookOpen className="h-4 w-4 flex-shrink-0" />
+                            ) : (
+                              <HelpCircle className="h-4 w-4 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{exercise.title}</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -314,46 +390,52 @@ export const ModularLabPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-4">
-                {modules.find(m => m.id === activeModuleId)?.exercises.map((exercise, index) => (
-                  <div 
-                    key={index}
-                    onClick={() => handleExerciseClick(activeModuleId, exercise)}
-                    className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        {exercise.type === 'lab' ? (
-                          <BookOpen className="h-5 w-5 text-primary-400" />
-                        ) : (
-                          <HelpCircle className="h-5 w-5 text-accent-400" />
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-200">{exercise.title}</h3>
-                          <p className="text-sm text-gray-400 mt-1">{exercise.description}</p>
+              {isLoadingExercises ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {modules.find(m => m.id === activeModuleId)?.exercises.map((exercise, index) => (
+                    <div 
+                      key={exercise.id}
+                      onClick={() => handleExerciseClick(activeModuleId, exercise)}
+                      className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          {exercise.type === 'lab' ? (
+                            <BookOpen className="h-5 w-5 text-primary-400" />
+                          ) : (
+                            <HelpCircle className="h-5 w-5 text-accent-400" />
+                          )}
+                          <div>
+                            <h3 className="font-medium text-gray-200">{exercise.title}</h3>
+                            <p className="text-sm text-gray-400 mt-1">{exercise.description}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center text-sm text-gray-400">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {formatDuration(exercise.duration)}
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center text-sm text-gray-400">
+                            <Clock className="h-4 w-4 mr-1" />
+                            {formatDuration(exercise.duration)}
+                          </div>
+                          {exercise.status && (
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              exercise.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
+                              exercise.status === 'in-progress' ? 'bg-amber-500/20 text-amber-300' :
+                              'bg-primary-500/20 text-primary-300'
+                            }`}>
+                              {exercise.status === 'not-started' ? 'Not Started' : 
+                               exercise.status === 'in-progress' ? 'In Progress' : 
+                               'Completed'}
+                            </span>
+                          )}
                         </div>
-                        {exercise.status && (
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            exercise.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' :
-                            exercise.status === 'in-progress' ? 'bg-amber-500/20 text-amber-300' :
-                            'bg-primary-500/20 text-primary-300'
-                          }`}>
-                            {exercise.status === 'not-started' ? 'Not Started' : 
-                             exercise.status === 'in-progress' ? 'In Progress' : 
-                             'Completed'}
-                          </span>
-                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-64">

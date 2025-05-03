@@ -123,8 +123,11 @@ export const LabExercisePage: React.FC = () => {
   const { exerciseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [exercise, setExercise] = useState<any>({
+    ...(location.state?.exercise || mockExercise),
+    ...(location.state?.labExercise || {})
+  });
   
-  const [exercise, setExercise] = useState<any>(location.state?.exercise || mockExercise);
   const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
   const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || 'module-2');
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +141,6 @@ export const LabExercisePage: React.FC = () => {
   const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
   const [resources, setResources] = useState<any[]>(mockResources);
   const [notes, setNotes] = useState('');
-
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -218,6 +220,12 @@ export const LabExercisePage: React.FC = () => {
     
     return () => clearInterval(timer);
   }, [countdown, labStarted]);
+
+//function to extract the exact filename from the url
+function extractFile_Name(filePath: string) {
+  const match = filePath.match(/[^\\\/]+$/);
+  return match ? match[0] : null;
+}
 
   if (isLoading) {
     return (
@@ -342,23 +350,24 @@ export const LabExercisePage: React.FC = () => {
               <div dangerouslySetInnerHTML={{ __html: exercise?.instructions || '<p>No instructions provided for this exercise.</p>' }} />
             </div>
             
-            {resources.length > 0 && (
+            {exercise.files.length > 0 && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Resources</h3>
                 <div className="space-y-2">
-                  {resources.map((resource, index) => (
+                  {exercise.files.map((resource, index) => (
                     <div 
                       key={index}
                       className="p-3 bg-dark-300/50 rounded-lg flex items-center justify-between"
                     >
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-primary-400" />
-                        <span className="text-sm text-gray-300">{resource.name}</span>
+                        <span className="text-sm text-gray-300">{extractFile_Name(resource)}</span>
                       </div>
                       <a
-                        href={resource.url}
-                        download={resource.type === 'file'}
-                        target={resource.type === 'link' ? '_blank' : undefined}
+                        href={`http://localhost:3006/uploads/${extractFile_Name(resource)}`}
+                        download
+                        target= '_blank' 
+                        rel="noopener noreferrer"
                         className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                       >
                         <Download className="h-4 w-4 text-primary-400" />
@@ -438,8 +447,8 @@ export const LabExercisePage: React.FC = () => {
             </h2>
             
             <div className="space-y-2">
-              {labDetails?.services && labDetails.services.length > 0 ? (
-                labDetails.services.map((service: string, index: number) => (
+              {exercise?.services && exercise.services.length > 0 ? (
+                exercise.services.map((service: string, index: number) => (
                   <div 
                     key={index}
                     className="p-3 bg-dark-300/50 rounded-lg flex items-center space-x-2"

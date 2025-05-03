@@ -12,111 +12,57 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-
-// Mock data for testing UI
-const mockExercise = {
-  id: 'exercise-2',
-  title: 'Git Basics Quiz',
-  description: 'Test your knowledge of Git fundamentals',
-  type: 'quiz',
-  order: 2,
-  duration: 15,
-  status: 'not-started'
-};
-
-const mockLabDetails = {
-  id: 'lab-456',
-  title: 'AWS DevOps Pipeline Lab',
-  description: 'Learn to build and deploy a complete CI/CD pipeline using AWS services',
-  provider: 'aws'
-};
-
-const mockQuestions = [
-  {
-    id: 'q1',
-    text: 'Which command is used to create a new Git repository?',
-    options: [
-      { id: 'a1', text: 'git create' },
-      { id: 'a2', text: 'git init' },
-      { id: 'a3', text: 'git new' },
-      { id: 'a4', text: 'git start' }
-    ],
-    correctOptionId: 'a2'
-  },
-  {
-    id: 'q2',
-    text: 'Which command adds files to the Git staging area?',
-    options: [
-      { id: 'b1', text: 'git stage' },
-      { id: 'b2', text: 'git commit' },
-      { id: 'b3', text: 'git add' },
-      { id: 'b4', text: 'git push' }
-    ],
-    correctOptionId: 'b3'
-  },
-  {
-    id: 'q3',
-    text: 'What does the command "git pull" do?',
-    options: [
-      { id: 'c1', text: 'Uploads local changes to the remote repository' },
-      { id: 'c2', text: 'Downloads and integrates changes from the remote repository' },
-      { id: 'c3', text: 'Creates a new branch' },
-      { id: 'c4', text: 'Shows the commit history' }
-    ],
-    correctOptionId: 'c2'
-  },
-  {
-    id: 'q4',
-    text: 'Which of the following is NOT a Git object type?',
-    options: [
-      { id: 'd1', text: 'Blob' },
-      { id: 'd2', text: 'Tree' },
-      { id: 'd3', text: 'Branch' },
-      { id: 'd4', text: 'Commit' }
-    ],
-    correctOptionId: 'd3'
-  }
-];
-
-interface Question {
-  id: string;
-  text: string;
-  options: {
-    id: string;
-    text: string;
-  }[];
-  correctOptionId?: string;
-}
-
-interface QuizResult {
-  score: number;
-  totalQuestions: number;
-  correctAnswers: number;
-  incorrectAnswers: number;
-  feedback: {
-    questionId: string;
-    isCorrect: boolean;
-    correctOptionId: string;
-  }[];
-}
+import axios from 'axios';
 
 export const QuizExercisePage: React.FC = () => {
   const { exerciseId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [exercise, setExercise] = useState<any>(location.state?.exercise || mockExercise);
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
-  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || 'module-1');
-  const [isLoading, setIsLoading] = useState(false);
+  const [exercise, setExercise] = useState<any>(location.state?.exercise || null);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || null);
+  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || null);
+  const [quizExercise, setQuizExercise] = useState<any>(location.state?.quizExercise || null);
+  const [isLoading, setIsLoading] = useState(!location.state?.quizExercise);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(exercise.duration * 60); // Convert minutes to seconds
-  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
-  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [quizResult, setQuizResult] = useState<any | null>(null);
+
+
+  // Fetch quiz exercise if not provided in location state
+  useEffect(() => {
+    const fetchQuizExercise = async () => {
+      if (quizExercise || !exerciseId || !moduleId) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/quiz-exercise/${exerciseId}`);
+        if (response.data.success) {
+          setQuizExercise(response.data.data);
+          setCountdown(response.data.data.duration * 60); // Convert minutes to seconds
+        } else {
+          throw new Error('Failed to fetch quiz details');
+        }
+      } catch (err) {
+        console.error('Error fetching quiz:', err);
+        setError('Failed to load quiz details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuizExercise();
+  }, [exerciseId, moduleId, quizExercise]);
+
+  // Set countdown when quiz exercise is loaded
+  useEffect(() => {
+    if (quizExercise && !countdown) {
+      setCountdown(exercise.duration * 60); // Convert minutes to seconds
+    }
+  }, [quizExercise, countdown]);
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
@@ -138,7 +84,9 @@ export const QuizExercisePage: React.FC = () => {
   // Submit quiz
   const handleSubmit = async () => {
     // Check if all questions are answered
-    const unansweredQuestions = questions.filter(q => !answers[q.id]);
+    if (!quizExercise || !quizExercise.questions) return;
+    
+    const unansweredQuestions = quizExercise.questions.filter(q => !answers[q.id]);
     if (unansweredQuestions.length > 0) {
       setNotification({ 
         type: 'error', 
@@ -151,34 +99,54 @@ export const QuizExercisePage: React.FC = () => {
     setIsSubmitting(true);
     setNotification(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Calculate results
-      const correctAnswers = questions.filter(q => answers[q.id] === q.correctOptionId).length;
-      const incorrectAnswers = questions.length - correctAnswers;
-      const score = Math.round((correctAnswers / questions.length) * 100);
+    try {
+      // Submit answers to the server
+      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/submit-quiz/${exerciseId}`, {
+        answers,
+        moduleId
+      });
       
-      const feedback = questions.map(q => ({
-        questionId: q.id,
-        isCorrect: answers[q.id] === q.correctOptionId,
-        correctOptionId: q.correctOptionId
-      }));
-      
-      const result: QuizResult = {
-        score,
-        totalQuestions: questions.length,
-        correctAnswers,
-        incorrectAnswers,
-        feedback
-      };
-      
-      setQuizResult(result);
-      setNotification({ type: 'success', message: 'Quiz submitted successfully' });
+      if (response.data.success) {
+        // Calculate results
+        const correctAnswers = quizExercise.questions.filter(q => {
+          const correctOption = q.options.find(o => o.is_correct);
+          return answers[q.id] === correctOption?.option_id;
+        }).length;
+        
+        const incorrectAnswers = quizExercise.questions.length - correctAnswers;
+        const score = Math.round((correctAnswers / quizExercise.questions.length) * 100);
+        
+        const feedback = quizExercise.questions.map(q => {
+          const correctOption = q.options.find(o => o.is_correct);
+          return {
+            questionId: q.id,
+            isCorrect: answers[q.id] === correctOption?.option_id,
+            correctOptionId: correctOption?.option_id
+          };
+        });
+        
+        const result = {
+          score,
+          totalQuestions: quizExercise.questions.length,
+          correctAnswers,
+          incorrectAnswers,
+          feedback
+        };
+        
+        setQuizResult(result);
+        setNotification({ type: 'success', message: 'Quiz submitted successfully' });
+      } else {
+        throw new Error(response.data.message || 'Failed to submit quiz');
+      }
+    } catch (error: any) {
+      setNotification({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to submit quiz' 
+      });
+    } finally {
       setIsSubmitting(false);
-      
-      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }, 1500);
+    }
   };
 
   // Countdown timer
@@ -240,9 +208,9 @@ export const QuizExercisePage: React.FC = () => {
           </button>
           <div>
             <h1 className="text-3xl font-display font-bold">
-              <GradientText>{exercise?.title || 'Quiz Exercise'}</GradientText>
+              <GradientText>{exercise?.title || quizExercise?.title || 'Quiz Exercise'}</GradientText>
             </h1>
-            <p className="mt-1 text-gray-400">{exercise?.description}</p>
+            <p className="mt-1 text-gray-400">{exercise?.description || quizExercise?.description}</p>
           </div>
         </div>
         
@@ -302,7 +270,7 @@ export const QuizExercisePage: React.FC = () => {
           </div>
 
           <div className="space-y-8">
-            {questions.map((question, qIndex) => (
+            {quizExercise?.questions?.map((question, qIndex) => (
               <div key={question.id} className="space-y-4">
                 <div className="flex items-start">
                   <div className="h-6 w-6 rounded-full bg-dark-400/80 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
@@ -310,20 +278,23 @@ export const QuizExercisePage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-200">{question.text}</h3>
+                    {question.description && (
+                      <p className="text-sm text-gray-400 mt-1">{question.description}</p>
+                    )}
                     
                     <div className="mt-4 space-y-2">
                       {question.options.map(option => (
                         <label 
-                          key={option.id}
+                          key={option.option_id}
                           className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
                             quizResult ? (
-                              option.id === question.correctOptionId
+                              option.is_correct
                                 ? 'bg-emerald-500/20 border border-emerald-500/20'
-                                : answers[question.id] === option.id && option.id !== question.correctOptionId
+                                : answers[question.id] === option.option_id && !option.is_correct
                                   ? 'bg-red-500/20 border border-red-500/20'
                                   : 'bg-dark-300/50 hover:bg-dark-300'
                             ) : (
-                              answers[question.id] === option.id
+                              answers[question.id] === option.option_id
                                 ? 'bg-primary-500/20 border border-primary-500/20'
                                 : 'bg-dark-300/50 hover:bg-dark-300'
                             )
@@ -332,9 +303,9 @@ export const QuizExercisePage: React.FC = () => {
                           <input
                             type="radio"
                             name={`question-${question.id}`}
-                            value={option.id}
-                            checked={answers[question.id] === option.id}
-                            onChange={() => !quizResult && handleAnswerSelect(question.id, option.id)}
+                            value={option.option_id}
+                            checked={answers[question.id] === option.option_id}
+                            onChange={() => !quizResult && handleAnswerSelect(question.id, option.option_id)}
                             className="form-radio h-4 w-4 text-primary-500 border-gray-500/20 focus:ring-primary-500"
                             disabled={quizResult !== null}
                           />
@@ -342,10 +313,10 @@ export const QuizExercisePage: React.FC = () => {
                           
                           {quizResult && (
                             <div className="ml-auto">
-                              {option.id === question.correctOptionId ? (
+                              {option.is_correct ? (
                                 <CheckCircle className="h-5 w-5 text-emerald-400" />
                               ) : (
-                                answers[question.id] === option.id && (
+                                answers[question.id] === option.option_id && (
                                   <XCircle className="h-5 w-5 text-red-400" />
                                 )
                               )}

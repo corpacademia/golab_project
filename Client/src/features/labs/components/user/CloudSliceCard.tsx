@@ -93,18 +93,17 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
 
   function formatDateTime(dateString: string) {
     const date = new Date(dateString);
-  
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-  
-    let hours = date.getHours();
-    const minutes = `${date.getMinutes()}`.padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-  
-    hours = hours % 12 || 12; // Convert 0 to 12 for 12AM
-  
-    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+    
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    };
+    
+    return new Intl.DateTimeFormat('en-US', options).format(date);
   }
 
   return (
@@ -125,20 +124,6 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
         </div>
       )}
       
-      <div className="absolute top-2 right-2">
-        <button
-          onClick={handleDeleteClick}
-          disabled={isDeleting}
-          className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
-        >
-          {isDeleting ? (
-            <Loader className="h-4 w-4 text-red-400 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4 text-red-400" />
-          )}
-        </button>
-      </div>
-      
       <div className="p-3 flex flex-col h-full">
         <div className="flex justify-between items-start gap-2 mb-2">
           <div className="min-w-0">
@@ -147,14 +132,27 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
             </h3>
             <p className="text-xs text-gray-400 line-clamp-1">{lab.description}</p>
           </div>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-            lab.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-            lab.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-            lab.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
-            'bg-amber-500/20 text-amber-300'
-          }`}>
-            {lab.status}
-          </span>
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+              lab.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+              lab.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+              lab.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
+              'bg-amber-500/20 text-amber-300'
+            }`}>
+              {lab.status}
+            </span>
+            <button
+              onClick={handleDeleteClick}
+              disabled={isDeleting}
+              className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+            >
+              {isDeleting ? (
+                <Loader className="h-4 w-4 text-red-400 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 text-red-400" />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-2">
@@ -166,6 +164,9 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
             <MapPin className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
             <span className="truncate">{lab.region}</span>
           </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-1 mb-2">
           <div className="flex items-center text-xs text-gray-400">
             <Calendar className="h-3.5 w-3.5 mr-1 text-primary-400 flex-shrink-0" />
             <span className="truncate">Start: {formatDateTime(lab.startdate)}</span>

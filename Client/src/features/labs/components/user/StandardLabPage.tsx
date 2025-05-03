@@ -162,7 +162,7 @@ export const StandardLabPage: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        {/* <div className="flex items-center space-x-3">
           {countdown !== null && (
             <div className="px-4 py-2 bg-dark-300/50 rounded-lg flex items-center space-x-2">
               <Clock className="h-4 w-4 text-primary-400" />
@@ -172,7 +172,7 @@ export const StandardLabPage: React.FC = () => {
           <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
             {labDetails?.provider?.toUpperCase()}
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* Notification */}
