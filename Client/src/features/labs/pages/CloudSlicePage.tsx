@@ -62,69 +62,88 @@ export const CloudSlicePage: React.FC = () => {
   const fetchCloudSlices = async () => {
     if (!user) return;
     setIsLoading(true);
+    
     try {
-      const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
-        params: { userId: user.id }
-      });
-
-      if (response.data.success) {
-        const slices = response.data.data || [];
-        // Ensure each slice has an id property (use labid if id is not present)
-        const processedSlices = slices.map(slice => ({
-          ...slice,
-          id: slice.id || slice.labid // Use existing id or fallback to labid
-        }));
-        setCloudSlices(processedSlices);
-        setFilteredSlices(processedSlices);
-      } else {
-        console.error('Failed to fetch cloud slices:', response.data.message);
+      let allSlices: CloudSlice[] = [];
+      if(user.role === 'superadmin'){
+        const response = await axios.get('http://localhost:3000/api/v1/cloud_slice_ms/getCloudSlices', {
+          params: { userId: user.id }
+        });
+  
+       
+        
+        if (response.data.success) {
+          const userSlices = response.data.data || [];
+          // Ensure each slice has an id property (use labid if id is not present)
+          const processedUserSlices = userSlices.map(slice => ({
+            ...slice,
+            id: slice.id || slice.labid // Use existing id or fallback to labid
+          }));
+          
+          allSlices = [...processedUserSlices];
+        }
       }
-   
+      // First, get the user's own cloud slices
+     
+      
+      // If user is an orgadmin, also fetch organization-assigned slices
+      else if (user.role === 'orgadmin') {
+
+        try {
+          const getOrgAssignedSlices = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`);
+          
+          if (getOrgAssignedSlices.data.success) {
+            const orgSlices = [];
+            
+            for (const slice of getOrgAssignedSlices.data.data) {
+              // Skip if this slice is already in the user's own slices
+              if (allSlices.some(existingSlice => existingSlice.labid === slice.labid)) {
+                continue;
+              }
+              
+              try {
+                const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
+                if (response.data.success) {
+                  orgSlices.push(response.data.data);
+                }
+              } catch (error) {
+                console.error(`Error fetching details for slice ${slice.labid}:`, error);
+              }
+            }
+            
+            // Process org slices and add them to allSlices
+            const processedOrgSlices = orgSlices.map(slice => ({
+              ...slice,
+              id: slice.id || slice.labid // Use existing id or fallback to labid
+            }));
+            
+            allSlices = [...allSlices, ...processedOrgSlices];
+          }
+        } catch (error) {
+          console.error('Error fetching organization assigned slices:', error);
+        }
+      }
+      
+      // Set the combined, deduplicated list of slices
+      setCloudSlices(allSlices);
+      setFilteredSlices(allSlices);
+      
     } catch (error) {
       console.error('Error fetching cloud slices:', error);
     } finally {
       setIsLoading(false);
     }
-      if(user.role === 'orgadmin'){
-        try {
-          const getOrgAssignedSlices = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`);
-          
-          if(getOrgAssignedSlices.data.success) {
-            let orgAssignedSlices =  [];
-            for (const slice of getOrgAssignedSlices.data.data) {
-              const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
-              if(response.data.success){
-                orgAssignedSlices.push(response.data.data);
-              }
-            }
-            const processedOrgAssignedSlices = orgAssignedSlices.map(slice => ({
-              ...slice,
-              id:  slice.labid // Use existing id or fallback to labid
-            }));
-            setCloudSlices(prev => [...prev, ...processedOrgAssignedSlices]);
-            setFilteredSlices(prev => [...prev, ...processedOrgAssignedSlices]);
-          }
-          else {
-            console.error('Failed to fetch organization assigned slices:', getOrgAssignedSlices.data.message);
-          }
-        } catch (error) {
-          console.error('Error fetching organization assigned slices:', error);
-          
-        }
-        finally{
-          setIsLoading(false);
-        }
-      }
-   
   };
 
   useEffect(() => {
-    fetchCloudSlices();
-  }, [user]);
+    if (user?.id) {
+      fetchCloudSlices();
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     const filtered = cloudSlices.filter(slice => {
-      const matchesSearch = !filters.search ||
+      const matchesSearch = !filters.search || 
         slice.title.toLowerCase().includes(filters.search.toLowerCase()) ||
         slice.description.toLowerCase().includes(filters.search.toLowerCase());
 
@@ -243,7 +262,7 @@ export const CloudSlicePage: React.FC = () => {
                   Delete Selected ({selectedSlices.length})
                 </button>
               )}
-              <button
+              <button 
                 onClick={() => navigate('/dashboard/labs/create')}
                 className="btn-primary"
               >
