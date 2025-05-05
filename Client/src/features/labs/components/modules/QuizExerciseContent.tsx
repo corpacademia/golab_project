@@ -7,13 +7,15 @@ interface QuizExerciseContentProps {
   quizExercise: QuizExercise | undefined;
   isLoading: boolean;
   onEdit: () => void;
+  canEdit: boolean;
 }
 
 export const QuizExerciseContent: React.FC<QuizExerciseContentProps> = ({
   exercise,
   quizExercise,
   isLoading,
-  onEdit
+  onEdit,
+  canEdit
 }) => {
   if (isLoading) {
     return (
@@ -31,13 +33,15 @@ export const QuizExerciseContent: React.FC<QuizExerciseContentProps> = ({
             <AlertCircle className="h-5 w-5" />
             <p>Quiz content not found</p>
           </div>
-          <button
-            onClick={onEdit}
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Quiz
-          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="btn-primary"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Quiz
+            </button>
+          )}
         </div>
       </div>
     );
@@ -48,13 +52,15 @@ export const QuizExerciseContent: React.FC<QuizExerciseContentProps> = ({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Quiz Content</h3>
         <div className="flex items-center space-x-4">
-          <button
-            onClick={onEdit}
-            className="btn-secondary"
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Quiz
-          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="btn-secondary"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Quiz
+            </button>
+          )}
         </div>
       </div>
 

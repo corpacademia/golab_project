@@ -69,7 +69,39 @@ export const CloudSliceModulesPage: React.FC = () => {
   const [deleteItemId, setDeleteItemId] = useState<string>('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [sliceDetails, setSliceDetails] = useState<any>(null);
 
+  // Fetch current user
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setCurrentUser(response.data.user);
+      } catch (err) {
+        console.error('Failed to fetch current user:', err);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
+  // Fetch slice details to check creator
+  useEffect(() => {
+    const fetchSliceDetails = async () => {
+      if (!sliceId) return;
+      
+      try {
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${sliceId}`);
+        if (response.data.success) {
+          setSliceDetails(response.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch slice details:', err);
+      }
+    };
+    
+    fetchSliceDetails();
+  }, [sliceId]);
 
   // Fetch modules
   useEffect(() => {
@@ -79,7 +111,6 @@ export const CloudSliceModulesPage: React.FC = () => {
       try {
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${sliceId}`);
         if (response.data.success) {
-          console.log(response.data.data)
           setModules(Array.isArray(response.data.data) ? response.data.data : [response.data.data] || []);
           if (response.data.data && response.data.data.length > 0) {
             setActiveModule(response.data.data[0].id);
@@ -178,6 +209,21 @@ export const CloudSliceModulesPage: React.FC = () => {
     const module = getActiveModule();
     if (!module || !activeExercise || !module.exercises) return null;
     return module.exercises.find(e => e.id === activeExercise) || null;
+  };
+
+  // Check if current user can edit content
+  const canEditContent = () => {
+    if (!currentUser || !sliceDetails) return false;
+    
+    // Super admin can edit anything
+    if (currentUser.role === 'superadmin') return true;
+    
+    // Org admin can only edit content they created
+    if (currentUser.role === 'orgadmin') {
+      return sliceDetails.createdby === currentUser.id;
+    }
+    
+    return false;
   };
 
   // CRUD operations for modules
@@ -393,6 +439,7 @@ export const CloudSliceModulesPage: React.FC = () => {
           onEdit={() => handleEditLabExercise(exercise.id)}
           formatCleanupPolicy={formatCleanupPolicy}
           extractFileName={extractFile_Name}
+          canEdit={canEditContent()}
         />
       );
     } 
@@ -403,6 +450,7 @@ export const CloudSliceModulesPage: React.FC = () => {
           quizExercise={quizExercises[exercise.id]}
           isLoading={isLoadingQuizExercises}
           onEdit={() => handleEditQuizExercise(exercise.id)}
+          canEdit={canEditContent()}
         />
       );
     }
@@ -432,7 +480,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-
+console.log(selectedExercise)
   return (
     <div className="space-y-6">
       {notification && (
@@ -453,13 +501,15 @@ export const CloudSliceModulesPage: React.FC = () => {
         <h1 className="text-3xl font-display font-bold">
           <GradientText>Learning Modules</GradientText>
         </h1>
-        <button 
-          onClick={handleAddModule}
-          className="btn-primary"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Module
-        </button>
+        {canEditContent() && (
+          <button 
+            onClick={handleAddModule}
+            className="btn-primary"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Module
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -477,6 +527,7 @@ export const CloudSliceModulesPage: React.FC = () => {
             onAddExercise={handleAddExercise}
             onEditExercise={handleEditExercise}
             onDeleteExercise={handleDeleteExercise}
+            canEdit={canEditContent()}
           />
         </div>
 
@@ -511,20 +562,22 @@ export const CloudSliceModulesPage: React.FC = () => {
                     <Clock className="h-4 w-4" />
                     <span>{getActiveModule()?.totalduration || 0} minutes</span>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditModule(getActiveModule()!)}
-                      className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                    >
-                      <Pencil className="h-4 w-4 text-primary-400" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteModule(activeModule)}
-                      className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-400" />
-                    </button>
-                  </div>
+                  {canEditContent() && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditModule(getActiveModule()!)}
+                        className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                      >
+                        <Pencil className="h-4 w-4 text-primary-400" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteModule(activeModule)}
+                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -536,26 +589,30 @@ export const CloudSliceModulesPage: React.FC = () => {
                 <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold">Exercises</h3>
-                    <button
-                      onClick={() => handleAddExercise(activeModule)}
-                      className="btn-secondary"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Exercise
-                    </button>
+                    {canEditContent() && (
+                      <button
+                        onClick={() => handleAddExercise(activeModule)}
+                        className="btn-secondary"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Exercise
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-4">
                     {getActiveModule()?.exercises?.length === 0 ? (
                       <div className="p-6 bg-dark-300/50 rounded-lg text-center">
                         <FileText className="h-12 w-12 text-gray-500 mx-auto mb-2" />
                         <p className="text-gray-400">No exercises available for this module</p>
-                        <button
-                          onClick={() => handleAddExercise(activeModule)}
-                          className="mt-2 text-primary-400 hover:text-primary-300 flex items-center justify-center mx-auto"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add your first exercise
-                        </button>
+                        {canEditContent() && (
+                          <button
+                            onClick={() => handleAddExercise(activeModule)}
+                            className="mt-2 text-primary-400 hover:text-primary-300 flex items-center justify-center mx-auto"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add your first exercise
+                          </button>
+                        )}
                       </div>
                     ) : (
                       getActiveModule()?.exercises?.map((exercise,index) => (
@@ -583,26 +640,36 @@ export const CloudSliceModulesPage: React.FC = () => {
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">{exercise.duration} min</span>
                               </div>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => handleEditExercise(activeModule, exercise)}
-                                  className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                                >
-                                  <Pencil className="h-4 w-4 text-primary-400" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteExercise(activeModule, exercise.id)}
-                                  className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-400" />
-                                </button>
+                              {canEditContent() && (
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleEditExercise(activeModule, exercise)}
+                                    className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Pencil className="h-4 w-4 text-primary-400" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteExercise(activeModule, exercise.id)}
+                                    className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-400" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleExerciseClick(exercise.id)}
+                                    className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                                  >
+                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                  </button>
+                                </div>
+                              )}
+                              {!canEditContent() && (
                                 <button
                                   onClick={() => handleExerciseClick(exercise.id)}
                                   className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                                 >
                                   <ChevronRight className="h-4 w-4 text-gray-400" />
                                 </button>
-                              </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -623,7 +690,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                   ? 'This cloud slice doesn\'t have any learning modules yet. Click the button below to create your first module.'
                   : 'Choose a module from the sidebar to view its content and exercises.'}
               </p>
-              {modules.length === 0 && (
+              {modules.length === 0 && canEditContent() && (
                 <button 
                   onClick={handleAddModule}
                   className="btn-primary"

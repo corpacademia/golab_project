@@ -246,7 +246,6 @@ export const MyLabs: React.FC = () => {
         setIsLoading(false);
       }
       try {
-        console.log(user)
         const cloudSliceResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
         if (cloudSliceResponse.data.success) {
           const cloudSlices = cloudSliceResponse.data.data || [];
@@ -608,12 +607,23 @@ export const MyLabs: React.FC = () => {
     return date.toISOString().slice(0, 19).replace('T', ' ');
   }
 
-  const handleDeleteCloudSlice = (labId: string) => {
+  const handleDeleteCloudSlice =async (labId: string) => {
     // This function will be passed to the CloudSliceCard component
     // It will be called when the user clicks the delete button on a cloud slice lab
-    console.log('Deleting cloud slice lab:', labId);
-    setCloudSliceLabs(prev => prev.filter(lab => lab.id !== labId));
-    setFilteredCloudSliceLabs(prev => prev.filter(lab => lab.id !== labId));
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/deleteUserCloudSlice', {
+        userId: user.id,
+        labId: labId
+      })
+      if(response.data.success){
+        setCloudSliceLabs(prev => prev.filter(lab => lab.labid !== labId));
+      setFilteredCloudSliceLabs(prev => prev.filter(lab => lab.labid !== labId));
+      }
+    } catch (error) {
+      console.error('Error deleting cloud slice:', error);
+    }
+   
+    
   };
 
   if (isLoading) {

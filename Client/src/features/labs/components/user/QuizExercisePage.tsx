@@ -101,38 +101,39 @@ export const QuizExercisePage: React.FC = () => {
     
     try {
       // Submit answers to the server
+      // Calculate results
+      const correctAnswers = quizExercise.questions.filter(q => {
+        const correctOption = q.options.find(o => o.is_correct);
+        return answers[q.id] === correctOption?.option_id;
+      }).length;
+      
+      const incorrectAnswers = quizExercise.questions.length - correctAnswers;
+      const score = Math.round((correctAnswers / quizExercise.questions.length) * 100);
+      
+      const feedback = quizExercise.questions.map(q => {
+        const correctOption = q.options.find(o => o.is_correct);
+        return {
+          questionId: q.id,
+          isCorrect: answers[q.id] === correctOption?.option_id,
+          correctOptionId: correctOption?.option_id
+        };
+      });
+      
+      const result = {
+        score,
+        totalQuestions: quizExercise.questions.length,
+        correctAnswers,
+        incorrectAnswers,
+        feedback
+      };
+
       const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/submit-quiz/${exerciseId}`, {
-        answers,
+        result,
         moduleId
       });
       
       if (response.data.success) {
-        // Calculate results
-        const correctAnswers = quizExercise.questions.filter(q => {
-          const correctOption = q.options.find(o => o.is_correct);
-          return answers[q.id] === correctOption?.option_id;
-        }).length;
-        
-        const incorrectAnswers = quizExercise.questions.length - correctAnswers;
-        const score = Math.round((correctAnswers / quizExercise.questions.length) * 100);
-        
-        const feedback = quizExercise.questions.map(q => {
-          const correctOption = q.options.find(o => o.is_correct);
-          return {
-            questionId: q.id,
-            isCorrect: answers[q.id] === correctOption?.option_id,
-            correctOptionId: correctOption?.option_id
-          };
-        });
-        
-        const result = {
-          score,
-          totalQuestions: quizExercise.questions.length,
-          correctAnswers,
-          incorrectAnswers,
-          feedback
-        };
-        
+          
         setQuizResult(result);
         setNotification({ type: 'success', message: 'Quiz submitted successfully' });
       } else {

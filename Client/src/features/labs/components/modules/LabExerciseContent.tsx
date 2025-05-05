@@ -11,7 +11,8 @@ import {
   Calendar,
   Clock as ClockIcon,
   AlertTriangle,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { Exercise, LabExercise, CleanupPolicy } from '../../types/modules';
 
@@ -22,6 +23,7 @@ interface LabExerciseContentProps {
   onEdit: () => void;
   formatCleanupPolicy: (policy?: CleanupPolicy) => string;
   extractFileName: (filePath: string) => string | null;
+  canEdit: boolean;
 }
 
 export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
@@ -30,7 +32,8 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
   isLoading,
   onEdit,
   formatCleanupPolicy,
-  extractFileName
+  extractFileName,
+  canEdit
 }) => {
   if (isLoading) {
     return (
@@ -48,13 +51,15 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
             <AlertCircle className="h-5 w-5" />
             <p>Lab exercise content not found</p>
           </div>
-          <button
-            onClick={onEdit}
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Lab Content
-          </button>
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="btn-primary"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Lab Content
+            </button>
+          )}
         </div>
       </div>
     );
@@ -64,13 +69,15 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Lab Content</h3>
-        <button
-          onClick={onEdit}
-          className="btn-secondary"
-        >
-          <Pencil className="h-4 w-4 mr-2" />
-          Edit Lab Content
-        </button>
+        {canEdit && (
+          <button
+            onClick={onEdit}
+            className="btn-secondary"
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit Lab Content
+          </button>
+        )}
       </div>
 
       <div className="p-6 bg-dark-300/50 rounded-lg">
@@ -199,7 +206,18 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
 
       {/* Credentials Section */}
       <div className="p-6 bg-dark-300/50 rounded-lg">
-        <h3 className="text-lg font-semibold mb-4">AWS Console Credentials</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">AWS Console Credentials</h3>
+          <a 
+            href="https://console.aws.amazon.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn-secondary flex items-center"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open AWS Console
+          </a>
+        </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
             <div className="flex items-center space-x-3">
@@ -229,13 +247,15 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
                 <p className="font-mono text-gray-300">••••••••••••</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onEdit}
-              className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-            >
-              <Pencil className="h-4 w-4 text-primary-400" />
-            </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+              >
+                <Pencil className="h-4 w-4 text-primary-400" />
+              </button>
+            )}
           </div>
         </div>
       </div>

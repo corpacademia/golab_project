@@ -354,7 +354,7 @@ export const ModularLabPage: React.FC = () => {
                             onClick={() => handleExerciseClick(module.id, exercise)}
                             className={`flex-1 flex items-center space-x-2 p-2 rounded-lg text-left text-sm transition-colors ${
                               exercise.status === 'completed' ? 'bg-emerald-500/10 text-emerald-300' :
-                              exercise.status === 'in-progress' ? 'bg-amber-500/10 text-amber-300' :
+                              exercise.status == 'in-progress' ? 'bg-amber-500/10 text-amber-300' :
                               'text-gray-400 hover:bg-dark-300/70 hover:text-gray-300'
                             }`}
                           >

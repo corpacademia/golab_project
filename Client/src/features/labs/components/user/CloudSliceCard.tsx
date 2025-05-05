@@ -86,7 +86,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
     
     // Simulate API call
     setTimeout(() => {
-      onDelete(lab.id);
+      onDelete(lab.labid);
       setIsDeleting(false);
     }, 1000);
   };

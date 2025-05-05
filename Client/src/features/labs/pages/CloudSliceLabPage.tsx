@@ -38,6 +38,7 @@ export const CloudSliceLabPage: React.FC = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Service selection state
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
@@ -46,6 +47,20 @@ export const CloudSliceLabPage: React.FC = () => {
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
+
+  // Fetch current user
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
 
   // Fetch slice details if not provided in location state
   useEffect(() => {
@@ -106,6 +121,21 @@ export const CloudSliceLabPage: React.FC = () => {
     }
   }, [isEditingServices, sliceDetails?.provider]);
 
+  // Check if current user can edit content
+  const canEditContent = () => {
+    if (!currentUser || !sliceDetails) return false;
+    
+    // Super admin can edit anything
+    if (currentUser.role === 'superadmin') return true;
+    
+    // Org admin can only edit content they created
+    if (currentUser.role === 'orgadmin') {
+      return sliceDetails.createdby === currentUser.id;
+    }
+    
+    return false;
+  };
+
   const handleServiceToggle = (service: string) => {
     setSelectedServices(prev => {
       const exists = prev.includes(service);
@@ -151,6 +181,7 @@ export const CloudSliceLabPage: React.FC = () => {
   };
 
   const handleGoToConsole = () => {
+    window.open('https://console.aws.amazon.com/', '_blank');
     if (sliceDetails?.consoleUrl) {
       window.open(sliceDetails.consoleUrl, '_blank');
     }
@@ -254,43 +285,45 @@ export const CloudSliceLabPage: React.FC = () => {
               <h2 className="text-xl font-semibold">
                 <GradientText>Cloud Services</GradientText>
               </h2>
-              {isEditingServices ? (
-                <div className="flex space-x-3">
+              {canEditContent() ? (
+                isEditingServices ? (
+                  <div className="flex space-x-3">
+                    <button 
+                      onClick={() => {
+                        setIsEditingServices(false);
+                        // Reset to original services
+                        setSelectedServices(sliceDetails?.services || []);
+                      }}
+                      className="btn-secondary text-sm py-1.5 px-3"
+                    >
+                      <X className="h-4 w-4 mr-1.5" />
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={handleSaveServices}
+                      disabled={isSaving}
+                      className="btn-primary text-sm py-1.5 px-3"
+                    >
+                      {isSaving ? (
+                        <Loader className="animate-spin h-4 w-4" />
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-1.5" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
                   <button 
-                    onClick={() => {
-                      setIsEditingServices(false);
-                      // Reset to original services
-                      setSelectedServices(sliceDetails?.services || []);
-                    }}
+                    onClick={() => setIsEditingServices(true)}
                     className="btn-secondary text-sm py-1.5 px-3"
                   >
-                    <X className="h-4 w-4 mr-1.5" />
-                    Cancel
+                    <Edit className="h-4 w-4 mr-1.5" />
+                    Edit Services
                   </button>
-                  <button 
-                    onClick={handleSaveServices}
-                    disabled={isSaving}
-                    className="btn-primary text-sm py-1.5 px-3"
-                  >
-                    {isSaving ? (
-                      <Loader className="animate-spin h-4 w-4" />
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1.5" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setIsEditingServices(true)}
-                  className="btn-secondary text-sm py-1.5 px-3"
-                >
-                  <Edit className="h-4 w-4 mr-1.5" />
-                  Edit Services
-                </button>
-              )}
+                )
+              ) : null}
             </div>
 
             {isEditingServices ? (
@@ -507,7 +540,7 @@ export const CloudSliceLabPage: React.FC = () => {
           
           <button
             onClick={handleGoToConsole}
-            disabled={!sliceDetails?.consoleUrl}
+            // disabled={!sliceDetails?.consoleUrl}
             className="btn-primary w-full"
           >
             <ExternalLink className="h-4 w-4 mr-2" />

@@ -128,8 +128,8 @@ export const LabExercisePage: React.FC = () => {
     ...(location.state?.labExercise || {})
   });
   
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
-  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || 'module-2');
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails );
+  const [moduleId, setModuleId] = useState<string | null>(location.state?.moduleId || null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -138,9 +138,10 @@ export const LabExercisePage: React.FC = () => {
   const [labStarted, setLabStarted] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
+  const [user, setUser] = useState<any>();
   const [resources, setResources] = useState<any[]>(mockResources);
   const [notes, setNotes] = useState('');
+
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -378,7 +379,7 @@ function extractFile_Name(filePath: string) {
               </div>
             )}
             
-            <div className="mt-8">
+            {/* <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4">Notes</h3>
               <textarea
                 value={notes}
@@ -387,7 +388,7 @@ function extractFile_Name(filePath: string) {
                 className="w-full h-32 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
                          text-gray-300 focus:border-primary-500/40 focus:outline-none resize-none"
               />
-            </div>
+            </div> */}
           </div>
         </div>
 

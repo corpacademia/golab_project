@@ -234,11 +234,12 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
         // Determine if this is an update or create operation
         if (quizExercise) {
           console.log('Updating quiz exercise:', formData)
+          console.log(exerciseId)
           // Update existing quiz
           setIsLoading(true);
           const response = await axios.put(`http://localhost:3000/api/v1/cloud_slice_ms/updateQuizExercise`, {
             ...formData,
-            exerciseId
+            exerciseId:formData.exerciseId
           });
           
           if (response.data.success) {
