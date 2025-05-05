@@ -40,6 +40,7 @@ import {
   QuizExercise, 
   CleanupPolicy 
 } from '../types/modules';
+
 export const CloudSliceModulesPage: React.FC = () => {
   const { sliceId } = useParams<{ sliceId: string }>();
   const navigate = useNavigate();
@@ -319,6 +320,13 @@ export const CloudSliceModulesPage: React.FC = () => {
   const handleEditLabExercise = (exerciseId: string) => {
     // Make sure to set the selected lab exercise before opening the modal
     setSelectedLabExercise(labExercises[exerciseId] || null);
+    
+    // Find the exercise in the modules
+    const exercise = findExerciseById(exerciseId);
+    if (exercise) {
+      setSelectedExercise(exercise);
+    }
+    
     setIsEditLabExerciseModalOpen(true);
   };
 
@@ -333,6 +341,13 @@ export const CloudSliceModulesPage: React.FC = () => {
   // CRUD operations for quiz exercises
   const handleEditQuizExercise = (exerciseId: string) => {
     setSelectedQuizExercise(quizExercises[exerciseId] || null);
+    
+    // Find the exercise in the modules
+    const exercise = findExerciseById(exerciseId);
+    if (exercise) {
+      setSelectedExercise(exercise);
+    }
+    
     setIsEditQuizExerciseModalOpen(true);
   };
 
@@ -342,6 +357,17 @@ export const CloudSliceModulesPage: React.FC = () => {
       [exerciseId]: quizExercise
     });
     showNotification('success', 'Quiz updated successfully');
+  };
+
+  // Helper function to find an exercise by ID across all modules
+  const findExerciseById = (exerciseId: string): Exercise | null => {
+    for (const module of modules) {
+      const exercise = module.exercises.find(e => e.id === exerciseId);
+      if (exercise) {
+        return exercise;
+      }
+    }
+    return null;
   };
 
   // Delete confirmation handler
@@ -480,7 +506,7 @@ export const CloudSliceModulesPage: React.FC = () => {
       </div>
     );
   }
-console.log(selectedExercise)
+
   return (
     <div className="space-y-6">
       {notification && (
@@ -615,9 +641,9 @@ console.log(selectedExercise)
                         )}
                       </div>
                     ) : (
-                      getActiveModule()?.exercises?.map((exercise,index) => (
+                      getActiveModule()?.exercises?.map((exercise) => (
                         <div
-                          key={index}
+                          key={exercise.id}
                           className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors"
                         >
                           <div className="flex items-center justify-between">
@@ -710,7 +736,7 @@ console.log(selectedExercise)
         onClose={() => setIsEditModuleModalOpen(false)}
         module={selectedModule}
         onSave={handleSaveModule}
-        labId={sliceId}
+        labId={sliceId || ''}
       />
 
       <EditExerciseModal
