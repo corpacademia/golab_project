@@ -43,11 +43,37 @@ export const useUserLabs = (userId: string) => {
         const filteredCatalogues = cats.filter((cat: any) =>
           labss.some((lab: any) => lab.lab_id === cat.lab_id)
         );
-        setLabs(filteredCatalogues);
+        setLabs(
+          filteredCatalogues.map((lab: any) => ({
+            ...lab,
+            type: 'standard',
+          }))
+        );
+        
+
         setLabStatus(labss);
       } catch (error) {
         console.error('Error fetching labs', error);
-      } finally {
+      }
+      try {
+        const cloudslicelab = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${userId}`);
+        if(cloudslicelab.data.success){
+          setLabs(
+            cloudslicelab.data.data.map((lab: any) => ({
+              ...lab,
+              type: 'standard',
+            }))
+          );
+          
+        }
+        const cloudsliceLabStatus = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${userId}`);
+        if(cloudsliceLabStatus.data.success){
+          setLabStatus(cloudsliceLabStatus.data.data);
+        }
+      } catch (error) {
+        console.error("Error in fetching cloudslice labs",error)
+      } 
+      finally {
         setIsLoading(false);
       }
     };
