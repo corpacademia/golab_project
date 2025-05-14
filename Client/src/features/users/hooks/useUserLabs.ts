@@ -46,7 +46,7 @@ export const useUserLabs = (userId: string) => {
         setLabs(
           filteredCatalogues.map((lab: any) => ({
             ...lab,
-            type: 'standard',
+            type: 'singlevm',
           }))
         );
         
@@ -61,7 +61,7 @@ export const useUserLabs = (userId: string) => {
           setLabs(
             cloudslicelab.data.data.map((lab: any) => ({
               ...lab,
-              type: 'standard',
+              type: 'cloudslice',
             }))
           );
           

@@ -78,7 +78,8 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete, l
         if (!selectedLab.launched) {
           const createIamUser = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
             userName: user.name,
-            services: lab.services
+            services: lab.services,
+            role:user.role
           });
 
           if(createIamUser.data.success){

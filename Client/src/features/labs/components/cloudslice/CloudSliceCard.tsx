@@ -126,7 +126,8 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
         if (slice.modules === 'without-modules') {
           const createIamAccount = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
             userName: user.name,
-            services: slice.services
+            services: slice.services,
+            role:user.role
           });
     
           if (!createIamAccount.data.success) {

@@ -26,41 +26,76 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
   const [availableLabs, setAvailableLabs] = useState<any[]>([]);
-
   useEffect(() => {
     const fetchLabs = async () => {
       try {
-        const [standardResult, cloudResult] = await Promise.allSettled([
-          axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
-            admin_id: user.id,
-          }),
-          axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${userId}`),
-        ]);
-  
-        const allLabs: any[] = [];
-  
-        if (standardResult.status === 'fulfilled' && standardResult.value.data.success) {
-          allLabs.push(
-            ...standardResult.value.data.data.map((lab: any) => ({
-              ...lab,
-              type: 'standard',
-            }))
-          );
-        } else {
-          console.warn('Failed to fetch standard labs:', standardResult);
+        console.log(user.role)
+        if(user.role ==='superadmin'){
+          const [standardResult, cloudResult] = await Promise.allSettled([
+            axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
+              admin_id: user.id,
+            }),
+            axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getAllCloudSliceLabs`),
+          ]);
+          const allLabs: any[] = [];
+    
+          if (standardResult.status === 'fulfilled' && standardResult.value.data.success) {
+            allLabs.push(
+              ...standardResult.value.data.data.map((lab: any) => ({
+                ...lab,
+                type: 'standard',
+              }))
+            );
+          } else {
+            console.warn('Failed to fetch standard labs:', standardResult);
+          }
+    
+          if (cloudResult.status === 'fulfilled' && cloudResult.value.data.success) {
+            allLabs.push(
+              ...cloudResult.value.data.data.map((lab: any) => ({
+                ...lab,
+                type: 'cloudslice',
+              }))
+            );
+          } else {
+            console.warn('Failed to fetch cloudslice labs:', cloudResult);
+          }
+          setAvailableLabs(allLabs);
         }
-  
-        if (cloudResult.status === 'fulfilled' && cloudResult.value.data.success) {
-          allLabs.push(
-            ...cloudResult.value.data.data.map((lab: any) => ({
-              ...lab,
-              type: 'cloudslice',
-            }))
-          );
-        } else {
-          console.warn('Failed to fetch cloudslice labs:', cloudResult);
+        else{
+          const [standardResult, cloudResult] = await Promise.allSettled([
+            axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
+              admin_id: user.id,
+            }),
+            axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabDetails/${user.org_id}`),
+          ]);
+    
+          const allLabs: any[] = [];
+    
+          if (standardResult.status === 'fulfilled' && standardResult.value.data.success) {
+            allLabs.push(
+              ...standardResult.value.data.data.map((lab: any) => ({
+                ...lab,
+                type: 'standard',
+              }))
+            );
+          } else {
+            console.warn('Failed to fetch standard labs:', standardResult);
+          }
+    
+          if (cloudResult.status === 'fulfilled' && cloudResult.value.data.success) {
+            allLabs.push(
+              ...cloudResult.value.data.data.map((lab: any) => ({
+                ...lab,
+                type: 'cloudslice',
+              }))
+            );
+          } else {
+            console.warn('Failed to fetch cloudslice labs:', cloudResult);
+          }
+          setAvailableLabs(allLabs);
         }
-        setAvailableLabs(allLabs);
+        
       } catch (err) {
         console.error('Unexpected error in fetchLabs:', err);
       }
@@ -86,14 +121,24 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
     }
   }, [isOpen]);
 
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
+  const formatDate = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
+    const year = date.getFullYear();
+  
+    let hours = date.getHours(); // 0–23
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}/${month}/${day} ${hours}:${minutes}`;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+  
+    const formattedHours = String(hours).padStart(2, '0');
+  
+    return `${year}/${month}/${day}, ${formattedHours}:${minutes} ${ampm}`;
   };
+  
+  
 
   const handleAssign = async () => {
     if (!selectedLabDetails) return;
@@ -151,7 +196,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   };
 
   if (!isOpen) return null;
-
+  console.log(availableLabs)
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6">
