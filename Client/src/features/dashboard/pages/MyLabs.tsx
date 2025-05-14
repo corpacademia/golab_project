@@ -177,6 +177,7 @@ export const MyLabs: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [cloudInstanceDetails, setCloudInstanceDetails] = useState<LabDetails | undefined>(undefined);
   const [labControls, setLabControls] = useState<Record<string, LabControl>>({});
+  const [userLabStatus,setUserLabStatus] = useState<any>();
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     labId: string;
@@ -201,9 +202,17 @@ export const MyLabs: React.FC = () => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
       setUser(response.data.user);
+      const labStatus = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${response.data.user.id}`);
+      if(labStatus.data.success){
+        setUserLabStatus(labStatus?.data?.data)
+      }
+      
+    
     };
     getUserDetails();
   }, []);
+
+
 
   // Combine all fetch calls into a single useEffect
   useEffect(() => {
@@ -634,7 +643,6 @@ export const MyLabs: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header and Filters */}
@@ -862,6 +870,8 @@ export const MyLabs: React.FC = () => {
                     key={lab.id} 
                     lab={lab} 
                     onDelete={handleDeleteCloudSlice} 
+                    labStatus = {userLabStatus}
+                    user = {user}
                   />
                 ))}
               </div>

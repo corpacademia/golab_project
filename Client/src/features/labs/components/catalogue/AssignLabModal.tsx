@@ -25,7 +25,6 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
 
   const [admin,setAdmin] = useState({});
-
   // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
     const getUserDetails = async () => {

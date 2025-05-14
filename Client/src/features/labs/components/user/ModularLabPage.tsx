@@ -88,30 +88,58 @@ export const ModularLabPage: React.FC = () => {
   // Fetch modules
   useEffect(() => {
     const fetchModules = async () => {
-      if (!labDetails.labid) return;
-      
+      if (!labDetails.labid || !user?.id) return;
+  
       setIsLoading(true);
       setError(null);
-      
+  
       try {
         const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${labDetails.labid}`);
         if (response.data.success) {
           const modulesData = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-          
-          // Sort modules by order
+  
+          // Fetch statuses for all modules in parallel
+          const statusResponses = await Promise.all(
+            modulesData.map(module =>
+              axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData`,{
+                moduleId:module.id,
+                userId:user.id
+              })
+                .then(res => ({ moduleId: module.id, statuses: res.data.data }))
+                .catch(() => ({ moduleId: module.id, statuses: [] })) // Handle errors per request
+            )
+          );
+          console.log(statusResponses)
+          const statusMap = new Map<string, Record<string, string>>(); // moduleId -> { exerciseId: status }
+          statusResponses.forEach(({ moduleId, statuses }) => {
+            const exerciseStatusMap: Record<string, string> = {};
+            statuses.forEach((statusItem: any) => {
+              exerciseStatusMap[statusItem.exercise_id] = statusItem.status;
+            });
+            statusMap.set(moduleId, exerciseStatusMap);
+          });
+  
+          // Process modules with sorted exercises and injected status
           const sortedModules = [...modulesData].sort((a, b) => a.order - b.order);
-          
-          // For each module, sort its exercises by order
-          const processedModules = sortedModules.map(module => ({
-            ...module,
-            exercises: module.exercises ? 
-              [...module.exercises].sort((a, b) => a.order - b.order) : 
-              []
-          }));
-          
+          const processedModules = sortedModules.map(module => {
+            const exerciseStatuses = statusMap.get(module.id) || {};
+            const sortedExercises = module.exercises
+              ? [...module.exercises]
+                  .sort((a, b) => a.order - b.order)
+                  .map((exercise: Exercise) => ({
+                    ...exercise,
+                    status: exerciseStatuses[exercise.id] || 'not-started'
+                  }))
+              : [];
+  
+            return {
+              ...module,
+              exercises: sortedExercises
+            };
+          });
+  
           setModules(processedModules);
-          
-          // Set the first module as active if there are modules
+  
           if (processedModules.length > 0) {
             setActiveModuleId(processedModules[0].id);
           }
@@ -119,7 +147,7 @@ export const ModularLabPage: React.FC = () => {
           throw new Error(response.data.message || 'Failed to fetch modules');
         }
       } catch (err: any) {
-        if (err.response && err.response.status === 404) {
+        if (err.response?.status === 404) {
           console.warn("No modules found. Setting modules to an empty list.");
           setModules([]);
         } else {
@@ -130,10 +158,10 @@ export const ModularLabPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-
+  
     fetchModules();
-  }, [labDetails.labid]);
-
+  }, [labDetails.labid, user]);
+  
   // Fetch lab exercises when a module is selected
   useEffect(() => {
     const fetchLabExercises = async () => { 
@@ -231,6 +259,18 @@ export const ModularLabPage: React.FC = () => {
       });
     }
   };
+
+ const getUniqueExercises = (exercises: Exercise[]): Exercise[] => {
+        const uniqueExercises = new Map<string, Exercise>();
+        
+        exercises.forEach(exercise => {
+          // Use exercise ID as the key to ensure uniqueness
+          if (!uniqueExercises.has(exercise.id)) {
+            uniqueExercises.set(exercise.id, exercise);
+          }
+        });
+        return Array.from(uniqueExercises.values());
+};
 
   if (isLoading) {
     return (
@@ -348,7 +388,7 @@ export const ModularLabPage: React.FC = () => {
 
                   {activeModuleId === module.id && module.exercises && (
                     <div className="ml-6 space-y-1">
-                      {module.exercises.map((exercise) => (
+                      {getUniqueExercises(module.exercises).map((exercise) => (
                         <div key={exercise.id} className="flex items-center">
                           <button
                             onClick={() => handleExerciseClick(module.id, exercise)}
@@ -396,7 +436,7 @@ export const ModularLabPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {modules.find(m => m.id === activeModuleId)?.exercises.map((exercise, index) => (
+                  {getUniqueExercises(modules.find(m => m.id === activeModuleId)?.exercises).map((exercise, index) => (
                     <div 
                       key={exercise.id}
                       onClick={() => handleExerciseClick(activeModuleId, exercise)}

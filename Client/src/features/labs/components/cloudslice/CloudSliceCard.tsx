@@ -47,6 +47,13 @@ interface CloudSlice {
   createdby?: string;
   accounttype?: 'iam' | 'organization';
 }
+interface orgStatus{
+  labid:string;
+  orgid:string,
+  assigned_at:string;
+  assigned_by:string;
+  status:'pending' | 'active' | 'inactive'
+}
 
 interface CloudSliceCardProps {
   slice: CloudSlice;
@@ -54,6 +61,8 @@ interface CloudSliceCardProps {
   onDelete: (sliceId: string) => void;
   isSelected?: boolean;
   onSelect?: (sliceId: string) => void;
+  userRole:string;
+  orgStatus:orgStatus;
   onAssignUsers?: (slice: CloudSlice) => void;
 }
 
@@ -63,6 +72,8 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   onDelete,
   isSelected = false,
   onSelect,
+  userRole,
+  orgStatus,
   onAssignUsers
 }) => {
   const [isLaunching, setIsLaunching] = useState(false);
@@ -71,7 +82,6 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
   const [user, setUser] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -85,40 +95,153 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     fetchUserProfile();
   }, []);
 
+  const getOrgLabStatus = (labId) => {
+    return orgStatus.find(org => org.labid === labId);
+  }
+  
+
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsLaunching(true);
     setNotification(null);
-
-    try {
-      // Call the API endpoint to get lab details
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
-      
-      if (response.data.success) {
-        // Navigate to the appropriate page based on labType
+    if(user.role === 'superadmin'){
+      try {
+        // Always fetch lab details first
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
+        
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Failed to fetch lab details');
+        }
+    
+        // If already launched, skip creation and status update
+        if (slice.launched) {
+          const targetPath = slice.modules === 'without-modules'
+            ? `/dashboard/labs/cloud-slices/${slice.labid}/lab`
+            : `/dashboard/labs/cloud-slices/${slice.labid}/modules`;
+          window.location.href = targetPath;
+          return;
+        }
+    
+        // If not launched, create IAM user and update lab status
         if (slice.modules === 'without-modules') {
+          const createIamAccount = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+            userName: user.name,
+            services: slice.services
+          });
+    
+          if (!createIamAccount.data.success) {
+            throw new Error(createIamAccount.data.message || 'Failed to create IAM user');
+          }
+    
+          const updateLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatus', {
+            labId: slice.labid,
+            createdBy: slice.createdby,
+            status: 'active',
+            launched: true
+          });
+    
+          if (!updateLabStatus.data.success) {
+            throw new Error(updateLabStatus.data.message || 'Failed to update lab status');
+          }
+    
           window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/lab`;
         } else {
+          const updateLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatus', {
+            labId: slice.labid,
+            createdBy: slice.createdby,
+            status: 'active',
+            launched: true
+          });
+    
+          if (!updateLabStatus.data.success) {
+            throw new Error(updateLabStatus.data.message || 'Failed to update lab status');
+          }
           window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/modules`;
         }
-      } else {
-        throw new Error(response.data.message || 'Failed to launch cloud slice');
+    
+      } catch (error: any) {
+        setNotification({ 
+          type: 'error', 
+          message: error.response?.data?.message || error.message || 'Failed to launch cloud slice' 
+        });
+        setTimeout(() => {
+          setNotification(null);
+        }, 3000);
+      } finally {
+        setIsLaunching(false);
       }
-    } catch (error: any) {
-      setNotification({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to launch cloud slice' 
-      });
-      
-      // Clear notification after 3 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
-    } finally {
-      setIsLaunching(false);
     }
-  };
 
+    else{
+      try {
+        // Always fetch lab details first
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${slice.labid}`);
+        
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Failed to fetch lab details');
+        }
+        //get the organization assigned lab status
+        // If already launched, skip creation and status update
+        if (getOrgLabStatus(slice.labid).launched) {
+          const targetPath = slice.modules === 'without-modules'
+            ? `/dashboard/labs/cloud-slices/${slice.labid}/lab`
+            : `/dashboard/labs/cloud-slices/${slice.labid}/modules`;
+          window.location.href = targetPath;
+          return;
+        }
+    
+        // If not launched, create IAM user and update lab status
+        if (slice.modules === 'without-modules') {
+          const createIamAccount = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+            userName: user.name,
+            services: slice.services
+          });
+    
+          if (!createIamAccount.data.success) {
+            throw new Error(createIamAccount.data.message || 'Failed to create IAM user');
+          }
+    
+          const updateLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatusOfOrg', {
+            labId: slice.labid,
+            orgId:getOrgLabStatus(slice.labid).orgid,
+            status: 'active',
+            launched: true,
+          });
+    
+          if (!updateLabStatus.data.success) {
+            throw new Error(updateLabStatus.data.message || 'Failed to update lab status');
+          }
+    
+          window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/lab`;
+        } else {
+          const updateLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatusOfOrg', {
+            labId: slice.labid,
+            orgId:getOrgLabStatus(slice.labid).orgid,
+            status: 'active',
+            launched: true,
+          });
+    
+          if (!updateLabStatus.data.success) {
+            throw new Error(updateLabStatus.data.message || 'Failed to update lab status');
+          }
+          window.location.href = `/dashboard/labs/cloud-slices/${slice.labid}/modules`;
+        }
+    
+      } catch (error: any) {
+        setNotification({ 
+          type: 'error', 
+          message: error.response?.data?.message || error.message || 'Failed to launch cloud slice' 
+        });
+        setTimeout(() => {
+          setNotification(null);
+        }, 3000);
+      } finally {
+        setIsLaunching(false);
+      }
+    }
+   
+  };
+  
   function formatDateTime(dateString) {
     const date = new Date(dateString);
   
@@ -262,12 +385,12 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                 <Trash2 className="h-3.5 w-3.5 text-red-400" />
               </button>
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                slice.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-                slice.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-                slice.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
+                userRole === 'superadmin' ? slice.status : getOrgLabStatus(slice.labid).status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                userRole === 'superadmin' ? slice.status : getOrgLabStatus(slice.labid).status === 'pending' ? 'bg-red-500/20 text-red-300' :
+                userRole === 'superadmin' ? slice.status : getOrgLabStatus(slice.labid).status === 'inactive' ? 'bg-gray-500/20 text-gray-300' :
                 'bg-amber-500/20 text-amber-300'
               }`}>
-                {slice.status}
+                {userRole === 'superadmin' ? slice.status : getOrgLabStatus(slice.labid).status}
               </span>
             </div>
           </div>
@@ -337,14 +460,36 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
                        disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center"
               >
-                {isLaunching ? (
-                  <Loader className="animate-spin h-3.5 w-3.5" />
-                ) : (
-                  <>
-                    <Play className="h-3.5 w-3.5 mr-1.5" />
-                    Launch Lab
-                  </>
-                )}
+             {isLaunching ? (
+  <Loader className="animate-spin h-3.5 w-3.5" />
+) : (
+  <>
+    {userRole === 'superadmin' ? (
+      slice.launched ? (
+        <>
+          <Square className="h-3.5 w-3.5 mr-1.5" />
+          Go to Lab
+        </>
+      ) : (
+        <>
+          <Play className="h-3.5 w-3.5 mr-1.5" />
+          Launch Lab
+        </>
+      )
+    ) : getOrgLabStatus(slice.labid).launched ? (
+      <>
+        <Square className="h-3.5 w-3.5 mr-1.5" />
+        Go to Lab
+      </>
+    ) : (
+      <>
+        <Play className="h-3.5 w-3.5 mr-1.5" />
+        Launch Lab
+      </>
+    )}
+  </>
+)}
+
               </button>
               
               <button

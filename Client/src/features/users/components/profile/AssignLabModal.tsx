@@ -2,118 +2,152 @@ import React, { useEffect, useState } from 'react';
 import { X, BookOpen, AlertCircle, Clock } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface AssignLabModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  user: any;
 }
-
-// Mock available labs - Replace with API call
-// const availableLabs = [
-//   {
-//     id: '1',
-//     title: 'Advanced Cloud Architecture',
-//     description: 'Design and implement scalable cloud solutions',
-//     duration: 180,
-//     technologies: ['AWS', 'Azure', 'GCP']
-//   },
-//   {
-//     id: '2',
-//     title: 'Kubernetes in Production',
-//     description: 'Deploy and manage production-grade Kubernetes clusters',
-//     duration: 240,
-//     technologies: ['Kubernetes', 'Docker', 'Helm']
-//   },
-//   {
-//     id: '3',
-//     title: 'CI/CD Pipeline Implementation',
-//     description: 'Build automated deployment pipelines',
-//     duration: 120,
-//     technologies: ['Jenkins', 'GitLab', 'GitHub Actions']
-//   }
-// ];
 
 export const AssignLabModal: React.FC<AssignLabModalProps> = ({
   isOpen,
   onClose,
-  userId
+  userId,
+  user
 }) => {
   const [selectedLab, setSelectedLab] = useState<string>('');
+  const [selectedLabDetails, setSelectedLabDetails] = useState<any>(null);
   const [duration, setDuration] = useState<number>(0);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
-  const [availableLabs , setAvailableLabs] = useState([]);
-  const [selectedLabDetails , setSelectedLabDetails] = useState();
+  const [availableLabs, setAvailableLabs] = useState<any[]>([]);
 
-  const [admin,setAdmin] = useState({});
-
-  // const admin = JSON.parse(localStorage.getItem('auth') ?? '{}').result || {};
   useEffect(() => {
-    const getUserDetails = async () => {
-      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-      setAdmin(response.data.user);
-    };
-    getUserDetails();
-  }, []);
-  useEffect(()=>{
-       const fetch = async()=>{
-        try {
-          const data = await axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured',{
-            admin_id : admin.id
-        })
-        console.log(data.data.data)
-        setAvailableLabs(data.data.data)
-        } catch (error) {
-          console.log('Error')
+    const fetchLabs = async () => {
+      try {
+        const [standardResult, cloudResult] = await Promise.allSettled([
+          axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
+            admin_id: user.id,
+          }),
+          axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${userId}`),
+        ]);
+  
+        const allLabs: any[] = [];
+  
+        if (standardResult.status === 'fulfilled' && standardResult.value.data.success) {
+          allLabs.push(
+            ...standardResult.value.data.data.map((lab: any) => ({
+              ...lab,
+              type: 'standard',
+            }))
+          );
+        } else {
+          console.warn('Failed to fetch standard labs:', standardResult);
         }
-        
-       }
-       fetch();
-  },[])
+  
+        if (cloudResult.status === 'fulfilled' && cloudResult.value.data.success) {
+          allLabs.push(
+            ...cloudResult.value.data.data.map((lab: any) => ({
+              ...lab,
+              type: 'cloudslice',
+            }))
+          );
+        } else {
+          console.warn('Failed to fetch cloudslice labs:', cloudResult);
+        }
+        setAvailableLabs(allLabs);
+      } catch (err) {
+        console.error('Unexpected error in fetchLabs:', err);
+      }
+    };
+  
+    fetchLabs();
+  }, []);
+  
+
+  useEffect(() => {
+    const lab = availableLabs.find(l => (l.lab_id ?? l.labid) === selectedLab);
+    setSelectedLabDetails(lab);
+  }, [selectedLab, availableLabs]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedLab('');
+      setSelectedLabDetails(null);
+      setDuration(0);
+      setStartTime(null);
+      setEndTime(null);
+      setError(null);
+    }
+  }, [isOpen]);
+
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
+  };
 
   const handleAssign = async () => {
-    if (!selectedLab) {
-      setError('Please select a lab');
-      return;
+    if (!selectedLabDetails) return;
+
+    setError(null);
+
+    if (selectedLabDetails.type === 'cloudslice') {
+      if (!startTime || !endTime) {
+        setError('Please select a valid start and end time');
+        return;
+      }
+      if (endTime <= startTime) {
+        setError('End time must be after start time');
+        return;
+      }
     }
 
-    if (!duration || duration <= 0) {
-      setError('Please specify a valid duration');
-      return;
+    if (selectedLabDetails.type === 'standard') {
+      if (!duration || duration <= 0) {
+        setError('Please enter a valid duration');
+        return;
+      }
     }
-    const lab = availableLabs.filter((lab)=>{
-      return lab.lab_id.includes(selectedLab)
-    })
-    setSelectedLabDetails(lab)
+
     try {
-      const assign = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab',{
-        lab:lab[0],
-        duration:duration,
-        userId:userId,
-        assign_admin_id:admin.id
-      })
-     if(assign.data.success){
-      // onSuccess()
-      setIsAssigning(true);  
-     }
-     
-    } catch (error) {
+      setIsAssigning(true);
+      let res;
+      if (selectedLabDetails.type === 'cloudslice') {
+        const formattedStart = formatDate(startTime!);
+        const formattedEnd = formatDate(endTime!);
+        res = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/assignCloudSlice', {
+          lab: selectedLabDetails.labid,
+          start_date: formattedStart,
+          end_date: formattedEnd,
+          userId,
+          assign_admin_id: user.id
+        });
+      } else {
+        res = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
+          lab: selectedLabDetails,
+          duration,
+          userId,
+          assign_admin_id: user.id
+        });
+      }
+
+      if (res.data.success) {
+        onClose();
+      }
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to assign lab');
+    } finally {
       setIsAssigning(false);
-      setError(error.response.data.message);
     }
-    
-    finally {
-      setIsAssigning(false);
-    }
-    // try {
-      // TODO: Implement API call
-      // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-    //   onClose();
-    // } catch (err) {
-    //   setError('Failed to assign lab. Please try again.');
-    // } 
-    
   };
 
   if (!isOpen) return null;
@@ -147,64 +181,80 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
             >
               <option value="">Select a lab</option>
               {availableLabs.map(lab => (
-                <option key={lab.lab_id} value={lab.lab_id}>
+                <option key={lab.lab_id ?? lab.labid} value={lab.lab_id ?? lab.labid}>
                   {lab.title}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Duration (minutes)
-            </label>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-primary-400" />
-              <input
-                type="number"
-                min="1"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value))}
-                placeholder="Enter duration in minutes"
-                className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         focus:ring-2 focus:ring-primary-500/20 transition-colors"
-              />
+          {selectedLabDetails?.type === 'cloudslice' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Start Time</label>
+                <DatePicker
+                  selected={startTime}
+                  onChange={(date: Date) => setStartTime(date)}
+                  showTimeSelect
+                  timeIntervals={15}
+                  minDate={new Date()}
+                  dateFormat="Pp"
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                            text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">End Time</label>
+                <DatePicker
+                  selected={endTime}
+                  onChange={(date: Date) => setEndTime(date)}
+                  showTimeSelect
+                  timeIntervals={15}
+                  minDate={startTime || new Date()}
+                  dateFormat="Pp"
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                            text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Duration (minutes)
+              </label>
+              <div className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-primary-400" />
+                <input
+                  type="number"
+                  min="1"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value))}
+                  placeholder="Enter duration"
+                  className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
+            </div>
+          )}
 
           {selectedLab && (
             <div className="p-4 bg-dark-300/50 rounded-lg">
               <div className="flex items-center space-x-3 mb-2">
                 <BookOpen className="h-5 w-5 text-primary-400" />
                 <h3 className="font-medium text-gray-200">
-                  {availableLabs.find(l => l.lab_id === selectedLab)?.title}
+                  {selectedLabDetails?.title}
                 </h3>
               </div>
               <p className="text-sm text-gray-400 mb-2">
-                {availableLabs.find(l => l.lab_id === selectedLab)?.description}
+                {selectedLabDetails?.description}
               </p>
               <div className="flex flex-wrap gap-2 mb-2">
-                {/* {availableLabs.find(l => l.lab_id === selectedLab)?.technologies.map(tech => (
-                  <span 
-                    key={tech}
-                    className="px-2 py-1 text-xs font-medium rounded-full
-                             bg-primary-500/20 text-primary-300"
-                  >
-                    {tech}
-                  </span>
-                ))} */}
-                 
-                  <span 
-                    className="px-2 py-1 text-xs font-medium rounded-full
-                             bg-primary-500/20 text-primary-300"
-                  >
-                    {availableLabs.find(l => l.lab_id === selectedLab)?.provider}
-                  </span>
-                
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                  {selectedLabDetails?.provider}
+                </span>
               </div>
               <div className="text-sm text-gray-400">
-                Recommended duration: {availableLabs.find(l => l.lab_id === selectedLab)?.duration} minutes
+                Recommended duration: {selectedLabDetails?.duration} minutes
               </div>
             </div>
           )}
@@ -219,10 +269,7 @@ export const AssignLabModal: React.FC<AssignLabModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4">
-            <button
-              onClick={onClose}
-              className="btn-secondary"
-            >
+            <button onClick={onClose} className="btn-secondary">
               Cancel
             </button>
             <button

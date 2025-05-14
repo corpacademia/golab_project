@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Cloud, 
   MapPin, 
@@ -9,7 +10,8 @@ import {
   Check,
   Layers,
   FileText,
-  Trash2
+  Trash2,
+  Square
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { useNavigate } from 'react-router-dom';
@@ -26,27 +28,71 @@ interface CloudSliceCardProps {
     startdate: string;
     enddate: string;
     modules: 'without-modules' | 'with-modules';
+   
   };
   onDelete: (labId: string) => void;
+  labStatus:{
+    id:string,
+    labid:string,
+    user_id:string,
+    assigned_by:string,
+    assigned_at:string,
+    status:string,
+    start_date:string,
+    end_date:string,
+    launched:boolean,
+    isrunning:boolean,
+  };
+  user:{
+    admin_id:string,
+    created_at:string,
+    email:string,
+    id:string,
+    lastactive:string,
+    name:string,
+    org_id:string,
+    organization:string,
+    organization_type:string,
+    password:string,
+    role:string,
+    status:string
+  }
 }
 
-export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete }) => {
+export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete, labStatus, user }) => {
   const navigate = useNavigate();
   const [isLaunching, setIsLaunching] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
   const [isDeleting, setIsDeleting] = useState(false);
+  //find the exact status based on the labid
+  const selectedLab = labStatus.find(Userlab=>Userlab.labid === lab.labid );
+  // console.log(lab)
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsLaunching(true);
     setNotification(null);
-
-    // Simulate API call
-    setTimeout(() => {
-      // Navigate to the appropriate page based on labType
+  
+    try {
       if (lab.modules === 'without-modules') {
-        navigate(`/dashboard/my-labs/${lab.id}/standard`, { 
-          state: { 
+        // Call createIamUser only if the lab is not already launched
+        if (!selectedLab.launched) {
+          const createIamUser = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+            userName: user.name,
+            services: lab.services
+          });
+
+          if(createIamUser.data.success){
+            const updateUserLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatusOfUser',{
+              status:'active',
+              launched:true,
+              labId:lab.labid,
+              userId:user.id
+            })
+
+            if(updateUserLabStatus.data.success){
+                 // Navigate to standard lab
+        navigate(`/dashboard/my-labs/${lab.id}/standard`, {
+          state: {
             labDetails: {
               ...lab,
               credentials: {
@@ -56,27 +102,82 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
               },
               consoleUrl: 'https://console.aws.amazon.com'
             }
-          } 
+          }
         });
+            }
+          }
+        }
+        else{
+           // Navigate to standard lab
+        navigate(`/dashboard/my-labs/${lab.id}/standard`, {
+          state: {
+            labDetails: {
+              ...lab,
+              credentials: {
+                username: 'lab-user-789',
+                accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+                secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+              },
+              consoleUrl: 'https://console.aws.amazon.com'
+            }
+          }
+        });
+        }
+       
       } else {
-        navigate(`/dashboard/my-labs/${lab.id}/modules`, { 
-          state: { 
-            labDetails: {
-              ...lab,
-              credentials: {
-                username: 'lab-user-789',
-                accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-                secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-              },
-              consoleUrl: 'https://console.aws.amazon.com'
+        if(!selectedLab.launched){
+          const updateUserLabStatus = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatusOfUser',{
+            status:'active',
+            launched:true,
+            labId:lab.labid,
+            userId:user.id
+          })
+          if(updateUserLabStatus.data.success){
+             // Navigate to module-based lab
+             navigate(`/dashboard/my-labs/${lab.id}/modules`, {
+              state: {
+                labDetails: {
+                  ...lab,
+                  credentials: {
+                    username: 'lab-user-789',
+                    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+                    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+                  },
+                  consoleUrl: 'https://console.aws.amazon.com'
+                }
+              }
+            });
+          }
+        }
+        else{
+           // Navigate to module-based lab
+           navigate(`/dashboard/my-labs/${lab.id}/modules`, {
+            state: {
+              labDetails: {
+                ...lab,
+                credentials: {
+                  username: 'lab-user-789',
+                  accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+                  secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+                },
+                consoleUrl: 'https://console.aws.amazon.com'
+              }
             }
-          } 
-        });
+          });
+        }
+         
       }
-      
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to launch lab'
+      });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
       setIsLaunching(false);
-    }, 1500);
+    }
   };
+  
 
   const handleDeleteClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -134,12 +235,12 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
           </div>
           <div className="flex items-center space-x-2 flex-shrink-0">
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              lab.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-              lab.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-              lab.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
+              selectedLab.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+              selectedLab.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+              selectedLab.status === 'expired' ? 'bg-gray-500/20 text-gray-300' :
               'bg-amber-500/20 text-amber-300'
             }`}>
-              {lab.status}
+              {selectedLab.status}
             </span>
             <button
               onClick={handleDeleteClick}
@@ -216,8 +317,19 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete })
               <Loader className="animate-spin h-3.5 w-3.5" />
             ) : (
               <>
+              {selectedLab.launched ? (
+                 <>
+                          <Square className="h-3.5 w-3.5 mr-1.5" />
+                          Go to Lab
+                        </>
+              ):(
+                <>
                 <Play className="h-3.5 w-3.5 mr-1.5" />
                 Launch Lab
+                </>
+                
+              )}
+               
               </>
             )}
           </button>

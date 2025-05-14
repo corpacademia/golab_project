@@ -41,7 +41,7 @@ export const ModuleList: React.FC<ModuleListProps> = ({
   onDeleteExercise,
   canEdit
 }) => {
-  // Function to filter out duplicate exercises based on title
+  // Function to filter out duplicate exercises based on ID
   const getUniqueExercises = (exercises: Exercise[]): Exercise[] => {
     const uniqueExercises = new Map<string, Exercise>();
     
@@ -51,7 +51,6 @@ export const ModuleList: React.FC<ModuleListProps> = ({
         uniqueExercises.set(exercise.id, exercise);
       }
     });
-    
     return Array.from(uniqueExercises.values());
   };
 

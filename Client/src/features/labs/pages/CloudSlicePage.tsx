@@ -45,12 +45,17 @@ export const CloudSlicePage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [assignSlice, setAssignSlice] = useState<CloudSlice | null>(null);
+  const [orgStatus,setOrgStatus] = useState<any>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
         setUser(response.data.user);
+        const orgLabStatus = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${response.data.user.org_id}`)
+        if(orgLabStatus.data.success){
+          setOrgStatus(orgLabStatus.data.data)
+        }
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
       }
@@ -58,6 +63,8 @@ export const CloudSlicePage: React.FC = () => {
 
     fetchUserProfile();
   }, []);
+
+
 
   const fetchCloudSlices = async () => {
     if (!user) return;
@@ -400,6 +407,8 @@ export const CloudSlicePage: React.FC = () => {
                         onDelete={handleDeleteSlice}
                         isSelected={selectedSlices.includes(slice.id)}
                         onSelect={handleSelectSlice}
+                        userRole={user?.role}
+                        orgStatus = {orgStatus}
                         onAssignUsers={user?.role === 'orgadmin' && slice.createdby && slice.createdby !== user.id ? handleAssignUsers : undefined}
                       />
                     ))}

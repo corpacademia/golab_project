@@ -16,39 +16,39 @@ import {
 } from 'lucide-react';
 
 // Mock data for testing UI
-const mockLabDetails = {
-  id: 'lab-123',
-  title: 'AWS Cloud Architecture Lab',
-  description: 'Learn to design and implement scalable cloud architectures using AWS services',
-  provider: 'aws',
-  region: 'us-east-1',
-  services: [
-    'EC2', 
-    'S3', 
-    'RDS', 
-    'Lambda', 
-    'CloudFormation', 
-    'VPC', 
-    'IAM', 
-    'CloudWatch'
-  ],
-  status: 'active',
-  startDate: '2024-04-01T00:00:00Z',
-  endDate: '2024-05-01T00:00:00Z',
-  credentials: {
-    username: 'lab-user-123',
-    accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
-    secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
-  },
-  consoleUrl: 'https://console.aws.amazon.com'
-};
+// const mockLabDetails = {
+//   id: 'lab-123',
+//   title: 'AWS Cloud Architecture Lab',
+//   description: 'Learn to design and implement scalable cloud architectures using AWS services',
+//   provider: 'aws',
+//   region: 'us-east-1',
+//   services: [
+//     'EC2', 
+//     'S3', 
+//     'RDS', 
+//     'Lambda', 
+//     'CloudFormation', 
+//     'VPC', 
+//     'IAM', 
+//     'CloudWatch'
+//   ],
+//   status: 'active',
+//   startDate: '2024-04-01T00:00:00Z',
+//   endDate: '2024-05-01T00:00:00Z',
+//   credentials: {
+//     username: 'lab-user-123',
+//     accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
+//     secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+//   },
+//   consoleUrl: 'https://console.aws.amazon.com'
+// };
 
 export const StandardLabPage: React.FC = () => {
   const { labId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   
-  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails || mockLabDetails);
+  const [labDetails, setLabDetails] = useState<any>(location.state?.labDetails );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -56,8 +56,8 @@ export const StandardLabPage: React.FC = () => {
   const [labStarted, setLabStarted] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [user, setUser] = useState<any>({ id: 'user-123', name: 'Test User' });
-
+  const [user, setUser] = useState<any>();
+console.log(labDetails)
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

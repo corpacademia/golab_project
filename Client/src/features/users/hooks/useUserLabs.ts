@@ -54,6 +54,5 @@ export const useUserLabs = (userId: string) => {
 
     fetchLabs();
   }, [userId, admin]);
-
-  return { labs, labStatus, isLoading };
+  return { labs, labStatus, isLoading,admin };
 };

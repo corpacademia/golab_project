@@ -434,6 +434,19 @@ export const CloudSliceModulesPage: React.FC = () => {
     return match ? match[0] : null;
   }
 
+    const getUniqueExercises = (exercises: Exercise[]): Exercise[] => {
+      const uniqueExercises = new Map<string, Exercise>();
+      
+      exercises.forEach(exercise => {
+        // Use exercise ID as the key to ensure uniqueness
+        if (!uniqueExercises.has(exercise.id)) {
+          uniqueExercises.set(exercise.id, exercise);
+        }
+      });
+      return Array.from(uniqueExercises.values());
+    };
+  
+
   // Helper function to format cleanup policy display
   const formatCleanupPolicy = (policy?: CleanupPolicy): string => {
     if (!policy || !policy.enabled) return 'No cleanup policy';
@@ -641,7 +654,7 @@ export const CloudSliceModulesPage: React.FC = () => {
                         )}
                       </div>
                     ) : (
-                      getActiveModule()?.exercises?.map((exercise) => (
+                      getUniqueExercises( getActiveModule()?.exercises)?.map((exercise) => (
                         <div
                           key={exercise.id}
                           className="p-4 bg-dark-300/50 rounded-lg hover:bg-dark-300 transition-colors"

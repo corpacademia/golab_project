@@ -9,7 +9,7 @@ interface UserLabsSectionProps {
 }
 
 export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
-  const { labs , labStatus , isLoading } = useUserLabs(userId);
+  const { labs , labStatus , isLoading , admin} = useUserLabs(userId);
   const [isAssignModalOpen, setIsAssignModalOpen] = React.useState(false);
   if (isLoading) return <div>Loading labs...</div>;
   return (
@@ -57,6 +57,7 @@ export const UserLabsSection: React.FC<UserLabsSectionProps> = ({ userId }) => {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         userId={userId}
+        user = {admin}
       />
     </div>
   );

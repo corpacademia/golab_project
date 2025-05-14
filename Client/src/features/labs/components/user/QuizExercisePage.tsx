@@ -30,7 +30,41 @@ export const QuizExercisePage: React.FC = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<any | null>(null);
+  const [user, setUser] = useState<any>(null);
 
+
+  
+
+    // Fetch user details
+    useEffect(() => {
+      const fetchUserProfile = async () => {
+        try {
+          const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+          setUser(response.data.user);
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
+        }
+      };
+  
+      fetchUserProfile();
+    }, []);
+  
+    // Fetch quiz result if available
+  useEffect(() => {
+    const fetchQuizResult = async () => {
+      const user_profile = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+          setUser(user_profile.data.user);
+      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData',{
+        moduleId,
+        exerciseId,
+        userId:user_profile.data.user.id
+      });
+      if(response.data.success){
+        setQuizResult(response.data.data)
+      }
+    }
+      fetchQuizResult();
+    },[]);
 
   // Fetch quiz exercise if not provided in location state
   useEffect(() => {
@@ -126,10 +160,10 @@ export const QuizExercisePage: React.FC = () => {
         incorrectAnswers,
         feedback
       };
-
       const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/submit-quiz/${exerciseId}`, {
-        result,
-        moduleId
+        data:result,
+        moduleId,
+        userId: user.id,
       });
       
       if (response.data.success) {
