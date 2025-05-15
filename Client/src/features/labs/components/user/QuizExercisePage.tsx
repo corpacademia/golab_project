@@ -31,9 +31,8 @@ export const QuizExercisePage: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<any | null>(null);
   const [user, setUser] = useState<any>(null);
+  const[isQuizResult,setIsQuizResult] = useState(false);
 
-
-  
 
     // Fetch user details
     useEffect(() => {
@@ -49,22 +48,7 @@ export const QuizExercisePage: React.FC = () => {
       fetchUserProfile();
     }, []);
   
-    // Fetch quiz result if available
-  useEffect(() => {
-    const fetchQuizResult = async () => {
-      const user_profile = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-          setUser(user_profile.data.user);
-      const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData',{
-        moduleId,
-        exerciseId,
-        userId:user_profile.data.user.id
-      });
-      if(response.data.success){
-        setQuizResult(response.data.data)
-      }
-    }
-      fetchQuizResult();
-    },[]);
+    
 
   // Fetch quiz exercise if not provided in location state
   useEffect(() => {
@@ -90,6 +74,35 @@ export const QuizExercisePage: React.FC = () => {
 
     fetchQuizExercise();
   }, [exerciseId, moduleId, quizExercise]);
+
+  // Fetch quiz result if available
+useEffect(() => {
+  const fetchQuizResult = async () => {
+    setIsQuizResult(true);
+    try {
+      
+      const user_profile = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(user_profile.data.user);
+    const response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData',{
+      moduleId,
+      exerciseId,
+      userId:user_profile.data.user.id
+    });
+    if(response.data.success){
+      setQuizResult(response.data.data)
+    }
+    } catch (error) {
+      console.log(error)
+    }
+    finally{
+      setIsQuizResult(false);
+    }
+    
+  }
+    fetchQuizResult();
+  },[]);
+  
+
 
   // Set countdown when quiz exercise is loaded
   useEffect(() => {
@@ -205,13 +218,16 @@ export const QuizExercisePage: React.FC = () => {
     return () => clearInterval(timer);
   }, [countdown, quizResult, answers]);
 
-  if (isLoading) {
+  
+
+  if (isLoading ) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <Loader className="h-8 w-8 text-primary-400 animate-spin" />
       </div>
     );
   }
+  
 
   if (error) {
     return (
@@ -230,6 +246,13 @@ export const QuizExercisePage: React.FC = () => {
     );
   }
 
+  if(isQuizResult){
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -384,7 +407,7 @@ export const QuizExercisePage: React.FC = () => {
               <div className="flex justify-center">
                 <div className="h-32 w-32 rounded-full bg-dark-300/80 border-4 border-primary-500/30 flex items-center justify-center">
                   <div className="text-center">
-                    <span className="text-3xl font-bold text-primary-400">{quizResult.score}%</span>
+                    <span className="text-3xl font-bold text-primary-400">{quizResult?.score}%</span>
                     <p className="text-xs text-gray-400 mt-1">Score</p>
                   </div>
                 </div>
@@ -393,14 +416,14 @@ export const QuizExercisePage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-4 bg-dark-300/50 rounded-lg">
                   <div className="text-2xl font-semibold text-emerald-400">
-                    {quizResult.correctAnswers}
+                    {quizResult?.correctAnswers}
                   </div>
                   <p className="text-sm text-gray-400">Correct</p>
                 </div>
                 
                 <div className="p-4 bg-dark-300/50 rounded-lg">
                   <div className="text-2xl font-semibold text-red-400">
-                    {quizResult.incorrectAnswers}
+                    {quizResult?.incorrectAnswers}
                   </div>
                   <p className="text-sm text-gray-400">Incorrect</p>
                 </div>
@@ -409,9 +432,9 @@ export const QuizExercisePage: React.FC = () => {
               <div className="p-4 bg-dark-300/50 rounded-lg">
                 <h3 className="font-medium text-gray-200 mb-2">Summary</h3>
                 <p className="text-sm text-gray-400">
-                  You answered {quizResult.correctAnswers} out of {quizResult.totalQuestions} questions correctly.
+                  You answered {quizResult?.correctAnswers} out of {quizResult?.totalQuestions} questions correctly.
                 </p>
-                {quizResult.score >= 70 ? (
+                {quizResult?.score >= 70 ? (
                   <div className="mt-2 flex items-center text-emerald-400">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     <span className="text-sm">You passed this quiz!</span>

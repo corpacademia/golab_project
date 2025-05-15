@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   AlertCircle, 
   Plus, 
@@ -15,6 +15,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { Exercise, LabExercise, CleanupPolicy } from '../../types/modules';
+import axios from 'axios';
+import { create } from 'zustand';
 
 interface LabExerciseContentProps {
   exercise: Exercise;
@@ -24,6 +26,8 @@ interface LabExerciseContentProps {
   formatCleanupPolicy: (policy?: CleanupPolicy) => string;
   extractFileName: (filePath: string) => string | null;
   canEdit: boolean;
+  user:any;
+  labId:string;
 }
 
 export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
@@ -33,9 +37,102 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
   onEdit,
   formatCleanupPolicy,
   extractFileName,
-  canEdit
+  canEdit,
+  user,
+  labId
 }) => {
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [checked,setChecking]= useState(false);
+  const [credentials,setCredentials]= useState<any>();
+
+//check account is created
+  useEffect(()=>{
+    const checkAccountStatus = async()=>{
+      try {
+        setChecking(true);
+        if(user.role === 'superadmin'){
+          const createdByAccountStatus = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getCloudSliceDetails/${labId}`);
+          const status = createdByAccountStatus.data.data
+          if(createdByAccountStatus.data.success){
+             if(status.username != null && status.password !=null && status.console_url){
+              setCredentials(status)
+              setAccountCreated(true)
+              
+             }
+             else setAccountCreated(false);
+          }
+        }
+        else{
+          const orgAccountStatus = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${user.org_id}`)
+          const status = orgAccountStatus.data.data.find((lab)=>lab.labid === labId);
+          if(orgAccountStatus.data.success){
+            if(status.username != null && status.password !=null && status.console_url){
+              setCredentials(status)
+              setAccountCreated(true)
+              
+             }
+             else setAccountCreated(false);
+          }
+        }
+        
+      } catch (error) {
+        console.log(error);
+      }
+      finally{
+        setChecking(false);
+      }
+        
+    }
+    checkAccountStatus();
+  },[])
+
+  const handleCreateAccount = async () => {
+    setIsCreatingAccount(true);
+    setError(null);
+    
+    try {
+      let response;
+      if(user.role === 'superadmin'){
+        response = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+          userName: user.name, 
+          services: labExercise?.services || [],
+          role: user.role,
+          labid:labId
+        });
+      }
+      else if(user.role === 'orgadmin'){
+        response = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+          userName: user.name, 
+          services: labExercise?.services || [],
+          role: user.role,
+          labid:labId,
+          orgid:user.org_id
+        });
+      }
+       
+      
+      if (response.data.success) {
+        setAccountCreated(true);
+      } else {
+        throw new Error(response.data.message || 'Failed to create IAM user');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create IAM user');
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
   if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+  if (checked) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
@@ -64,21 +161,40 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Lab Content</h3>
-        {canEdit && (
-          <button
-            onClick={onEdit}
-            className="btn-secondary"
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Lab Content
-          </button>
-        )}
+        <div className="flex space-x-3">
+          {!accountCreated && (
+            <button
+              onClick={handleCreateAccount}
+              disabled={isCreatingAccount}
+              className="btn-primary"
+            >
+              {isCreatingAccount ? 'Creating...' : 'Create Account'}
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={onEdit}
+              className="btn-secondary"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Lab Content
+            </button>
+          )}
+        </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-5 w-5 text-red-400" />
+            <span className="text-red-200">{error}</span>
+          </div>
+        </div>
+      )}
 
       <div className="p-6 bg-dark-300/50 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Instructions</h3>
@@ -205,21 +321,22 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
       </div>
 
       {/* Credentials Section */}
-      <div className="p-6 bg-dark-300/50 rounded-lg">
+      <div className={`p-6 bg-dark-300/50 rounded-lg ${!accountCreated ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">AWS Console Credentials</h3>
           <a 
-            href="https://console.aws.amazon.com" 
+            href={credentials?.console_url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="btn-secondary flex items-center"
+            className={`btn-secondary flex items-center ${!accountCreated ? 'cursor-not-allowed' : ''}`}
+            onClick={(e) => !accountCreated && e.preventDefault()}
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Open AWS Console
           </a>
         </div>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
+          {/* <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
             <div className="flex items-center space-x-3">
               <Key className="h-5 w-5 text-primary-400" />
               <div>
@@ -227,14 +344,14 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
                 <p className="font-mono text-gray-300">{labExercise?.credentials?.accessKeyId || '123456'}</p>
               </div>
             </div>
-          </div>
+          </div> */}
           
           <div className="flex items-center justify-between p-3 bg-dark-400/50 rounded-lg">
             <div className="flex items-center space-x-3">
               <User className="h-5 w-5 text-primary-400" />
               <div>
                 <p className="text-sm text-gray-400">Username</p>
-                <p className="font-mono text-gray-300">{labExercise?.credentials?.username || '123456'}</p>
+                <p className="font-mono text-gray-300">{credentials?.username || '123456'}</p>
               </div>
             </div>
           </div>
@@ -244,7 +361,7 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
               <Lock className="h-5 w-5 text-primary-400" />
               <div>
                 <p className="text-sm text-gray-400">Password</p>
-                <p className="font-mono text-gray-300">••••••••••••</p>
+                <p className="font-mono text-gray-300">{credentials?.password}</p>
               </div>
             </div>
             {canEdit && (

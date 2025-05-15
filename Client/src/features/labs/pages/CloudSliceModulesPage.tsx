@@ -468,7 +468,6 @@ export const CloudSliceModulesPage: React.FC = () => {
   const renderExerciseContent =  () => {
     const exercise = getActiveExercise();
     if (!exercise) return null;
-
     if (exercise.type === 'lab') {
       return (
         <LabExerciseContent
@@ -479,6 +478,8 @@ export const CloudSliceModulesPage: React.FC = () => {
           formatCleanupPolicy={formatCleanupPolicy}
           extractFileName={extractFile_Name}
           canEdit={canEditContent()}
+          user={currentUser}
+          labId={sliceId}
         />
       );
     } 
