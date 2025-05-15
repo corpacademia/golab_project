@@ -465,7 +465,7 @@ export const CloudSliceModulesPage: React.FC = () => {
     }
   };
 
-  const renderExerciseContent = () => {
+  const renderExerciseContent =  () => {
     const exercise = getActiveExercise();
     if (!exercise) return null;
 

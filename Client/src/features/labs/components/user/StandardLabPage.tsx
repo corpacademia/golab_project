@@ -14,6 +14,7 @@ import {
   Play,
   Square
 } from 'lucide-react';
+import axios from 'axios';
 
 // Mock data for testing UI
 // const mockLabDetails = {
@@ -57,7 +58,31 @@ export const StandardLabPage: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [user, setUser] = useState<any>();
-console.log(labDetails)
+  const [userLabStatus,setUserLabStatus]= useState<any>();
+  useEffect(()=>{
+    const fetchUserDetails = async()=>{
+      try {
+        setIsLoading(true);
+        const user_details = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(user_details.data.user)
+        const userLabStatus = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${user_details.data.user.id}`);
+        if(userLabStatus.data.success){
+          let labstatus = userLabStatus.data.data.find((lab)=>lab.labid === labDetails.labid);
+          setUserLabStatus(labstatus);
+          setLabStarted(labstatus.isrunning);
+        }
+      } catch (error) {
+        console.log(error)
+      }
+      finally{
+        setIsLoading(false);
+      }
+    }
+    fetchUserDetails();
+  },[])
+ 
+  
+
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -66,22 +91,29 @@ console.log(labDetails)
     
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
   // Start lab
   const handleStartLab = async () => {
     setIsStarting(true);
     setNotification(null);
     
     // Simulate API call
-    setTimeout(() => {
-      setLabStarted(true);
-      setNotification({ type: 'success', message: 'Lab started successfully' });
-      setCountdown(60 * 60); // 1 hour countdown
-      setIsStarting(false);
-      
-      // Clear notification after 3 seconds
-      setTimeout(() => setNotification(null), 3000);
-    }, 1500);
+    const updateRunningState = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceRunningStateOfUser`,{
+      isRunning:true,
+      labId:labDetails?.labid,
+      userId:user?.id
+    })
+    if(updateRunningState.data.success){
+      setTimeout(() => {
+        setLabStarted(true);
+        setNotification({ type: 'success', message: 'Lab started successfully' });
+        setCountdown(60 * 60); // 1 hour countdown
+        setIsStarting(false);
+        
+        // Clear notification after 3 seconds
+        setTimeout(() => setNotification(null), 3000);
+      }, 1500);
+    }
+    
   };
 
   // Stop lab
@@ -90,15 +122,23 @@ console.log(labDetails)
     setNotification(null);
     
     // Simulate API call
-    setTimeout(() => {
-      setLabStarted(false);
-      setNotification({ type: 'success', message: 'Lab stopped successfully' });
-      setCountdown(null);
-      setIsStopping(false);
-      
-      // Clear notification after 3 seconds
-      setTimeout(() => setNotification(null), 3000);
-    }, 1500);
+    const updateRunningState = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceRunningStateOfUser`,{
+      isRunning:false,
+      labId:labDetails?.labid,
+      userId:user?.id
+    })
+    if(updateRunningState.data.success){
+      setTimeout(() => {
+        setLabStarted(false);
+        setNotification({ type: 'success', message: 'Lab stopped successfully' });
+        setCountdown(null);
+        setIsStopping(false);
+        
+        // Clear notification after 3 seconds
+        setTimeout(() => setNotification(null), 3000);
+      }, 1500);
+    }
+   
   };
 
   // Countdown timer
@@ -142,7 +182,6 @@ console.log(labDetails)
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -242,21 +281,21 @@ console.log(labDetails)
                   <User className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.username || 'Not available'}
+                  {userLabStatus?.username || 'Not available'}
                 </p>
               </div>
               
               <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-400">Access Key ID</span>
+                  <span className="text-sm text-gray-400">Password</span>
                   <Key className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.accessKeyId || 'Not available'}
+                  {userLabStatus?.password || 'Not available'}
                 </p>
               </div>
               
-              <div className="p-3 bg-dark-300/50 rounded-lg">
+              {/* <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-400">Secret Access Key</span>
                   <Key className="h-4 w-4 text-primary-400" />
@@ -264,7 +303,7 @@ console.log(labDetails)
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
                   {labDetails?.credentials?.secretAccessKey || 'Not available'}
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
           
@@ -287,9 +326,9 @@ console.log(labDetails)
              labStarted ? 'Stop Lab' : 'Start Lab'}
           </button>
           
-          {labStarted && labDetails?.consoleUrl && (
+          {labStarted && userLabStatus?.console_url && (
             <button
-              onClick={() => window.open(labDetails.consoleUrl, '_blank')}
+              onClick={() => window.open(userLabStatus?.console_url, '_blank')}
               className="btn-secondary w-full"
             >
               <ExternalLink className="h-4 w-4 mr-2" />

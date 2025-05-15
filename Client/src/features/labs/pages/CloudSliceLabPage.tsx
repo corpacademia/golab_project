@@ -39,6 +39,7 @@ export const CloudSliceLabPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [orgLabStatus,setOrgLabStatus] = useState<any>(null);
   
   // Service selection state
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
@@ -47,21 +48,31 @@ export const CloudSliceLabPage: React.FC = () => {
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
-
+  const [fetching , setFetching] = useState(false);
   // Fetch current user
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
+        setFetching(true);
         const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
         setCurrentUser(response.data.user);
+        if(response.data.user.role === 'orgadmin'){
+          const orgLabDetails = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getOrgAssignedLabs/${response.data.user.org_id}`)
+          if(orgLabDetails.data.success){
+
+            setOrgLabStatus(orgLabDetails.data.data.find((lab)=>lab.labid === sliceId));
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch current user:', error);
+      }
+      finally{
+        setFetching(false);
       }
     };
     
     fetchCurrentUser();
   }, []);
-
   // Fetch slice details if not provided in location state
   useEffect(() => {
     if (!sliceDetails && sliceId) {
@@ -151,23 +162,30 @@ export const CloudSliceLabPage: React.FC = () => {
     setNotification(null);
     
     try {
-      const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceServices/${sliceId}`, {
-        services: selectedServices
-      });
-      
-      if (response.data.success) {
-        setNotification({ type: 'success', message: 'Services updated successfully' });
-        setIsEditingServices(false);
-        
-        // Update slice details with new services
-        setSliceDetails(prev => ({
-          ...prev,
+      const updateServices = await axios.post(`http://localhost:3000/api/v1/aws_ms/editAwsServices`,{
+        userName:sliceDetails.username,
+        services:selectedServices
+      })
+      if(updateServices.data.success){
+        const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceServices/${sliceId}`, {
           services: selectedServices
-        }));
+        });
         
-        setTimeout(() => setNotification(null), 3000);
-      } else {
-        throw new Error(response.data.message || 'Failed to update services');
+        if (response.data.success) {
+          setNotification({ type: 'success', message: 'Services updated successfully' });
+          setIsEditingServices(false);
+          
+          // Update slice details with new services
+          setSliceDetails(prev => ({
+            ...prev,
+            services: selectedServices
+          }));
+          
+          setTimeout(() => setNotification(null), 3000);
+        }
+      }
+     else {
+        throw new Error(updateServices.data.message || 'Failed to update services');
       }
     } catch (err: any) {
       setNotification({ 
@@ -179,11 +197,13 @@ export const CloudSliceLabPage: React.FC = () => {
       setIsSaving(false);
     }
   };
-
   const handleGoToConsole = () => {
-    window.open('https://console.aws.amazon.com/', '_blank');
-    if (sliceDetails?.consoleUrl) {
-      window.open(sliceDetails.consoleUrl, '_blank');
+   
+    if (sliceDetails?.console_url) {
+      window.open(sliceDetails.console_url, '_blank');
+    }
+    else{
+      window.open('https://console.aws.amazon.com/', '_blank');
     }
   };
 
@@ -206,7 +226,13 @@ export const CloudSliceLabPage: React.FC = () => {
       </div>
     );
   }
-
+  if(fetching){
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader className="h-8 w-8 text-primary-400 animate-spin" />
+      </div>
+    );
+  }
   if (error) {
     return (
       <div className="glass-panel p-6 text-center">
@@ -223,7 +249,6 @@ export const CloudSliceLabPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -512,21 +537,21 @@ export const CloudSliceLabPage: React.FC = () => {
                   <User className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {sliceDetails?.credentials?.username || 'Not available'}
+                  {currentUser.role === 'superadmin' ? sliceDetails?.username : orgLabStatus.username || 'Not available'}
                 </p>
               </div>
               
               <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-400">Access Key ID</span>
+                  <span className="text-sm text-gray-400">Password</span>
                   <Key className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {sliceDetails?.credentials?.accessKeyId || 'Not available'}
+                {currentUser.role === 'superadmin' ? sliceDetails?.password : orgLabStatus.password || 'Not available'}
                 </p>
               </div>
               
-              <div className="p-3 bg-dark-300/50 rounded-lg">
+              {/* <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm text-gray-400">Secret Access Key</span>
                   <Key className="h-4 w-4 text-primary-400" />
@@ -534,7 +559,7 @@ export const CloudSliceLabPage: React.FC = () => {
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
                   {sliceDetails?.credentials?.secretAccessKey || 'Not available'}
                 </p>
-              </div>
+              </div> */}
             </div>
           </div>
           
