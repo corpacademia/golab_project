@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { 
@@ -12,11 +12,9 @@ import {
   Check,
   Clock,
   Play,
-  Square,
-  FileText,
-  Download,
-  Send
+  Square
 } from 'lucide-react';
+import axios from 'axios';
 
 // Mock data for testing UI
 const mockExercise = {
@@ -141,6 +139,47 @@ export const LabExercisePage: React.FC = () => {
   const [user, setUser] = useState<any>();
   const [resources, setResources] = useState<any[]>(mockResources);
   const [notes, setNotes] = useState('');
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [isCheckingAccount, setIsCheckingAccount] = useState(true);
+  const [credentials, setCredentials] = useState<any>(null);
+  const [buttonLabel, setButtonLabel] = useState<'Start Lab' | 'Resume Lab' | 'Stop Lab'>('Start Lab');
+
+  // Check if account is already created
+  useEffect(() => {
+    const checkAccountStatus = async () => {
+      try {
+        setIsCheckingAccount(true);
+        const userResponse = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(userResponse.data.user);
+        
+        // Check if IAM account is already created
+        const accountStatusResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${userResponse.data.user.id}`);
+        const accountData = accountStatusResponse.data.data.find((lab)=>lab.labid === labDetails.labid);
+        
+        if (accountData && accountData.username && accountData.password && accountData.console_url) {
+          setCredentials(accountData);
+          setAccountCreated(true);
+          
+          // Check if lab is running to set the correct button state
+          if (accountData.isrunning) {
+            setLabStarted(true);
+            setButtonLabel('Stop Lab');
+          } else if (accountData.launched) {
+            setButtonLabel('Resume Lab');
+          }
+        } else {
+          setAccountCreated(false);
+          setButtonLabel('Start Lab');
+        }
+      } catch (error) {
+        console.error('Error checking account status:', error);
+      } finally {
+        setIsCheckingAccount(false);
+      }
+    };
+    
+    checkAccountStatus();
+  }, [labDetails?.labid]);
 
   // Format time remaining
   const formatTimeRemaining = (seconds: number): string => {
@@ -156,16 +195,64 @@ export const LabExercisePage: React.FC = () => {
     setIsStarting(true);
     setNotification(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      setLabStarted(true);
-      setNotification({ type: 'success', message: 'Lab started successfully' });
-      setCountdown(exercise.duration * 60); // Convert minutes to seconds
+    try {
+      if (!accountCreated) {
+        // Create IAM user account if not already created
+        const createIamResponse = await axios.post('http://localhost:3000/api/v1/aws_ms/createIamUser', {
+          userName: user.name,
+          services: exercise?.services || [],
+          role: user.role,
+          labid: labDetails?.labid,
+          user_id:user.id
+        });
+        
+        if (createIamResponse.data.success) {
+          // Get the updated account details
+          const accountDetailsResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${user.id}`);
+          setCredentials(accountDetailsResponse.data.data.find((lab)=>lab.labid === labDetails.labid));
+          setAccountCreated(true);
+          
+          // Update lab status
+          await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateLabStatusOfUser', {
+            status: 'active',
+            launched: true,
+            isRunning: true,
+            labId: labDetails?.labid,
+            userId: user.id
+          });
+          
+          setLabStarted(true);
+          setButtonLabel('Stop Lab');
+          setNotification({ type: 'success', message: 'Lab started successfully' });
+          setCountdown(exercise.duration * 60); // Convert minutes to seconds
+        } else {
+          throw new Error(createIamResponse.data.message || 'Failed to create account');
+        }
+      } else if (buttonLabel === 'Resume Lab') {
+        // Resume lab that was previously stopped
+        await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceRunningStateOfUser', {
+          isRunning: true,
+          labId: labDetails?.labid,
+          userId: user?.id
+        });
+        const editAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/editAwsServices',{
+          userName:credentials.username,
+          services:exercise.services
+        });
+        setLabStarted(true);
+        setButtonLabel('Stop Lab');
+        setNotification({ type: 'success', message: 'Lab resumed successfully' });
+        setCountdown(exercise.duration * 60); // Reset countdown
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to start lab'
+      });
+    } finally {
       setIsStarting(false);
-      
-      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }, 1500);
+    }
   };
 
   // Stop lab
@@ -173,16 +260,27 @@ export const LabExercisePage: React.FC = () => {
     setIsStopping(true);
     setNotification(null);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Update lab running state to false
+      await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceRunningStateOfUser', {
+        isRunning: false,
+        labId: labDetails?.labid,
+        userId: user?.id
+      });
+      
       setLabStarted(false);
+      setButtonLabel('Resume Lab');
       setNotification({ type: 'success', message: 'Lab stopped successfully' });
       setCountdown(null);
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to stop lab'
+      });
+    } finally {
       setIsStopping(false);
-      
-      // Clear notification after 3 seconds
       setTimeout(() => setNotification(null), 3000);
-    }, 1500);
+    }
   };
 
   // Submit exercise
@@ -191,12 +289,20 @@ export const LabExercisePage: React.FC = () => {
     setNotification(null);
     
     // Simulate API call
+    const submit = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/addLabStatusOfUser',{
+      module_id:moduleId,
+      exercise_id:exercise?.id,
+      isrunning:true,
+      status:'completed',
+      completed_in:'',
+      user_id:user?.id
+    })
     setTimeout(() => {
       setNotification({ type: 'success', message: 'Exercise submitted successfully' });
       
       // Navigate back after submission
       setTimeout(() => {
-        navigate(`/dashboard/my-labs/${labDetails?.id}/modules`, {
+        navigate(`/dashboard/my-labs/${labDetails?.labid}/modules`, {
           state: { labDetails }
         });
       }, 1500);
@@ -222,11 +328,11 @@ export const LabExercisePage: React.FC = () => {
     return () => clearInterval(timer);
   }, [countdown, labStarted]);
 
-//function to extract the exact filename from the url
-function extractFile_Name(filePath: string) {
-  const match = filePath.match(/[^\\\/]+$/);
-  return match ? match[0] : null;
-}
+  // Function to extract the exact filename from the url
+  function extractFile_Name(filePath: string) {
+    const match = filePath.match(/[^\\\/]+$/);
+    return match ? match[0] : null;
+  }
 
   if (isLoading) {
     return (
@@ -249,6 +355,15 @@ function extractFile_Name(filePath: string) {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </button>
+      </div>
+    );
+  }
+
+  if (isCheckingAccount) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader className="h-8 w-8 text-primary-400 animate-spin mr-3" />
+        <span className="text-gray-300">Checking account status...</span>
       </div>
     );
   }
@@ -285,19 +400,19 @@ function extractFile_Name(filePath: string) {
               onClick={labStarted ? handleStopLab : handleStartLab}
               disabled={isStarting || isStopping}
               className={`btn-primary ${
-                labStarted ? 'bg-red-500 hover:bg-red-600' : ''
+                buttonLabel === 'Stop Lab' ? 'bg-red-500 hover:bg-red-600' : ''
               }`}
             >
               {isStarting || isStopping ? (
                 <Loader className="h-4 w-4 mr-2 animate-spin" />
-              ) : labStarted ? (
+              ) : buttonLabel === 'Stop Lab' ? (
                 <Square className="h-4 w-4 mr-2" />
               ) : (
                 <Play className="h-4 w-4 mr-2" />
               )}
               {isStarting ? 'Starting...' : 
                isStopping ? 'Stopping...' : 
-               labStarted ? 'Stop' : 'Start'}
+               buttonLabel}
             </button>
             
             <button
@@ -308,7 +423,7 @@ function extractFile_Name(filePath: string) {
               {isSubmitting ? (
                 <Loader className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Send className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-2" />
               )}
               Submit
             </button>
@@ -344,14 +459,14 @@ function extractFile_Name(filePath: string) {
               <h2 className="text-xl font-semibold">
                 <GradientText>Instructions</GradientText>
               </h2>
-              <FileText className="h-5 w-5 text-primary-400" />
+              <Clock className="h-5 w-5 text-primary-400" />
             </div>
 
             <div className="prose prose-invert prose-primary max-w-none">
               <div dangerouslySetInnerHTML={{ __html: exercise?.instructions || '<p>No instructions provided for this exercise.</p>' }} />
             </div>
             
-            {exercise.files.length > 0 && (
+            {exercise.files && exercise.files.length > 0 && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Resources</h3>
                 <div className="space-y-2">
@@ -361,40 +476,29 @@ function extractFile_Name(filePath: string) {
                       className="p-3 bg-dark-300/50 rounded-lg flex items-center justify-between"
                     >
                       <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-primary-400" />
+                        <User className="h-4 w-4 text-primary-400" />
                         <span className="text-sm text-gray-300">{extractFile_Name(resource)}</span>
                       </div>
                       <a
                         href={`http://localhost:3006/uploads/${extractFile_Name(resource)}`}
                         download
-                        target= '_blank' 
+                        target="_blank" 
                         rel="noopener noreferrer"
                         className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                       >
-                        <Download className="h-4 w-4 text-primary-400" />
+                        <ExternalLink className="h-4 w-4 text-primary-400" />
                       </a>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            
-            {/* <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Notes</h3>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add your notes or observations here..."
-                className="w-full h-32 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none resize-none"
-              />
-            </div> */}
           </div>
         </div>
 
         {/* Right Column - Credentials & Actions */}
         <div className="space-y-6">
-          <div className="glass-panel">
+          <div className={`glass-panel ${!accountCreated || !labStarted ? 'opacity-50 pointer-events-none' : ''}`}>
             <h2 className="text-xl font-semibold mb-6">
               <GradientText>Access Credentials</GradientText>
             </h2>
@@ -406,10 +510,9 @@ function extractFile_Name(filePath: string) {
                   <User className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.username || 'Not available'}
+                  {credentials?.username || 'Not available'}
                 </p>
               </div>
-              
               
               <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
@@ -417,21 +520,20 @@ function extractFile_Name(filePath: string) {
                   <Key className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.password || 'Not available'}
+                  {credentials?.password || 'Not available'}
                 </p>
               </div>
             </div>
           </div>
           
-          {labStarted && labDetails?.consoleUrl && (
-            <button
-              onClick={() => window.open(labDetails.consoleUrl, '_blank')}
-              className="btn-secondary w-full"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open AWS Console
-            </button>
-          )}
+          <button
+            onClick={() => window.open(credentials?.console_url || labDetails?.consoleUrl, '_blank')}
+            disabled={!accountCreated || !labStarted}
+            className={`btn-secondary w-full ${!accountCreated || !labStarted ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open AWS Console
+          </button>
           
           <div className="glass-panel">
             <h2 className="text-xl font-semibold mb-6">

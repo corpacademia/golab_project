@@ -416,14 +416,14 @@ useEffect(() => {
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="p-4 bg-dark-300/50 rounded-lg">
                   <div className="text-2xl font-semibold text-emerald-400">
-                    {quizResult?.correctAnswers}
+                    {quizResult?.correct}
                   </div>
                   <p className="text-sm text-gray-400">Correct</p>
                 </div>
                 
                 <div className="p-4 bg-dark-300/50 rounded-lg">
                   <div className="text-2xl font-semibold text-red-400">
-                    {quizResult?.incorrectAnswers}
+                    {quizResult?.incorrect}
                   </div>
                   <p className="text-sm text-gray-400">Incorrect</p>
                 </div>
@@ -432,7 +432,7 @@ useEffect(() => {
               <div className="p-4 bg-dark-300/50 rounded-lg">
                 <h3 className="font-medium text-gray-200 mb-2">Summary</h3>
                 <p className="text-sm text-gray-400">
-                  You answered {quizResult?.correctAnswers} out of {quizResult?.totalQuestions} questions correctly.
+                  You answered {quizResult?.correct} out of {quizResult?.total_questions} questions correctly.
                 </p>
                 {quizResult?.score >= 70 ? (
                   <div className="mt-2 flex items-center text-emerald-400">

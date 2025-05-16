@@ -109,7 +109,6 @@ export const ModularLabPage: React.FC = () => {
                 .catch(() => ({ moduleId: module.id, statuses: [] })) // Handle errors per request
             )
           );
-          console.log(statusResponses)
           const statusMap = new Map<string, Record<string, string>>(); // moduleId -> { exerciseId: status }
           statusResponses.forEach(({ moduleId, statuses }) => {
             const exerciseStatusMap: Record<string, string> = {};
