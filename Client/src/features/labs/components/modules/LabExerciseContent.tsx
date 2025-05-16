@@ -57,8 +57,12 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
           const status = createdByAccountStatus.data.data
           if(createdByAccountStatus.data.success){
              if(status.username != null && status.password !=null && status.console_url){
-              setCredentials(status)
-              setAccountCreated(true)
+              setCredentials(status);
+              setAccountCreated(true);
+              const editAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/editAwsServices',{
+                userName:status.username,
+                services:labExercise.services
+              });
               
              }
              else setAccountCreated(false);
@@ -70,7 +74,11 @@ export const LabExerciseContent: React.FC<LabExerciseContentProps> = ({
           if(orgAccountStatus.data.success){
             if(status.username != null && status.password !=null && status.console_url){
               setCredentials(status)
-              setAccountCreated(true)
+              setAccountCreated(true);
+              const editAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/editAwsServices',{
+                userName:status.username,
+                services:labExercise.services
+              });
               
              }
              else setAccountCreated(false);

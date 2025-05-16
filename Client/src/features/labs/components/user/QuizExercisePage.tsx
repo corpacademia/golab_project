@@ -89,7 +89,7 @@ useEffect(() => {
       userId:user_profile.data.user.id
     });
     if(response.data.success){
-      setQuizResult(response.data.data)
+      setQuizResult(response.data.data[0])
     }
     } catch (error) {
       console.log(error)

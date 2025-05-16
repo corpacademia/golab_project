@@ -410,23 +410,14 @@ function extractFile_Name(filePath: string) {
                 </p>
               </div>
               
-              <div className="p-3 bg-dark-300/50 rounded-lg">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-400">Access Key ID</span>
-                  <Key className="h-4 w-4 text-primary-400" />
-                </div>
-                <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.accessKeyId || 'Not available'}
-                </p>
-              </div>
               
               <div className="p-3 bg-dark-300/50 rounded-lg">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-gray-400">Secret Access Key</span>
+                  <span className="text-sm text-gray-400">Password</span>
                   <Key className="h-4 w-4 text-primary-400" />
                 </div>
                 <p className="text-sm font-mono bg-dark-400/50 p-2 rounded border border-primary-500/10 text-gray-300">
-                  {labDetails?.credentials?.secretAccessKey || 'Not available'}
+                  {labDetails?.credentials?.password || 'Not available'}
                 </p>
               </div>
             </div>
