@@ -94,63 +94,89 @@ export const ModularLabPage: React.FC = () => {
       setError(null);
   
       try {
-        const response = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getModules/${labDetails.labid}`);
-        if (response.data.success) {
-          const modulesData = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-  
-          // Fetch statuses for all modules in parallel
-          const statusResponses = await Promise.all(
-            modulesData.map(module =>
-              axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData`,{
-                moduleId:module.id,
-                userId:user.id
-              })
-                .then(res => ({ moduleId: module.id, statuses: res.data.data }))
-                .catch(() => ({ moduleId: module.id, statuses: [] })) // Handle errors per request
-            )
-          );
-          const statusMap = new Map<string, Record<string, string>>(); // moduleId -> { exerciseId: status }
-          statusResponses.forEach(({ moduleId, statuses }) => {
-            const exerciseStatusMap: Record<string, string> = {};
-            statuses.forEach((statusItem: any) => {
-              exerciseStatusMap[statusItem.exercise_id] = statusItem.status;
-            });
-            statusMap.set(moduleId, exerciseStatusMap);
-          });
-  
-          // Process modules with sorted exercises and injected status
-          const sortedModules = [...modulesData].sort((a, b) => a.order - b.order);
-          const processedModules = sortedModules.map(module => {
-            const exerciseStatuses = statusMap.get(module.id) || {};
-            const sortedExercises = module.exercises
-              ? [...module.exercises]
-                  .sort((a, b) => a.order - b.order)
-                  .map((exercise: Exercise) => ({
-                    ...exercise,
-                    status: exerciseStatuses[exercise.id] || 'not-started'
-                  }))
-              : [];
-  
-            return {
-              ...module,
-              exercises: sortedExercises
-            };
-          });
-  
-          setModules(processedModules);
-  
-          if (processedModules.length > 0) {
-            setActiveModuleId(processedModules[0].id);
-          }
-        } else {
+        // 1) Fetch modules
+        const response = await axios.get(
+          `http://localhost:3000/api/v1/cloud_slice_ms/getModules/${labDetails.labid}`
+        );
+        if (!response.data.success) {
           throw new Error(response.data.message || 'Failed to fetch modules');
         }
+  
+        const modulesData = Array.isArray(response.data.data)
+          ? response.data.data
+          : [response.data.data];
+  
+        // 2) For each module, fetch quiz & lab statuses in parallel
+        const statusResponses = await Promise.all(
+          modulesData.map(async (module) => {
+            // quiz statuses
+            const quizPromise = axios
+              .post(`http://localhost:3000/api/v1/cloud_slice_ms/getUserQuizData`, {
+                moduleId: module.id,
+                userId: user.id
+              })
+              .then((r) => r.data.data)
+              .catch(() => []);
+  
+            // lab statuses
+            const labPromise = axios
+              .post(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus`, {
+                moduleId: module.id,
+                userId: user.id
+              })
+              .then((r) => r.data.data)
+              .catch(() => []);
+  
+            const [quizStatuses, labStatuses] = await Promise.all([quizPromise, labPromise]);
+  
+            return {
+              moduleId: module.id,
+              quizStatuses,
+              labStatuses
+            };
+          })
+        );
+  
+        // 3) Build a map: moduleId -> exerciseId -> status
+        const statusMap = new Map<string, Record<string, string>>();
+        statusResponses.forEach(({ moduleId, quizStatuses, labStatuses }) => {
+          const mapForModule: Record<string, string> = {};
+  
+          // quizStatuses: assume shape [ { exercise_id, status }, … ]
+          quizStatuses.forEach((s: any) => {
+            mapForModule[s.exercise_id] = s.status;
+          });
+
+          // labStatuses: assume same shape
+          labStatuses.forEach((s: any) => {
+            mapForModule[s.exercise_id] = s.status;
+          });
+  
+          statusMap.set(moduleId, mapForModule);
+        });
+  
+        // 4) Sort modules & inject statuses into each exercise
+        const sortedModules = [...modulesData].sort((a, b) => a.order - b.order);
+        const processed = sortedModules.map((mod) => {
+          const exStatuses = statusMap.get(mod.id) || {};
+          const sortedEx = (mod.exercises || [])
+            .slice()
+            .sort((a: any, b: any) => a.order - b.order)
+            .map((ex: any) => ({
+              ...ex,
+              status: exStatuses[ex.id] || 'not-started'
+            }));
+          return { ...mod, exercises: sortedEx };
+        });
+  
+        setModules(processed);
+        if (processed.length) setActiveModuleId(processed[0].id);
       } catch (err: any) {
         if (err.response?.status === 404) {
-          console.warn("No modules found. Setting modules to an empty list.");
+          console.warn('No modules found. Defaulting to empty list.');
           setModules([]);
         } else {
-          console.error("Failed to fetch modules:", err);
+          console.error('Failed to fetch modules:', err);
           setError(err.response?.data?.message || 'Failed to fetch modules');
         }
       } finally {

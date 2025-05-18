@@ -38,7 +38,7 @@ export const LabExercisePage: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [user, setUser] = useState<any>();
-  const [resources, setResources] = useState<any[]>(mockResources);
+  // const [resources, setResources] = useState<any[]>(mockResources);
   const [notes, setNotes] = useState('');
   const [accountCreated, setAccountCreated] = useState(false);
   const [isCheckingAccount, setIsCheckingAccount] = useState(true);
@@ -108,6 +108,19 @@ export const LabExercisePage: React.FC = () => {
         });
         
         if (createIamResponse.data.success) {
+          console.log(moduleId,exerciseId)
+          const submit = await axios.post(
+            'http://localhost:3000/api/v1/cloud_slice_ms/addLabStatusOfUser',
+            {
+              module_id: moduleId,
+              exercise_id: exerciseId,
+              isrunning: true,
+              status: 'in-progress',
+              completed_in: 0,
+              user_id: user.id,
+            }
+          );
+
           // Get the updated account details
           const accountDetailsResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserLabStatus/${user.id}`);
           setCredentials(accountDetailsResponse.data.data.find((lab)=>lab.labid === labDetails.labid));
@@ -130,13 +143,24 @@ export const LabExercisePage: React.FC = () => {
           throw new Error(createIamResponse.data.message || 'Failed to create account');
         }
       } else if (buttonLabel === 'Resume Lab') {
+        const submit = await axios.post(
+          'http://localhost:3000/api/v1/cloud_slice_ms/addLabStatusOfUser',
+          {
+            module_id: moduleId,
+            exercise_id: exerciseId,
+            isrunning: true,
+            status: 'in-progress',
+            completed_in: 0,
+            user_id: user.id,
+          }
+        );
         // Resume lab that was previously stopped
         await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/updateCloudSliceRunningStateOfUser', {
           isRunning: true,
           labId: labDetails?.labid,
           userId: user?.id
         });
-        const editAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/editAwsServices',{
+        const editAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/addAwsServices',{
           userName:credentials.username,
           services:exercise.services
         });
@@ -188,29 +212,56 @@ export const LabExercisePage: React.FC = () => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setNotification(null);
-    
-    // Simulate API call
-    const submit = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/addLabStatusOfUser',{
-      module_id:moduleId,
-      exercise_id:exercise?.id,
-      isrunning:true,
-      status:'completed',
-      completed_in:'',
-      user_id:user?.id
-    })
-    setTimeout(() => {
-      setNotification({ type: 'success', message: 'Exercise submitted successfully' });
-      
-      // Navigate back after submission
-      setTimeout(() => {
-        navigate(`/dashboard/my-labs/${labDetails?.labid}/modules`, {
-          state: { labDetails }
+  
+    try {
+      const completedIn =
+        countdown !== null && exercise?.duration
+          ? exercise.duration * 60 - countdown
+          : null;
+  
+      if (completedIn == null || user?.id == null || !moduleId || !exercise?.id) {
+        throw new Error("Missing required submission data.");
+      }
+      const submit = await axios.post(
+        'http://localhost:3000/api/v1/cloud_slice_ms/addLabStatusOfUser',
+        {
+          module_id: moduleId,
+          exercise_id: exerciseId,
+          isrunning: true,
+          status: 'completed',
+          completed_in: completedIn,
+          user_id: user.id,
+        }
+      );
+  
+  
+      if (submit.data.success) {
+        const deleteAwsServices = await axios.post('http://localhost:3000/api/v1/aws_ms/deleteAwsServices',{
+          userName:credentials.username,
         });
-      }, 1500);
-      
+        setNotification({ type: 'success', message: 'Exercise submitted successfully' });
+        setTimeout(()=>{
+          setNotification(null)
+        },1500)
+
+        // Navigate after showing success
+        // setTimeout(() => {
+        //   navigate(`/dashboard/my-labs/${labDetails?.labid}/modules`, {
+        //     state: { labDetails },
+        //   });
+        // }, 1500);
+      } else {
+        throw new Error("Submission failed. Server did not return success.");
+      }
+  
+    } catch (error) {
+      console.error("Submission Error:", error);
+      setNotification({ type: 'error', message: error.message || 'Submission failed' });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
+  
 
   // Countdown timer
   useEffect(() => {
@@ -220,6 +271,8 @@ export const LabExercisePage: React.FC = () => {
       setCountdown(prev => {
         if (prev === null || prev <= 1) {
           clearInterval(timer);
+          // Auto-submit when countdown reaches zero
+          handleSubmit();
           return null;
         }
         return prev - 1;
