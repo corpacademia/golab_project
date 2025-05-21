@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { 
@@ -6,9 +6,14 @@ import {
   Maximize2, 
   Minimize2, 
   FileText, 
-  Save,
-  Loader
+  Download,
+  Loader,
+  ExternalLink,
+  ChevronRight,
+  ChevronLeft,
+  GripVertical
 } from 'lucide-react';
+import axios from 'axios';
 
 interface VMSessionPageProps {}
 
@@ -17,9 +22,16 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [note, setNote] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [documents, setDocuments] = useState<string[]>([]);
+  const [currentDocIndex, setCurrentDocIndex] = useState(0);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [splitRatio, setSplitRatio] = useState(70); // Default 70% for VM, 30% for docs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
   // Get the guacUrl from location state
   const { guacUrl, vmTitle } = location.state || {};
@@ -32,24 +44,103 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
       setIsLoading(false);
     }
     
-    // Load any saved notes for this VM
-    const savedNote = localStorage.getItem(`vm-note-${vmId}`);
-    if (savedNote) {
-      setNote(savedNote);
-    }
+    // Fetch lab documents
+    const fetchDocuments = async () => {
+      try {
+        // In a real implementation, you would fetch documents from your API
+        // For now, we'll use mock data
+        const mockDocuments = [
+          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true',
+          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true',
+          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true'
+        ];
+        
+        // In a real implementation, you would fetch documents for this specific VM
+        // const response = await axios.get(`/api/labs/${vmId}/documents`);
+        // setDocuments(response.data);
+        
+        setDocuments(mockDocuments);
+        setIsLoadingDocs(false);
+      } catch (error) {
+        console.error('Failed to fetch lab documents:', error);
+        setIsLoadingDocs(false);
+      }
+    };
+    
+    fetchDocuments();
   }, [guacUrl, vmId, navigate]);
 
-  const handleSaveNote = () => {
-    setIsSaving(true);
-    // Save note to localStorage (in a real app, you'd save to a database)
-    localStorage.setItem(`vm-note-${vmId}`, note);
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 500);
-  };
+  // Handle resizing functionality
+  useEffect(() => {
+    const resizer = resizerRef.current;
+    const container = containerRef.current;
+    
+    if (!resizer || !container) return;
+    
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+      startX.current = e.clientX;
+      
+      // Get the initial width of the VM panel
+      const vmPanel = container.firstElementChild as HTMLElement;
+      startWidth.current = vmPanel.offsetWidth;
+      
+      // Add event listeners
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Change cursor and add active state
+      document.body.style.cursor = 'col-resize';
+      resizer.classList.add('bg-primary-500');
+    };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !container) return;
+      
+      // Calculate the new width based on mouse movement
+      const containerWidth = container.offsetWidth;
+      const delta = e.clientX - startX.current;
+      const newWidth = Math.min(Math.max(startWidth.current + delta, containerWidth * 0.3), containerWidth * 0.9);
+      
+      // Set the new ratio
+      const newRatio = (newWidth / containerWidth) * 100;
+      setSplitRatio(newRatio);
+    };
+    
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      resizer.classList.remove('bg-primary-500');
+    };
+    
+    // Add event listener to the resizer
+    resizer.addEventListener('mousedown', handleMouseDown);
+    
+    // Cleanup
+    return () => {
+      resizer.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  const handleNextDocument = () => {
+    if (currentDocIndex < documents.length - 1) {
+      setCurrentDocIndex(currentDocIndex + 1);
+    }
+  };
+
+  const handlePrevDocument = () => {
+    if (currentDocIndex > 0) {
+      setCurrentDocIndex(currentDocIndex - 1);
+    }
   };
 
   if (isLoading) {
@@ -93,9 +184,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
         </button>
       </div>
 
-      <div className={`grid ${isFullscreen ? '' : 'grid-cols-1 lg:grid-cols-3'} gap-4`}>
-        {/* Guacamole Frame */}
-        <div className={`glass-panel p-0 overflow-hidden ${isFullscreen ? 'col-span-full h-[calc(100vh-120px)]' : 'lg:col-span-2 h-[600px]'}`}>
+      {isFullscreen ? (
+        // Fullscreen mode - only show VM
+        <div className="glass-panel p-0 overflow-hidden h-[calc(100vh-120px)]">
           <iframe 
             src={guacUrl} 
             className="w-full h-full border-0"
@@ -103,39 +194,99 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
             allow="fullscreen"
           />
         </div>
-
-        {/* Notes Section - Hide in fullscreen mode */}
-        {!isFullscreen && (
-          <div className="glass-panel">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                <GradientText>Lab Notes</GradientText>
-              </h2>
-              <button
-                onClick={handleSaveNote}
-                disabled={isSaving}
-                className="btn-secondary py-1 px-3 text-sm"
-              >
-                {isSaving ? (
-                  <Loader className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </>
-                )}
-              </button>
-            </div>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Take notes about your lab session here..."
-              className="w-full h-[500px] px-4 py-3 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none resize-none"
+      ) : (
+        // Split view mode with resizable panels
+        <div 
+          ref={containerRef}
+          className="glass-panel p-0 overflow-hidden h-[calc(100vh-120px)] flex relative"
+        >
+          {/* VM Panel */}
+          <div 
+            className="h-full overflow-hidden"
+            style={{ width: `${splitRatio}%` }}
+          >
+            <iframe 
+              src={guacUrl} 
+              className="w-full h-full border-0"
+              title="VM Remote Access"
+              allow="fullscreen"
             />
           </div>
-        )}
-      </div>
+          
+          {/* Resizer */}
+          <div 
+            ref={resizerRef}
+            className="absolute h-full w-4 bg-primary-500/20 hover:bg-primary-500/40 cursor-col-resize flex items-center justify-center z-10"
+            style={{ left: `calc(${splitRatio}% - 8px)` }}
+          >
+            <GripVertical className="h-6 w-6 text-primary-500/50" />
+          </div>
+          
+          {/* Documents Panel */}
+          <div 
+            className="h-full flex flex-col"
+            style={{ width: `${100 - splitRatio}%` }}
+          >
+            <div className="flex justify-between items-center p-4 border-b border-primary-500/10">
+              <h2 className="text-lg font-semibold">
+                <GradientText>Lab Documents</GradientText>
+              </h2>
+              <div className="flex items-center space-x-2">
+                {documents.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevDocument}
+                      disabled={currentDocIndex === 0}
+                      className={`p-1 rounded-lg ${currentDocIndex === 0 ? 'text-gray-500' : 'text-primary-400 hover:bg-primary-500/10'}`}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <span className="text-sm text-gray-400">
+                      {currentDocIndex + 1} / {documents.length}
+                    </span>
+                    <button
+                      onClick={handleNextDocument}
+                      disabled={currentDocIndex === documents.length - 1}
+                      className={`p-1 rounded-lg ${currentDocIndex === documents.length - 1 ? 'text-gray-500' : 'text-primary-400 hover:bg-primary-500/10'}`}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+                <a 
+                  href={documents[currentDocIndex]} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="btn-secondary py-1 px-3 text-sm"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open
+                </a>
+              </div>
+            </div>
+            
+            {isLoadingDocs ? (
+              <div className="flex justify-center items-center flex-grow">
+                <Loader className="h-6 w-6 text-primary-400 animate-spin mr-3" />
+                <span className="text-gray-300">Loading documents...</span>
+              </div>
+            ) : documents.length > 0 ? (
+              <div className="flex-grow overflow-hidden">
+                <iframe
+                  src={documents[currentDocIndex]}
+                  className="w-full h-full border-0"
+                  title="Lab Document"
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-grow">
+                <FileText className="h-12 w-12 text-gray-500 mb-4" />
+                <p className="text-gray-400 text-center">No documents available for this lab</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
