@@ -34,6 +34,7 @@ import { StandardLabPage } from '../features/labs/components/user/StandardLabPag
 import { ModularLabPage } from '../features/labs/components/user/ModularLabPage';
 import { LabExercisePage } from '../features/labs/components/user/LabExercisePage';
 import { QuizExercisePage } from '../features/labs/components/user/QuizExercisePage';
+import { VMSessionPage } from '../features/labs/components/VMSessionPage';
 
 export const AppRoutes: React.FC = () => {
   const { user } = useAuthStore();
@@ -79,6 +80,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="labs/cloud-slices/:sliceId/lab" element={<CloudSliceLabPage />} />
         <Route path="labs/cloud-slices/:sliceId/modules" element={<CloudSliceModulesPage />} />
         <Route path="labs/create" element={<CreateLabEnvironment />} />
+        <Route path="labs/vm-session/:vmId" element={<VMSessionPage />} />
         <Route path="cloud" element={<CloudResources />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<Settings />} />

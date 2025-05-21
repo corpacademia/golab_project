@@ -24,6 +24,7 @@ import { EditModal } from './EditModal';
 // import { EditStorageModal } from './EditStorageModal';
 import { DeleteModal } from './DeleteModal';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 interface CloudVM {
   id: string;
@@ -64,6 +65,7 @@ interface LabDetails {
 }
 
 export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -240,11 +242,16 @@ useEffect(() => {
           message: 'Software launched successfully',
         });
   
-        // Open Guacamole if the VM is running and JWT token is available
+        // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
-
           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
-          window.open(guacUrl, '_blank');
+          navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
+            state: { 
+              guacUrl,
+              vmTitle: vm.title,
+              vmId: vm.lab_id
+            }
+          });
         }
       } else {
         throw new Error(launchResponse.data.response.message || 'Failed to launch software');
@@ -284,10 +291,16 @@ useEffect(() => {
           message: 'Software launched successfully',
         });
   
-        // Open Guacamole if the VM is running and JWT token is available
+        // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
-          window.open(guacUrl, '_blank');
+          navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
+            state: { 
+              guacUrl,
+              vmTitle: vm.title,
+              vmId: vm.lab_id
+            }
+          });
         }
       } else {
         throw new Error(launchResponse.data.response.message || 'Failed to launch software');
