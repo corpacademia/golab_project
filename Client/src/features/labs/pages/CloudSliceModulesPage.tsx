@@ -766,6 +766,7 @@ export const CloudSliceModulesPage: React.FC = () => {
         onClose={() => setIsEditLabExerciseModalOpen(false)}
         exerciseId={selectedExercise?.id || ''}
         labExercise={selectedLabExercise}
+        sliceDetails = {sliceDetails}
         onSave={handleSaveLabExercise}
       />
 

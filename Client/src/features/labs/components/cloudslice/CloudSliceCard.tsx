@@ -292,7 +292,6 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
 
   // Check if the user is an orgadmin and not the creator of this slice
   const isOrgAdminNotCreator = user?.role === 'orgadmin' && slice.createdby && slice.createdby !== user.id;
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDeleteModalOpen(true);
@@ -302,17 +301,27 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({
     
     try {
       // Use different API endpoint if user is orgadmin and not creator
+      const creds = orgStatus.find((cred: any) => cred.labid === slice.labid);
       if (isOrgAdminNotCreator) {
-        
-        // Call the different API endpoint for orgadmin deleting a slice they didn't create
+        if(creds?.username != null) {
+        const deleteIam = await axios.post('http://localhost:3000/api/v1/aws_ms/deleteIamAccount',{
+          userName:creds?.username
+        })
+      }
         const response = await axios.post(`http://localhost:3000/api/v1/cloud_slice_ms/orgAdminDeleteCloudSlice/${slice.id}`, {
           orgId: user.org_id
         });
-        
-        if (response.data.success) {
-          onDelete(slice.labid);
+        if (response?.data.success) {
+          setNotification({
+        type: 'success',
+        message: response?.data?.message || 'Successfully deleted cloud slice'
+      });
+      setTimeout(() => setNotification(null), 3000);
+       //refresh the window
+      window.location.reload();
+          // onDelete(slice.labid);
         } else {
-          throw new Error(response.data.message || 'Failed to delete cloud slice');
+          throw new Error(response?.data.message || 'Failed to delete cloud slice');
         }
       } else {
         // Regular delete

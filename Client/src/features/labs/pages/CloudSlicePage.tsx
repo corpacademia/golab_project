@@ -200,49 +200,49 @@ export const CloudSlicePage: React.FC = () => {
     );
   };
 
-  const handleDeleteSelected = async () => {
-    if (selectedSlices.length === 0) return;
+ const handleDeleteSelected = async () => {
+  if (selectedSlices.length === 0) return;
 
-    setIsDeleting(true);
-    setNotification(null);
+  setIsDeleting(true);
+  setNotification(null);
 
-    try {
-      const promises = selectedSlices.map(id => {
-        // Find the slice with this id to get its labid
-        const slice = cloudSlices.find(s => s.id === id);
-        if (!slice) return Promise.reject(new Error(`Slice with id ${id} not found`));
-        
-        // Use labid for the API call
-        return axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${slice.labid}`);
-      });
+  try {
+    const promises = selectedSlices.map(async id => {
+      const slice = cloudSlices.find(s => s.id === id);
+      if (!slice) throw new Error(`Slice with id ${id} not found`);
+     
 
-      await Promise.all(promises);
+      // 2. Delete lab (cloud slice)
+      await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${slice.labid}`);
+    });
 
-      // ✅ Instantly update UI
-      setCloudSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
-      setFilteredSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
+    await Promise.all(promises);
 
-      setNotification({
-        type: 'success',
-        message: `Successfully deleted ${selectedSlices.length} cloud slice${selectedSlices.length > 1 ? 's' : ''}`
-      });
+    // ✅ Instantly update UI
+    setCloudSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
+    setFilteredSlices(prev => prev.filter(slice => !selectedSlices.includes(slice.id)));
 
-      setSelectedSlices([]);
-      handleRefresh();
+    setNotification({
+      type: 'success',
+      message: `Successfully deleted ${selectedSlices.length} cloud slice${selectedSlices.length > 1 ? 's' : ''}`
+    });
 
-      setTimeout(() => setNotification(null), 3000);
-    } catch (error) {
-      console.error(error);
-      setNotification({
-        type: 'error',
-        message: 'Failed to delete selected cloud slices'
-      });
+    setSelectedSlices([]);
+    handleRefresh();
 
-      setTimeout(() => setNotification(null), 3000);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    setTimeout(() => setNotification(null), 3000);
+  } catch (error) {
+    console.error(error);
+    setNotification({
+      type: 'error',
+      message: 'Failed to delete selected cloud slices'
+    });
+
+    setTimeout(() => setNotification(null), 3000);
+  } finally {
+    setIsDeleting(false);
+  }
+};
 
   const regions = [...new Set(cloudSlices.map(slice => slice.region))];
   return (
@@ -430,6 +430,7 @@ export const CloudSlicePage: React.FC = () => {
             onClose={() => setDeleteSlice(null)}
             sliceId={deleteSlice?.id || null}
             sliceName={deleteSlice?.name || null}
+            cloudSlices={cloudSlices}
             onSuccess={(deletedId) => {
               setCloudSlices(prev => prev.filter(slice => slice.id !== deletedId));
               setFilteredSlices(prev => prev.filter(slice => slice.id !== deletedId));

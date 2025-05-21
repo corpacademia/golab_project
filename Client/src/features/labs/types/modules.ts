@@ -35,7 +35,6 @@ export interface LabExercise {
   files?: string[];
   services: string[];
   credentials: {
-    accessKeyId: string;
     username: string;
     password: string;
   };

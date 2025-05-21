@@ -26,6 +26,7 @@ interface EditLabExerciseModalProps {
   exerciseId: string;
   labExercise: LabExercise | null;
   onSave: (exerciseId: string, labExercise: LabExercise) => void;
+  sliceDetails:any;
 }
 
 export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
@@ -33,6 +34,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
   onClose,
   exerciseId,
   labExercise,
+  sliceDetails,
   onSave
 }) => {
   const [formData, setFormData] = useState<LabExercise>({
@@ -42,10 +44,9 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     files: [],
     services: [],
     credentials: {
-      accessKeyId: '',
       username: '',
       password: ''
-    }
+    },
   });
   
   // New fields for adding a new exercise
@@ -103,13 +104,16 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       fetchAwsServiceCategories();
     }
   }, [isOpen]);
-
   useEffect(() => {
     if (isOpen) {
       if (labExercise) {
         // If we have an existing lab exercise, use its data
         setFormData({ 
           ...labExercise,
+          credentials:{
+            username:sliceDetails?.username || 'null',
+            password:sliceDetails?.password || 'null'
+          },
           cleanupPolicy: labExercise.cleanuppolicy 
         });
         // Don't set title/description for existing exercises
@@ -122,7 +126,6 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
           files: [],
           services: [],
           credentials: {
-            accessKeyId: '',
             username: '',
             password: ''
           },
@@ -152,6 +155,13 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleRemoveExistingFile = (filePath: string) => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files?.filter(file => file !== filePath) || []
+    }));
+  };
+
   const handleServiceToggle = (service: string) => {
     setFormData(prev => {
       const services = prev.services.includes(service)
@@ -160,7 +170,6 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       return { ...prev, services };
     });
   };
-
   const handleCredentialsChange = (field: keyof LabExercise['credentials'], value: string) => {
     setFormData({
       ...formData,
@@ -227,8 +236,8 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       formDataToSend.append('cleanupPolicy', JSON.stringify(formData.cleanupPolicy));
       
       // Add existing files if we're updating
-      if (labExercise && labExercise.files) {
-        formDataToSend.append('existingFiles', JSON.stringify(labExercise.files));
+      if (labExercise && formData.files) {
+        formDataToSend.append('existingFiles', JSON.stringify(formData.files));
       }
       
       try {
@@ -331,7 +340,6 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
       </div>
     );
   }
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-dark-200 rounded-lg w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
@@ -464,17 +472,33 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             </div>
             
             {/* Existing files (if editing) */}
-            {labExercise && labExercise.files && labExercise.files.length > 0 && (
+            {formData && formData.files && formData.files.length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-gray-300 mb-2">Existing Resources:</h4>
                 <div className="space-y-2">
-                  {labExercise.files.map((filePath, index) => (
+                  {formData.files.map((filePath, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-dark-300/50 rounded-lg">
-                      <div className="flex items-center">
-                        <File className="h-5 w-5 text-primary-400 mr-2" />
+                      <div className="flex items-center flex-1 mr-2 overflow-hidden">
+                        <File className="h-5 w-5 text-primary-400 mr-2 flex-shrink-0" />
                         <span className="text-sm text-gray-300 truncate">{filePath}</span>
                       </div>
-                      <LinkIcon className="h-4 w-4 text-primary-400" />
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <a 
+                          href={`http://localhost:3006/uploads/${filePath}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-primary-500/10 rounded-lg transition-colors"
+                        >
+                          <LinkIcon className="h-4 w-4 text-primary-400" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExistingFile(filePath)}
+                          className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          <X className="h-4 w-4 text-red-400" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -782,22 +806,6 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
             <h3 className="text-sm font-medium text-gray-300 mb-4">AWS Console Credentials</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Access Key ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    // value={formData.credentials.accessKeyId}
-                    onChange={(e) => handleCredentialsChange('accessKeyId', e.target.value)}
-                    placeholder="Enter AWS Access Key ID"
-                    className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                  />
-                  <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
-                </div>
-              </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -806,7 +814,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 <div className="relative">
                   <input
                     type="text"
-                    // value={formData.credentials.username}
+                    value={formData.credentials.username}
                     onChange={(e) => handleCredentialsChange('username', e.target.value)}
                     placeholder="Enter username"
                     className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
@@ -823,7 +831,7 @@ export const EditLabExerciseModal: React.FC<EditLabExerciseModalProps> = ({
                 <div className="relative">
                   <input
                     type="password"
-                    // value={formData.credentials.password}
+                    value={formData.credentials.password}
                     onChange={(e) => handleCredentialsChange('password', e.target.value)}
                     placeholder="Enter password"
                     className="w-full pl-10 pr-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg

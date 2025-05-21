@@ -30,7 +30,6 @@ interface CloudSliceCardProps {
     modules: 'without-modules' | 'with-modules';
    
   };
-  onDelete: (labId: string) => void;
   labStatus:{
     id:string,
     labid:string,
@@ -43,6 +42,8 @@ interface CloudSliceCardProps {
     launched:boolean,
     isrunning:boolean,
   };
+  onDelete: (labId: string,labStatus:any) => void;
+ 
   user:{
     admin_id:string,
     created_at:string,
@@ -66,6 +67,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete, l
   const [isDeleting, setIsDeleting] = useState(false);
   //find the exact status based on the labid
   const selectedLab = labStatus.find(Userlab=>Userlab.labid === lab.labid );
+
   // console.log(lab)
   const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,7 +192,7 @@ export const CloudSliceCard: React.FC<CloudSliceCardProps> = ({ lab, onDelete, l
     
     // Simulate API call
     setTimeout(() => {
-      onDelete(lab.labid);
+      onDelete(lab.labid,labStatus);
       setIsDeleting(false);
     }, 1000);
   };

@@ -9,6 +9,7 @@ interface DeleteCloudSliceModalProps {
   sliceId: string | null;
   sliceName: string | null;
   onSuccess: () => void;
+  cloudSlices:any;
 }
 
 export const DeleteCloudSliceModal: React.FC<DeleteCloudSliceModalProps> = ({
@@ -16,20 +17,28 @@ export const DeleteCloudSliceModal: React.FC<DeleteCloudSliceModalProps> = ({
   onClose,
   sliceId,
   sliceName,
+  cloudSlices,
   onSuccess
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
   const handleDelete = async () => {
     if (!sliceId) return;
     
     setIsDeleting(true);
     setError(null);
     setSuccess(null);
-
+    const slice = cloudSlices.find((slice: any) => slice.labid === sliceId);
     try {
+      let deleteIam;
+      if(slice.username != null) {
+         // 1. Delete IAM account
+       deleteIam = await axios.post('http://localhost:3000/api/v1/aws_ms/deleteIamAccount', {
+        userName: slice.username
+      });
+      }
+      
       const response = await axios.delete(`http://localhost:3000/api/v1/cloud_slice_ms/deleteCloudSlice/${sliceId}`);
 
       if (response.data.success) {
@@ -43,6 +52,7 @@ export const DeleteCloudSliceModal: React.FC<DeleteCloudSliceModalProps> = ({
         throw new Error(response.data.message || 'Failed to delete cloud slice');
       }
     } catch (err: any) {
+      console.log(err);
       setError(err.response?.data?.message || 'Failed to delete cloud slice');
       setTimeout(() => setError(null), 3000);
     } finally {

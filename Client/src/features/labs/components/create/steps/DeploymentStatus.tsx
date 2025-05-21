@@ -15,25 +15,25 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
   const [isComplete, setIsComplete] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuthStore();
-
   const steps = [
     { id: 'EC2', label: 'Terraform Setup' },
     { id: 'Terraform', label: 'Terraform Initialization' },
     { id: 'Terraform Apply', label: 'Terraform Applying' },
     { id: 'complete', label: 'Setup Complete' }
   ];
-
   // Function to check script execution status
   const fetchProgress = async () => {
     try {
-      const data = await axios.get('http://localhost:3000/api/v1/aws_ms/labprogress');
+      const data = await axios.post('http://localhost:3000/api/v1/aws_ms/labprogress',{
+        lab_id: config.lab_id,
+      });
+      console.log(data)
       let step =0;
       if (data.data.data.step1) step = 1;
       if (data.data.data.step2) step = 2;
       if (data.data.data.step3) step = 3;
       
       setCurrentStep(step);
-      
       // If all steps are complete, set isComplete to true
       if (step === 3) {
         setIsComplete(true);

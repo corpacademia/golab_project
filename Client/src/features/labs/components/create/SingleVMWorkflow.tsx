@@ -106,7 +106,10 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
       {step === 5 && (
         <AIRecommendations 
           config={config} 
-          onConfirm={(region) => updateConfig({ region })} 
+        onConfirm={(region, responseData) => {
+              const lab_id = responseData?.lab_id;
+                updateConfig({ region,lab_id: lab_id });
+           }}
         />
       )}
       {step === 6 && <DeploymentStatus config={config} />}
