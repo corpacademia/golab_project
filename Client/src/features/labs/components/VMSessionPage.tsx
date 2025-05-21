@@ -50,9 +50,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
         // In a real implementation, you would fetch documents from your API
         // For now, we'll use mock data
         const mockDocuments = [
-          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true',
-          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true',
-          'https://docs.google.com/document/d/e/2PACX-1vQmPufIQJAQs1dVzZJuP1sHEUXTzQIXDVslsUJcmppkWUEzlgCLMDGTHwEgns7MXQ/pub?embedded=true'
+          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\public\\uploads\\ec2-ug.pdf',
+          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848',
+          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848'
         ];
         
         // In a real implementation, you would fetch documents for this specific VM
@@ -70,6 +70,11 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     fetchDocuments();
   }, [guacUrl, vmId, navigate]);
 
+   // Function to extract the exact filename from the url
+  function extractFile_Name(filePath: string) {
+    const match = filePath.match(/[^\\\/]+$/);
+    return match ? match[0] : null;
+  }
   // Handle resizing functionality
   useEffect(() => {
     const resizer = resizerRef.current;
@@ -140,6 +145,15 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   const handlePrevDocument = () => {
     if (currentDocIndex > 0) {
       setCurrentDocIndex(currentDocIndex - 1);
+    }
+  };
+
+  // Function to view document in the same container
+  const handleViewDocument = (url: string) => {
+    // Instead of opening in a new tab, we'll just set this as the current document
+    const docIndex = documents.indexOf(url);
+    if (docIndex !== -1) {
+      setCurrentDocIndex(docIndex);
     }
   };
 
@@ -216,7 +230,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
           {/* Resizer */}
           <div 
             ref={resizerRef}
-            className="absolute h-full w-4 bg-primary-500/20 hover:bg-primary-500/40 cursor-col-resize flex items-center justify-center z-10"
+            className="absolute h-full w-4 bg-primary-500/20 hover:bg-primary-500/40 cursor-col-resize flex items-center justify-center z-10 transition-colors"
             style={{ left: `calc(${splitRatio}% - 8px)` }}
           >
             <GripVertical className="h-6 w-6 text-primary-500/50" />
@@ -253,15 +267,14 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                     </button>
                   </>
                 )}
-                <a 
-                  href={documents[currentDocIndex]} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
+                <button 
+                  onClick={() => handleViewDocument(documents[currentDocIndex])}
                   className="btn-secondary py-1 px-3 text-sm"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Open
-                </a>
+                  View
+                </button>
+               
               </div>
             </div>
             
@@ -273,10 +286,11 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
             ) : documents.length > 0 ? (
               <div className="flex-grow overflow-hidden">
                 <iframe
-                  src={documents[currentDocIndex]}
-                  className="w-full h-full border-0"
-                  title="Lab Document"
-                />
+              src={`http://localhost:3006/uploads/${extractFile_Name(documents[currentDocIndex])}`}
+              className="w-full h-full border-0"
+              title="Lab Document"
+              />
+
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center flex-grow">
