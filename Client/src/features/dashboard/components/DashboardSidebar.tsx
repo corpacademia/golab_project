@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../../store/authStore';
 import {
@@ -12,11 +12,14 @@ import {
   GraduationCap,
   Brain,
   FileText,
-  FolderOpen
+  FolderOpen,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 export const DashboardSidebar: React.FC = () => {
   const { user } = useAuthStore();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = {
     superadmin: [
@@ -63,8 +66,19 @@ export const DashboardSidebar: React.FC = () => {
   const currentMenuItems = menuItems[user?.role || 'user'];
 
   return (
-    <div className="w-64 bg-dark-200/80 backdrop-blur-sm border-r border-primary-500/10 h-[calc(100vh-4rem)]">
-      <nav className="mt-5 px-2">
+    <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-dark-200/80 backdrop-blur-sm border-r border-primary-500/10 h-[calc(100vh-4rem)] transition-all duration-300 relative`}>
+      <button 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute -right-3 top-6 bg-dark-200 border border-primary-500/20 rounded-full p-1 shadow-md z-10 hover:bg-dark-300 transition-colors"
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-4 w-4 text-primary-400" />
+        ) : (
+          <ChevronLeft className="h-4 w-4 text-primary-400" />
+        )}
+      </button>
+      
+      <nav className="mt-5 px-2 overflow-y-auto h-full">
         <div className="space-y-1">
           {currentMenuItems.map((item) => (
             <NavLink
@@ -75,11 +89,12 @@ export const DashboardSidebar: React.FC = () => {
                   isActive
                     ? 'bg-primary-500/10 text-primary-400'
                     : 'text-gray-400 hover:bg-dark-100/50 hover:text-primary-300'
-                }`
+                } ${isCollapsed ? 'justify-center' : ''}`
               }
+              title={isCollapsed ? item.label : undefined}
             >
-              <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-              {item.label}
+              <item.icon className={`h-5 w-5 flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && item.label}
             </NavLink>
           ))}
         </div>
