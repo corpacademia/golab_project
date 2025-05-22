@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { CloudSliceCard } from '../../labs/components/user/CloudSliceCard';
+import { useNavigate } from 'react-router-dom';
 
 interface Instance {
   username: string;
@@ -169,6 +170,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
 };
 
 export const MyLabs: React.FC = () => {
+  const navigate = useNavigate();
   const [labs, setLabs] = useState([]);
   const [cloudSliceLabs, setCloudSliceLabs] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
@@ -519,8 +521,16 @@ export const MyLabs: React.FC = () => {
             isStarted:false
           })
           
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
-          window.open(guacUrl, '_blank');
+          // const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+          // window.open(guacUrl, '_blank');
+           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+          navigate(`/dashboard/labs/vm-session/${lab.lab_id}`, {
+            state: { 
+              guacUrl,
+              vmTitle: lab.title,
+              vmId: lab.lab_id
+            }
+          });
         }
       }
       else{
@@ -554,8 +564,16 @@ export const MyLabs: React.FC = () => {
                 state:true,
                 isStarted:true
               })
+              // const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+              // window.open(guacUrl, '_blank');
               const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
-              window.open(guacUrl, '_blank');
+          navigate(`/dashboard/labs/vm-session/${lab.lab_id}`, {
+            state: { 
+              guacUrl,
+              vmTitle: lab.title,
+              vmId: lab.lab_id
+            }
+          });
             }
           }
         }

@@ -27,7 +27,6 @@ export const DeploymentStatus: React.FC<DeploymentStatusProps> = ({ config }) =>
       const data = await axios.post('http://localhost:3000/api/v1/aws_ms/labprogress',{
         lab_id: config.lab_id,
       });
-      console.log(data)
       let step =0;
       if (data.data.data.step1) step = 1;
       if (data.data.data.step2) step = 2;

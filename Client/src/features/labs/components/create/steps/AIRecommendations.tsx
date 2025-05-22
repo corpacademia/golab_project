@@ -70,7 +70,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
 
       const lab_id = response.data.output.lab_id;
       const responseData = response.data.output;
-      console.log(responseData)
       onConfirm(region, responseData); // Call onConfirm after successful response
 
       setIsLoading(false); // End loading after onConfirm is called

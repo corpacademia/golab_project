@@ -50,8 +50,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
         // In a real implementation, you would fetch documents from your API
         // For now, we'll use mock data
         const mockDocuments = [
-          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\public\\uploads\\ec2-ug.pdf',
+          
           'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848',
+          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\public\\uploads\\ec2-ug.pdf',
           'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848'
         ];
         
