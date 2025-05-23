@@ -76,6 +76,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     const match = filePath.match(/[^\\\/]+$/);
     return match ? match[0] : null;
   }
+  
   // Handle resizing functionality
   useEffect(() => {
     const resizer = resizerRef.current;
@@ -90,7 +91,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
       
       // Get the initial width of the VM panel
       const vmPanel = container.firstElementChild as HTMLElement;
-      startWidth.current = vmPanel.offsetWidth;
+      if (vmPanel) {
+        startWidth.current = vmPanel.offsetWidth;
+      }
       
       // Add event listeners
       document.addEventListener('mousemove', handleMouseMove);
@@ -119,7 +122,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
-      resizer.classList.remove('bg-primary-500');
+      if (resizer) {
+        resizer.classList.remove('bg-primary-500');
+      }
     };
     
     // Add event listener to the resizer
