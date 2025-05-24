@@ -16,7 +16,7 @@ import {
   Lock
 } from 'lucide-react';
 import axios from 'axios';
-import { AddOrgUserModal } from '../../../../features/users/components/tabs/AddOrgUserModal';
+import { AddOrgUserModal } from '../../../users/components/AddOrgUserModal';
 
 interface User {
   id: string;
@@ -101,9 +101,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-dark-200 flex justify-between items-center p-6 border-b border-primary-500/10">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>Edit User</GradientText>
           </h2>
@@ -112,7 +112,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, on
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
             <input
@@ -228,9 +228,9 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ isOpen, onClose, user }) 
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-dark-200 flex justify-between items-center p-6 border-b border-primary-500/10">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>User Details</GradientText>
           </h2>
@@ -239,7 +239,7 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ isOpen, onClose, user }) 
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-center mb-6">
             <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary-500/20 to-secondary-500/20 flex items-center justify-center">
               <User className="h-10 w-10 text-primary-400" />
@@ -282,7 +282,7 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ isOpen, onClose, user }) 
           </div>
         </div>
 
-        <div className="flex justify-end p-6 border-t border-primary-500/10">
+        <div className="flex justify-end mt-6">
           <button onClick={onClose} className="btn-secondary">
             Close
           </button>
@@ -302,7 +302,20 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [admin, setAdmin] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setAdmin(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -483,7 +496,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
           </label>
           <button 
             className="btn-primary"
-            onClick={() => setIsAddUserModalOpen(true)}
+            onClick={() => setIsAddModalOpen(true)}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
@@ -636,10 +649,10 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
       />
 
       <AddOrgUserModal
-        isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
         onSuccess={fetchUsers}
-        orgId={orgId}
+        adminDetails={admin}
       />
     </div>
   );
