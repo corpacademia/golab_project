@@ -9,6 +9,7 @@ import {
   X,
   Loader,
   AlertCircle,
+  Tag
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -17,6 +18,8 @@ interface Workspace {
   lab_name: string;
   description: string;
   date: string;
+  lab_type: string;
+  status?: string;
 }
 
 interface OrgWorkspacesTabProps {
@@ -144,12 +147,12 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
         </div>
       )}
 
-      <div className="glass-panel">
+      <div className="glass-panel p-0">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed">
+          <table className="w-full">
             <thead>
-              <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-                <tgith className="pb-3 w-8">
+              <tr className="text-left text-sm font-medium text-gray-400 border-b border-primary-500/10">
+                <th className="py-4 px-6">
                   <input
                     type="checkbox"
                     checked={
@@ -160,10 +163,11 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
                     className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
                   />
                 </th>
-                <th className="pb-3 w-1/4">Name</th>
-                <th className="pb-3 w-2/5">Description</th>
-                <th className="pb-3 w-1/5">Created</th>
-                <th className="pb-3 w-28 text-right">Actions</th>
+                <th className="py-4 px-6">Name</th>
+                <th className="py-4 px-6">Description</th>
+                <th className="py-4 px-6">Lab Type</th>
+                <th className="py-4 px-6">Created</th>
+                <th className="py-4 px-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -172,7 +176,7 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
                   key={workspace.id}
                   className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
                 >
-                  <td className="py-3">
+                  <td className="py-4 px-6">
                     <input
                       type="checkbox"
                       checked={selectedWorkspaces.includes(workspace.id)}
@@ -180,16 +184,26 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
                       className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
                     />
                   </td>
-                  <td className="py-3 text-gray-400 font-medium truncate">
-                    {workspace.lab_name}
+                  <td className="py-4 px-6">
+                    <div className="font-medium text-gray-400">{workspace.lab_name}</div>
                   </td>
-                  <td className="py-3 text-sm text-gray-400 truncate">
-                    {workspace.description}
+                  <td className="py-4 px-6">
+                    <div className="text-sm text-gray-400 line-clamp-1">{workspace.description}</div>
                   </td>
-                  <td className="py-3 text-gray-400">
-                    {new Date(workspace.date).toLocaleDateString()}
+                  <td className="py-4 px-6">
+                    <div className="flex items-center">
+                      <Tag className="h-4 w-4 mr-2 text-primary-400" />
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary-500/20 text-primary-300">
+                        {workspace.lab_type}
+                      </span>
+                    </div>
                   </td>
-                  <td className="py-3 text-right">
+                  <td className="py-4 px-6">
+                    <div className="text-sm text-gray-400">
+                      {new Date(workspace.date).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="py-4 px-6">
                     <div className="flex justify-end space-x-2">
                       <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
                         <Eye className="h-4 w-4 text-primary-400" />

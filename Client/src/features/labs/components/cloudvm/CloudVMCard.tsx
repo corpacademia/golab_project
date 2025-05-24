@@ -245,7 +245,7 @@ useEffect(() => {
   
         // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
-          const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
+          const guacUrl = `http://43.204.220.7:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
             state: { 
               guacUrl,
@@ -294,7 +294,7 @@ useEffect(() => {
   
         // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
-          const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
+          const guacUrl = `http://43.204.220.7:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
             state: { 
               guacUrl,
