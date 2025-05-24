@@ -493,6 +493,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4 pt-4">
+            <GradientText>
             <button
               type="button"
               onClick={onClose}
@@ -501,6 +502,8 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+            <GradientText>
             <button
               type="submit"
               disabled={isSubmitting || isLoading}
@@ -515,6 +518,7 @@ export const EditQuizExerciseModal: React.FC<EditQuizExerciseModalProps> = ({
                 'Save Quiz'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>

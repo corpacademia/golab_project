@@ -8,13 +8,15 @@ interface AddOrgUserModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   adminDetails: any;
+  orgId:any;
 }
 
 export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  adminDetails
+  adminDetails,
+  orgId
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -76,12 +78,14 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      const orgDetails = await axios.post('http://localhost:3000/api/v1/organization_ms/getOrgDetails', {
+        org_id: orgId})
       const response = await axios.post('http://localhost:3000/api/v1/user_ms/addOrganizationUser', {
         ...formData,
         admin_id: adminDetails.id,
-        organization: adminDetails.organization,
-        org_id: adminDetails.org_id,
-        organization_type: adminDetails.organization_type
+        organization: orgDetails.data.data.organization,
+        org_id: orgId,
+        organization_type: orgDetails.data.data.organization_type
       });
 
       if (response.data.success) {
@@ -92,14 +96,14 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
           onSuccess?.();
         }, 1500);
       } else {
-        throw new Error(response.data.message || 'Failed to add team member');
+        throw new Error(response.data.error || 'Failed to add team member');
       }
     } catch (err: any) {
       let errorMessage = 'Failed to add team member';
       
       // Handle specific error cases
       if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
+        errorMessage = err.response.data.error;
       } else if (err.response?.status === 409) {
         errorMessage = 'Email already exists';
       } else if (err.response?.status === 400) {
@@ -117,9 +121,9 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-dark-200 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-dark-200 flex justify-between items-center p-6 border-b border-primary-500/10">
           <h2 className="text-xl font-semibold">
             <GradientText>Add Team Member</GradientText>
           </h2>
@@ -134,79 +138,77 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={isSubmitting}
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={isSubmitting}
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-                required
-                disabled={isSubmitting}
-                minLength={6}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={isSubmitting}
+              minLength={6}
+            />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Role
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-                required
-                disabled={isSubmitting}
-              >
-                <option value="user">User</option>
-                <option value="trainer">Trainer</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Role
+            </label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+              required
+              disabled={isSubmitting}
+            >
+              <option value="user">User</option>
+              <option value="trainer">Trainer</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           {error && (
@@ -227,7 +229,8 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-4 pt-4">
+            <GradientText>
             <button
               type="button"
               onClick={() => {
@@ -239,6 +242,8 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+            <GradientText>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -253,6 +258,7 @@ export const AddOrgUserModal: React.FC<AddOrgUserModalProps> = ({
                 'Add Member'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>

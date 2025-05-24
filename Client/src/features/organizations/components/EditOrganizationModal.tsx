@@ -385,7 +385,8 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4">
-            <button
+            <GradientText>
+              <button
               type="button"
               onClick={handleClose}
               className="btn-secondary"
@@ -393,7 +394,9 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
             >
               Cancel
             </button>
-            <button
+            </GradientText>
+            <GradientText>
+               <button
               type="submit"
               disabled={isSubmitting}
               className="btn-primary"
@@ -407,6 +410,8 @@ export const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
                 'Update Organization'
               )}
             </button>
+            </GradientText>
+           
           </div>
         </form>
       </div>

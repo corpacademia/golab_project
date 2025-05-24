@@ -325,7 +325,8 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-3 pt-2">
-            <button
+            <GradientText>
+              <button
               type="button"
               onClick={onClose}
               className="btn-secondary py-1.5 px-4 text-sm"
@@ -333,6 +334,8 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+            <GradientText>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -347,6 +350,7 @@ export const EditCloudSliceModal: React.FC<EditCloudSliceModalProps> = ({
                 'Update'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>

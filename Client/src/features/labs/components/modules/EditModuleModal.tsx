@@ -196,7 +196,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4 pt-4">
-            <button
+            <GradientText>
+              <button
               type="button"
               onClick={onClose}
               className="btn-secondary"
@@ -204,6 +205,8 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+            <GradientText>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -218,6 +221,7 @@ export const EditModuleModal: React.FC<EditModuleModalProps> = ({
                 'Save Module'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>

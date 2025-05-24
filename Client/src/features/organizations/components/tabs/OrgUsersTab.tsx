@@ -653,6 +653,7 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={fetchUsers}
         adminDetails={admin}
+        orgId={orgId}
       />
     </div>
   );

@@ -363,6 +363,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-3 mt-4 pt-4 border-t border-primary-500/10">
+          <GradientText>
             <button
               type="button"
               onClick={onClose}
@@ -371,6 +372,8 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+            <GradientText>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -385,6 +388,7 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
                 'Add Organization'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>

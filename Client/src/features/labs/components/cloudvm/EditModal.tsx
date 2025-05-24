@@ -131,13 +131,16 @@ export const EditModal: React.FC<EditModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4">
-            <button
+            <GradientText>
+               <button
               onClick={onClose}
               className="btn-secondary"
               disabled={isSubmitting}
             >
               Cancel
             </button>
+            </GradientText>
+           <GradientText>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || storageChange === 0}
@@ -152,6 +155,7 @@ export const EditModal: React.FC<EditModalProps> = ({
                 'Add Storage'
               )}
             </button>
+            </GradientText>
           </div>
         </div>
       </div>

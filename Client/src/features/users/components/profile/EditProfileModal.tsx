@@ -208,7 +208,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4">
-            <button
+            <GradientText>
+               <button
               type="button"
               onClick={onClose}
               className="btn-secondary"
@@ -216,6 +217,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             >
               Cancel
             </button>
+            </GradientText>
+           <GradientText>
             <button
               type="submit"
               disabled={isSubmitting}
@@ -230,6 +233,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 'Update Profile'
               )}
             </button>
+            </GradientText>
           </div>
         </form>
       </div>
