@@ -267,9 +267,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
               Cancel
             </button>
             </GradientText>
-            
             <GradientText>
-              <button
+            <button
               type="submit"
               disabled={isSubmitting}
               className="btn-primary"
@@ -284,7 +283,6 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
               )}
             </button>
             </GradientText>
-            
           </div>
         </form>
       </div>

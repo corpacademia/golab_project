@@ -16,6 +16,7 @@ import {
   Lock
 } from 'lucide-react';
 import axios from 'axios';
+import { AddOrgUserModal } from '../../../users/components/AddOrgUserModal';
 
 interface User {
   id: string;
@@ -301,6 +302,20 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [admin, setAdmin] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setAdmin(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -479,7 +494,10 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
             <Upload className="h-4 w-4 mr-2" />
             Import Users
           </label>
-          <button className="btn-primary">
+          <button 
+            className="btn-primary"
+            onClick={() => setIsAddModalOpen(true)}
+          >
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </button>
@@ -628,6 +646,13 @@ export const OrgUsersTab: React.FC<OrgUsersTabProps> = ({ orgId }) => {
           setSelectedUser(null);
         }}
         user={selectedUser}
+      />
+
+      <AddOrgUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchUsers}
+        adminDetails={admin}
       />
     </div>
   );
