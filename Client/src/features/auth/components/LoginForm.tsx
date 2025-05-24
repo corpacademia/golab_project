@@ -27,7 +27,7 @@ export const LoginForm: React.FC = () => {
         <div className="flex flex-col items-center">
           <BeakerIcon className="h-12 w-12 text-primary-400" />
           <h2 className="mt-6 text-center text-4xl font-display font-bold">
-            <GradientText>Welcome Back</GradientText>
+            <GradientText>Welcome To Golabing.ai</GradientText>
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Access your AI-powered learning environment
@@ -82,7 +82,7 @@ export const LoginForm: React.FC = () => {
         </GlowingBorder>
 
         <div className="space-y-4">
-          <DemoUsers />
+          {/* <DemoUsers /> */}
           
           <div className="text-center text-sm">
             <p className="text-gray-400">

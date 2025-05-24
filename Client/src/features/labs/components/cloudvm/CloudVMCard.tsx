@@ -80,6 +80,7 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [isAmi, setIsAmi] = useState(false);
   const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
   const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
+  const [showFullAmiId, setShowFullAmiId] = useState(false);
 
   const [admin,setAdmin] = useState({});
 
@@ -244,7 +245,7 @@ useEffect(() => {
   
         // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
+          const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
             state: { 
               guacUrl,
@@ -293,7 +294,7 @@ useEffect(() => {
   
         // Navigate to Guacamole frame page instead of opening in new tab
         if (launchResponse.data.response.jwtToken) {
-          const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
+          const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${launchResponse.data.response.jwtToken}`;
           navigate(`/dashboard/labs/vm-session/${vm.lab_id}`, {
             state: { 
               guacUrl,
@@ -485,7 +486,13 @@ useEffect(() => {
             {amiId && (
               <div className="flex items-center text-sm text-gray-400">
                 <FileCode className="h-4 w-4 mr-2 text-primary-400 flex-shrink-0" />
-                <span className="truncate">AMI: {amiId}</span>
+                <span 
+                  className="truncate cursor-pointer hover:text-primary-300"
+                  onClick={() => setShowFullAmiId(!showFullAmiId)}
+                  title={showFullAmiId ? "Click to collapse" : "Click to expand"}
+                >
+                  {showFullAmiId ? amiId : `AMI: ${amiId.length > 10 ? amiId.substring(0, 10) + '...' : amiId}`}
+                </span>
               </div>
             )}
           </div>

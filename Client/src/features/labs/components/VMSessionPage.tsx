@@ -20,9 +20,12 @@ import {
   Expand,
   Shrink,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  PowerOff
 } from 'lucide-react';
 import axios from 'axios';
+import Split from 'react-split';
 
 interface VMSessionPageProps {}
 
@@ -51,11 +54,12 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   // Get the guacUrl from location state
   const { guacUrl, vmTitle } = location.state || {};
 
-  // Credentials for the VM
-  const credentials = {
-    username: 'admin',
-    password: 'P@ssw0rd123'
-  };
+  // Credentials for the VM - multiple credentials example
+  const credentialsList = [
+    { label: "Admin", username: 'admin', password: 'P@ssw0rd123' },
+    { label: "User", username: 'user', password: 'User@123' },
+    { label: "Database", username: 'dbuser', password: 'Db@123456' }
+  ];
 
   // Available resolutions
   const resolutions = [
@@ -66,7 +70,6 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     '1600x900',
     '1920x1080'
   ];
-
   useEffect(() => {
     // Check if we have the necessary data
     if (!guacUrl) {
@@ -81,7 +84,6 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
         // In a real implementation, you would fetch documents from your API
         // For now, we'll use mock data
         const mockDocuments = [
-          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848',
           'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\ec2-ug.pdf',
           'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848'
         ];
@@ -288,14 +290,16 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                   <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50">
                     <button
                       onClick={() => handlePowerAction('restart')}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-dark-300/50 transition-colors"
+                      className="w-full px-4 py-2 text-left text-sm text-green-400 hover:bg-dark-300/50 transition-colors flex items-center"
                     >
+                      <RefreshCw className="h-4 w-4 mr-2" />
                       Restart
                     </button>
                     <button
                       onClick={() => handlePowerAction('shutdown')}
-                      className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center"
                     >
+                      <PowerOff className="h-4 w-4 mr-2" />
                       Shutdown
                     </button>
                   </div>
@@ -334,32 +338,41 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                   <Key className="h-5 w-5 text-primary-400" />
                 </button>
                 {showCredentials && (
-                  <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50 p-3 w-64">
-                    <div className="space-y-2">
-                      <div>
-                        <label className="text-xs text-gray-400">Username</label>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">{credentials.username}</span>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(credentials.username)}
-                            className="text-xs text-primary-400 hover:text-primary-300"
-                          >
-                            Copy
-                          </button>
+                  <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50 p-3 w-96">
+                    <div className="space-y-3">
+                      {credentialsList.map((cred, index) => (
+                        <div key={index} className="p-2 bg-dark-300/50 rounded-lg">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-primary-400">{cred.label}</span>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-400 block">Username</label>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-300">{cred.username}</span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(cred.username)}
+                                  className="text-xs text-primary-400 hover:text-primary-300"
+                                >
+                                  Copy
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs text-gray-400 block">Password</label>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-300">{cred.password}</span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(cred.password)}
+                                  className="text-xs text-primary-400 hover:text-primary-300"
+                                >
+                                  Copy
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-400">Password</label>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">{credentials.password}</span>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(credentials.password)}
-                            className="text-xs text-primary-400 hover:text-primary-300"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -372,12 +385,14 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
               <Minimize2 className="h-5 w-5 text-gray-400" />
             </button>
           </div>
-          <iframe 
-            src={guacUrl} 
-            className="w-full h-[calc(100%-40px)] border-0"
-            title="VM Remote Access"
-            allow="fullscreen"
-          />
+          <div className="w-full h-[calc(100%-40px)] overflow-auto">
+            <iframe 
+              src={guacUrl} 
+              className="w-full h-full border-0"
+              title="VM Remote Access"
+              allow="fullscreen"
+            />
+          </div>
         </div>
       ) : (
         // Split view mode with resizable panels
@@ -404,14 +419,16 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                     <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50">
                       <button
                         onClick={() => handlePowerAction('restart')}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-dark-300/50 transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-green-400 hover:bg-dark-300/50 transition-colors flex items-center"
                       >
+                        <RefreshCw className="h-4 w-4 mr-2" />
                         Restart
                       </button>
                       <button
                         onClick={() => handlePowerAction('shutdown')}
-                        className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center"
                       >
+                        <PowerOff className="h-4 w-4 mr-2" />
                         Shutdown
                       </button>
                     </div>
@@ -450,32 +467,41 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                     <Key className="h-5 w-5 text-primary-400" />
                   </button>
                   {showCredentials && (
-                    <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50 p-3 w-64">
-                      <div className="space-y-2">
-                        <div>
-                          <label className="text-xs text-gray-400">Username</label>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-300">{credentials.username}</span>
-                            <button
-                              onClick={() => navigator.clipboard.writeText(credentials.username)}
-                              className="text-xs text-primary-400 hover:text-primary-300"
-                            >
-                              Copy
-                            </button>
+                    <div className="absolute top-full left-0 mt-1 bg-dark-200 rounded-lg shadow-lg border border-primary-500/20 z-50 p-3 w-96">
+                      <div className="space-y-3">
+                        {credentialsList.map((cred, index) => (
+                          <div key={index} className="p-2 bg-dark-300/50 rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-primary-400">{cred.label}</span>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              <div className="flex-1">
+                                <label className="text-xs text-gray-400 block">Username</label>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-300">{cred.username}</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(cred.username)}
+                                    className="text-xs text-primary-400 hover:text-primary-300"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-xs text-gray-400 block">Password</label>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-300">{cred.password}</span>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(cred.password)}
+                                    className="text-xs text-primary-400 hover:text-primary-300"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-400">Password</label>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-300">{credentials.password}</span>
-                            <button
-                              onClick={() => navigator.clipboard.writeText(credentials.password)}
-                              className="text-xs text-primary-400 hover:text-primary-300"
-                            >
-                              Copy
-                            </button>
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -513,12 +539,14 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                 </button>
               </div>
             </div>
-            <iframe 
-              src={guacUrl} 
-              className="w-full flex-1 border-0"
-              title="VM Remote Access"
-              allow="fullscreen"
-            />
+            <div className="w-full h-[calc(100%-40px)] overflow-auto">
+              <iframe 
+                src={guacUrl} 
+                className="w-full h-full border-0"
+                title="VM Remote Access"
+                allow="fullscreen"
+              />
+            </div>
           </div>
           
           {/* Resizer */}
@@ -533,12 +561,12 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
           {/* Documents Panel */}
           {showDocuments && (
             <div 
-              className="h-full flex flex-col"
+              className="h-full flex flex-col overflow-hidden"
               style={{ width: `${100 - splitRatio}%` }}
             >
-              <div className="flex justify-between items-center p-4 border-b border-primary-500/10">
-                <h2 className="text-lg font-semibold">
-                  <GradientText>Lab Documents</GradientText>
+              <div className="flex justify-between items-center p-4 border-b border-primary-500/10 bg-dark-300">
+                <h2 className="text-lg font-semibold text-primary-300">
+                  Lab Documents
                 </h2>
                 <div className="flex items-center space-x-2">
                   {documents.length > 1 && (
@@ -584,7 +612,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                   <span className="text-gray-300">Loading documents...</span>
                 </div>
               ) : documents.length > 0 ? (
-                <div className="flex-grow overflow-hidden">
+                <div className="flex-grow overflow-auto">
                   <iframe
                     src={`http://localhost:3006/uploads/${extractFileName(documents[currentDocIndex])}`}
                     className="w-full h-full border-0"
@@ -599,9 +627,9 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
               )}
 
               {/* Document List */}
-              <div className="border-t border-primary-500/10 p-4 max-h-40 overflow-y-auto">
+              <div className="border-t border-primary-500/10 p-4 max-h-40 overflow-y-auto bg-dark-300/50">
                 <h3 className="text-sm font-medium text-gray-400 mb-2">All Documents</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 overflow-y-auto max-h-32">
                   {documents.map((doc, index) => (
                     <div 
                       key={index}

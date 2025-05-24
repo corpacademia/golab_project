@@ -256,7 +256,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
           )}
 
           <div className="flex justify-end space-x-4">
-            <button
+            <GradientText>
+              <button
               type="button"
               onClick={onClose}
               className="btn-secondary"
@@ -264,7 +265,10 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
             >
               Cancel
             </button>
-            <button
+            </GradientText>
+            
+            <GradientText>
+              <button
               type="submit"
               disabled={isSubmitting}
               className="btn-primary"
@@ -278,6 +282,8 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({
                 'Add User'
               )}
             </button>
+            </GradientText>
+            
           </div>
         </form>
       </div>

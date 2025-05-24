@@ -80,6 +80,7 @@ export const CloudVMAssessmentCard: React.FC<CloudVMAssessmentProps> = ({ assess
   //   getUserDetails();
   // }, []);
 
+
   useEffect(() => {
     const fetchOrg = async () => {
       if (assessment.config_details?.organizationId) {

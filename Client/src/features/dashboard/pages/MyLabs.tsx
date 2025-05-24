@@ -523,7 +523,7 @@ export const MyLabs: React.FC = () => {
           
           // const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
           // window.open(guacUrl, '_blank');
-           const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+           const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
           navigate(`/dashboard/labs/vm-session/${lab.lab_id}`, {
             state: { 
               guacUrl,
@@ -566,7 +566,8 @@ export const MyLabs: React.FC = () => {
               })
               // const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
               // window.open(guacUrl, '_blank');
-              const guacUrl = `http://192.168.1.210:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+              const guacUrl = `http://51.52.53.245:8080/guacamole/#/?token=${response.data.response.jwtToken}`;
+              
           navigate(`/dashboard/labs/vm-session/${lab.lab_id}`, {
             state: { 
               guacUrl,
