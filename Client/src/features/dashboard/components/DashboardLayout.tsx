@@ -8,7 +8,7 @@ export const DashboardLayout: React.FC = () => {
     <div className="min-h-screen neural-bg">
       <DashboardHeader />
       <div className="flex">
-        <DashboardSidebar />
+        <DashboardSidebar/>
         <main className="flex-1 p-6 overflow-x-hidden">
           <Outlet />
         </main>

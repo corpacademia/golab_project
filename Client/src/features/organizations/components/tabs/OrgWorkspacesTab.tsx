@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import { 
-  Trash2, 
-  Eye, 
-  Pencil, 
+import {
+  Trash2,
+  Eye,
+  Pencil,
   MoreVertical,
   Check,
   X,
   Loader,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import axios from 'axios';
 
 interface Workspace {
   id: string;
-  name: string;
+  lab_name: string;
   description: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
+  date: string;
 }
 
 interface OrgWorkspacesTabProps {
@@ -35,23 +34,21 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/v1/workspace_ms/getOrganizationWorkspaces/${orgId}`);
+        const response = await axios.get(
+          `http://localhost:3000/api/v1/workspace_ms/getOrganizationWorkspaces/${orgId}`
+        );
         if (response.data.success) {
           setWorkspaces(response.data.data);
         } else {
-          // throw new Error('Failed to fetch workspaces');
-          console.warn("No workspaces found. Setting workspace to an empty list.");
+          console.warn("No workspaces found.");
         }
       } catch (err) {
-        if(err.response && err.response.status === 404){
-          console.warn("No workspaces found. Setting workspace to an empty list.");
+        if (err.response && err.response.status === 404) {
+          console.warn("No workspaces found.");
           setWorkspaces([]);
-
-        }
-        else{
+        } else {
           setError('Failed to load workspaces');
         }
-        
       } finally {
         setIsLoading(false);
       }
@@ -61,15 +58,11 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
   }, [orgId]);
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedWorkspaces(workspaces.map(w => w.id));
-    } else {
-      setSelectedWorkspaces([]);
-    }
+    setSelectedWorkspaces(checked ? workspaces.map(w => w.id) : []);
   };
 
   const handleSelectWorkspace = (workspaceId: string) => {
-    setSelectedWorkspaces(prev => 
+    setSelectedWorkspaces(prev =>
       prev.includes(workspaceId)
         ? prev.filter(id => id !== workspaceId)
         : [...prev, workspaceId]
@@ -86,11 +79,13 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
     try {
       const response = await axios.post(`http://localhost:3000/api/v1/deleteOrganizationWorkspaces`, {
         orgId,
-        workspaceIds: selectedWorkspaces
+        workspaceIds: selectedWorkspaces,
       });
 
       if (response.data.success) {
-        setWorkspaces(prev => prev.filter(w => !selectedWorkspaces.includes(w.id)));
+        setWorkspaces(prev =>
+          prev.filter(w => !selectedWorkspaces.includes(w.id))
+        );
         setSelectedWorkspaces([]);
         setSuccess('Selected workspaces deleted successfully');
       } else {
@@ -151,31 +146,33 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
 
       <div className="glass-panel">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="text-left text-sm text-gray-400 border-b border-primary-500/10">
-                <th className="pb-4 pl-4">
+                <tgith className="pb-3 w-8">
                   <input
                     type="checkbox"
-                    checked={workspaces.length > 0 && selectedWorkspaces.length === workspaces.length}
+                    checked={
+                      workspaces.length > 0 &&
+                      selectedWorkspaces.length === workspaces.length
+                    }
                     onChange={(e) => handleSelectAll(e.target.checked)}
                     className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
                   />
                 </th>
-                <th className="pb-4">Name</th>
-                <th className="pb-4">Description</th>
-                <th className="pb-4">Status</th>
-                <th className="pb-4">Created</th>
-                <th className="pb-4"></th>
+                <th className="pb-3 w-1/4">Name</th>
+                <th className="pb-3 w-2/5">Description</th>
+                <th className="pb-3 w-1/5">Created</th>
+                <th className="pb-3 w-28 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {workspaces.map((workspace) => (
-                <tr 
+                <tr
                   key={workspace.id}
                   className="border-b border-primary-500/10 hover:bg-dark-300/50 transition-colors"
                 >
-                  <td className="py-4 pl-4">
+                  <td className="py-3">
                     <input
                       type="checkbox"
                       checked={selectedWorkspaces.includes(workspace.id)}
@@ -183,26 +180,17 @@ export const OrgWorkspacesTab: React.FC<OrgWorkspacesTabProps> = ({ orgId }) => 
                       className="rounded border-gray-400 text-primary-500 focus:ring-primary-500"
                     />
                   </td>
-                  <td className="py-4">
-                    <span className="font-medium text-gray-200">{workspace.name}</span>
+                  <td className="py-3 text-gray-400 font-medium truncate">
+                    {workspace.lab_name}
                   </td>
-                  <td className="py-4">
-                    <p className="text-sm text-gray-400 line-clamp-1">{workspace.description}</p>
+                  <td className="py-3 text-sm text-gray-400 truncate">
+                    {workspace.description}
                   </td>
-                  <td className="py-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      workspace.status === 'active'
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-red-500/20 text-red-300'
-                    }`}>
-                      {workspace.status}
-                    </span>
+                  <td className="py-3 text-gray-400">
+                    {new Date(workspace.date).toLocaleDateString()}
                   </td>
-                  <td className="py-4 text-gray-400">
-                    {new Date(workspace.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="py-4">
-                    <div className="flex items-center justify-end space-x-2">
+                  <td className="py-3 text-right">
+                    <div className="flex justify-end space-x-2">
                       <button className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors">
                         <Eye className="h-4 w-4 text-primary-400" />
                       </button>
