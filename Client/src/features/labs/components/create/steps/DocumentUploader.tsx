@@ -64,7 +64,6 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     if (!e.target.files || e.target.files.length === 0) return;
     
     const files = Array.from(e.target.files);
-    
     // Validate file types
     const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
@@ -85,10 +84,12 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     
     if (type === 'document') {
       const updatedDocs = [...documents, ...files];
+      localStorage.setItem('lab_documents', JSON.stringify(updatedDocs));
       setDocuments(updatedDocs);
       onDocumentsChange(updatedDocs);
     } else {
       const updatedGuides = [...userGuides, ...files];
+      localStorage.setItem('lab_user_guides', JSON.stringify(updatedGuides));
       setUserGuides(updatedGuides);
       onUserGuidesChange(updatedGuides);
     }

@@ -12,7 +12,6 @@ export const AIRecommendations: React.FC<AIRecommendationsProps> = ({ config, on
   const [recommendations, setRecommendations] = useState([]);
   const [user_cred, setUser] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false); // Loading state
-console.log(config);
   useEffect(() => {
     const getUserDetails = async () => {
       try {
