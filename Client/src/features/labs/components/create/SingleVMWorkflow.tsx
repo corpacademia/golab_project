@@ -6,6 +6,7 @@ import { AIRecommendations } from './steps/AIRecommendations';
 import { DeploymentStatus } from './steps/DeploymentStatus';
 import { LabDetailsInput } from './steps/LabDetailsInput';
 import { DocumentUploader } from './steps/DocumentUploader';
+import { DatacenterConfig } from './steps/DatacenterConfig';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SingleVMWorkflowProps {
@@ -23,7 +24,16 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     vmSize: null,
     region: '',
     documents: [] as File[],
-    userGuides: [] as File[]
+    userGuides: [] as File[],
+    datacenter: {
+      numberOfUsers: 1,
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: '',
+      protocol: 'rdp',
+      users: [{ ip: '', port: '3389', username: '', password: '' }]
+    }
   });
 
   const updateConfig = (updates: Partial<typeof config>) => {
@@ -38,24 +48,48 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
       { label: 'Platform Selection', step: 2 },
     ];
 
-    if (step >= 3 && config.platform === 'cloud') {
-      breadcrumbs.push({ label: 'Cloud Provider', step: 3 });
+    if (step >= 3) {
+      if (config.platform === 'cloud') {
+        breadcrumbs.push({ label: 'Cloud Provider', step: 3 });
+      } else if (config.platform === 'datacenter') {
+        breadcrumbs.push({ label: 'Datacenter Config', step: 3 });
+      }
     }
 
     if (step >= 4) {
-      breadcrumbs.push({ label: 'VM Configuration', step: 4 });
+      if (config.platform === 'cloud') {
+        breadcrumbs.push({ label: 'VM Configuration', step: 4 });
+      } else if (config.platform === 'datacenter') {
+        breadcrumbs.push({ label: 'Documents', step: 4 });
+      } else {
+        breadcrumbs.push({ label: 'VM Configuration', step: 4 });
+      }
     }
 
     if (step >= 5) {
-      breadcrumbs.push({ label: 'Documents', step: 5 });
+      if (config.platform === 'cloud') {
+        breadcrumbs.push({ label: 'Documents', step: 5 });
+      } else if (config.platform === 'datacenter') {
+        breadcrumbs.push({ label: 'AI Recommendations', step: 5 });
+      } else {
+        breadcrumbs.push({ label: 'Documents', step: 5 });
+      }
     }
 
     if (step >= 6) {
-      breadcrumbs.push({ label: 'AI Recommendations', step: 6 });
+      if (config.platform === 'cloud') {
+        breadcrumbs.push({ label: 'AI Recommendations', step: 6 });
+      } else if (config.platform === 'datacenter') {
+        breadcrumbs.push({ label: 'Deployment', step: 6 });
+      } else {
+        breadcrumbs.push({ label: 'AI Recommendations', step: 6 });
+      }
     }
 
     if (step >= 7) {
-      breadcrumbs.push({ label: 'Deployment', step: 7 });
+      if (config.platform === 'cloud' || config.platform === 'hybrid') {
+        breadcrumbs.push({ label: 'Deployment', step: 7 });
+      }
     }
 
     return breadcrumbs.slice(0, step + 1);
@@ -77,6 +111,11 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     setConfig(prev => ({ ...prev, userGuides }));
   };
 
+  const handleDatacenterConfigChange = (datacenterConfig: typeof config.datacenter) => {
+    setConfig(prev => ({ ...prev, datacenter: datacenterConfig }));
+    setStep(prev => prev + 1);
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -92,55 +131,96 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
           />
         );
       case 3:
-        return config.platform === 'cloud' ? (
-          <CloudProviderSelector 
-            onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
-          />
-        ) : (
-          <VMSizeSelector 
-            onSelect={(size) => updateConfig({ vmSize: size })} 
-          />
-        );
+        if (config.platform === 'cloud') {
+          return (
+            <CloudProviderSelector 
+              onSelect={(provider) => updateConfig({ cloudProvider: provider })} 
+            />
+          );
+        } else if (config.platform === 'datacenter') {
+          return (
+            <DatacenterConfig
+              config={config.datacenter}
+              onChange={handleDatacenterConfigChange}
+            />
+          );
+        } else {
+          return (
+            <VMSizeSelector 
+              onSelect={(size) => updateConfig({ vmSize: size })} 
+            />
+          );
+        }
       case 4:
-        return config.platform === 'cloud' ? (
-          <VMSizeSelector 
-            onSelect={(size) => updateConfig({ vmSize: size })} 
-          />
-        ) : (
-          <DocumentUploader
-            onDocumentsChange={handleDocumentsChange}
-            onUserGuidesChange={handleUserGuidesChange}
-            onNext={() => setStep(prev => prev + 1)}
-          />
-        );
+        if (config.platform === 'cloud') {
+          return (
+            <VMSizeSelector 
+              onSelect={(size) => updateConfig({ vmSize: size })} 
+            />
+          );
+        } else if (config.platform === 'datacenter') {
+          return (
+            <DocumentUploader
+              onDocumentsChange={handleDocumentsChange}
+              onUserGuidesChange={handleUserGuidesChange}
+              onNext={() => setStep(prev => prev + 1)}
+            />
+          );
+        } else {
+          return (
+            <DocumentUploader
+              onDocumentsChange={handleDocumentsChange}
+              onUserGuidesChange={handleUserGuidesChange}
+              onNext={() => setStep(prev => prev + 1)}
+            />
+          );
+        }
       case 5:
-        return config.platform === 'cloud' ? (
-          <DocumentUploader
-            onDocumentsChange={handleDocumentsChange}
-            onUserGuidesChange={handleUserGuidesChange}
-            onNext={() => setStep(prev => prev + 1)}
-          />
-        ) : (
-          <AIRecommendations 
-            config={config} 
-            onConfirm={(region, responseData) => {
-              const lab_id = responseData?.lab_id;
-              updateConfig({ region, lab_id: lab_id });
-            }}
-          />
-        );
+        if (config.platform === 'cloud') {
+          return (
+            <DocumentUploader
+              onDocumentsChange={handleDocumentsChange}
+              onUserGuidesChange={handleUserGuidesChange}
+              onNext={() => setStep(prev => prev + 1)}
+            />
+          );
+        } else if (config.platform === 'datacenter') {
+          return (
+            <AIRecommendations 
+              config={config} 
+              onConfirm={(region, responseData) => {
+                const lab_id = responseData?.lab_id;
+                updateConfig({ region, lab_id: lab_id });
+              }}
+            />
+          );
+        } else {
+          return (
+            <AIRecommendations 
+              config={config} 
+              onConfirm={(region, responseData) => {
+                const lab_id = responseData?.lab_id;
+                updateConfig({ region, lab_id: lab_id });
+              }}
+            />
+          );
+        }
       case 6:
-        return config.platform === 'cloud' ? (
-          <AIRecommendations 
-            config={config} 
-            onConfirm={(region, responseData) => {
-              const lab_id = responseData?.lab_id;
-              updateConfig({ region, lab_id: lab_id });
-            }}
-          />
-        ) : (
-          <DeploymentStatus config={config} />
-        );
+        if (config.platform === 'cloud') {
+          return (
+            <AIRecommendations 
+              config={config} 
+              onConfirm={(region, responseData) => {
+                const lab_id = responseData?.lab_id;
+                updateConfig({ region, lab_id: lab_id });
+              }}
+            />
+          );
+        } else if (config.platform === 'datacenter') {
+          return <DeploymentStatus config={config} />;
+        } else {
+          return <DeploymentStatus config={config} />;
+        }
       case 7:
         return <DeploymentStatus config={config} />;
       default:
