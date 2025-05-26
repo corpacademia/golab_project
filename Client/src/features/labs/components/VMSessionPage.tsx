@@ -49,8 +49,16 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get the guacUrl from location state
-  const { guacUrl, vmTitle } = location.state || {};
+ 
 
+useEffect(() => {
+  const docs = location.state?.document || null;
+  if (docs) {
+    setDocuments(docs);
+    setIsLoadingDocs(false);
+  }
+}, [location.state]);
+  const { guacUrl, vmTitle } = location.state || {};
   // Credentials for the VM - multiple credentials example
   const credentialsList = [
     { label: "Admin", username: 'admin', password: 'P@ssw0rd123' },
@@ -77,28 +85,29 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     }
     
     // Fetch lab documents
-    const fetchDocuments = async () => {
-      try {
-        // In a real implementation, you would fetch documents from your API
-        // For now, we'll use mock data
-        const mockDocuments = [
-          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\ec2-ug.pdf',
-          'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848'
-        ];
+    // const fetchDocuments = async () => {
+    //   try {
+    //     // In a real implementation, you would fetch documents from your API
+    //     // For now, we'll use mock data
+    //     const mockDocuments = [
+    //       "C:\\Users\\Admin\\Desktop\\microservice\\lab-service\\src\\public\\uploads\\1mb.pdf",
+    //       'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\ec2-ug.pdf',
+    //       'C:\\Users\\Admin\\Desktop\\microservice\\cloud-slice-service\\src\\public\\uploads\\1744211988810-edb_pem_agent.exe-20250407051848'
+    //     ];
         
-        // In a real implementation, you would fetch documents for this specific VM
-        // const response = await axios.get(`/api/labs/${vmId}/documents`);
-        // setDocuments(response.data);
+    //     // In a real implementation, you would fetch documents for this specific VM
+    //     // const response = await axios.get(`/api/labs/${vmId}/documents`);
+    //     // setDocuments(response.data);
         
-        setDocuments(mockDocuments);
-        setIsLoadingDocs(false);
-      } catch (error) {
-        console.error('Failed to fetch lab documents:', error);
-        setIsLoadingDocs(false);
-      }
-    };
+    //     setDocuments(mockDocuments);
+    //     setIsLoadingDocs(false);
+    //   } catch (error) {
+    //     console.error('Failed to fetch lab documents:', error);
+    //     setIsLoadingDocs(false);
+    //   }
+    // };
     
-    fetchDocuments();
+    // fetchDocuments();
 
     // Add event listener for escape key to exit fullscreen
     const handleEscKey = (e: KeyboardEvent) => {
@@ -571,7 +580,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                     </>
                   )}
                   <button 
-                    onClick={() => window.open(`http://localhost:3006/uploads/${extractFileName(documents[currentDocIndex])}`, '_blank')}
+                    onClick={() => window.open(`http://localhost:3002/uploads/${extractFileName(documents[currentDocIndex])}`, '_blank')}
                     className="btn-secondary py-1 px-3 text-sm"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -594,7 +603,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
               ) : documents.length > 0 ? (
                 <div className="flex-grow overflow-auto">
                   <iframe
-                    src={`http://localhost:3006/uploads/${extractFileName(documents[currentDocIndex])}`}
+                    src={`http://localhost:3002/uploads/${extractFileName(documents[currentDocIndex])}`}
                     className="w-full h-full border-0"
                     title="Lab Document"
                   />
@@ -628,7 +637,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                         className="h-4 w-4 text-primary-400 flex-shrink-0" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(`http://localhost:3006/uploads/${extractFileName(doc)}`, '_blank');
+                          window.open(`http://localhost:3002/uploads/${extractFileName(doc)}`, '_blank');
                         }}
                       />
                     </div>

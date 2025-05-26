@@ -41,6 +41,7 @@ interface CloudVM {
   os: string;
   lab_id: string;
   title: string;
+  document: string;
 }
 
 interface CloudVMProps {
@@ -83,7 +84,6 @@ export const CloudVMCard: React.FC<CloudVMProps> = ({ vm }) => {
   const [showFullAmiId, setShowFullAmiId] = useState(false);
 
   const [admin,setAdmin] = useState({});
-
   useEffect(() => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
@@ -250,7 +250,8 @@ useEffect(() => {
             state: { 
               guacUrl,
               vmTitle: vm.title,
-              vmId: vm.lab_id
+              vmId: vm.lab_id,
+              doc:vm.labguide,
             }
           });
         }
@@ -299,7 +300,8 @@ useEffect(() => {
             state: { 
               guacUrl,
               vmTitle: vm.title,
-              vmId: vm.lab_id
+              vmId: vm.lab_id,
+              document:vm.labguide,
             }
           });
         }

@@ -61,41 +61,86 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'document' | 'guide') => {
-    setDocumentError(null);
-    if (!e.target.files || e.target.files.length === 0) return;
-    
-    const files = Array.from(e.target.files);
-    // Validate file types
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
-    
-    if (invalidFiles.length > 0) {
-      setDocumentError('Only PDF and Word documents are allowed');
-      setTimeout(() => setDocumentError(null), 5000);
-      return;
-    }
-    
-    // Validate file sizes (1GB limit)
-    const oversizedFiles = files.filter(file => file.size > 1 * 1024 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-      setDocumentError('Files must be smaller than 1GB');
-      setTimeout(() => setDocumentError(null), 5000);
-      return;
-    }
-    
-    if (type === 'document') {
-      const updatedDocs = [...documents, ...files];
-      localStorage.setItem('lab_documents', JSON.stringify(updatedDocs));
-      setDocuments(updatedDocs);
-      onDocumentsChange(updatedDocs);
-    } else {
-      const updatedGuides = [...userGuides, ...files];
-      localStorage.setItem('lab_user_guides', JSON.stringify(updatedGuides));
-      setUserGuides(updatedGuides);
-      onUserGuidesChange(updatedGuides);
-    }
+  const handleFileSelect = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+  type: 'document' | 'guide'
+) => {
+  setDocumentError(null);
+  if (!e.target.files || e.target.files.length === 0) return;
+
+  const files = Array.from(e.target.files);
+
+  // Validate file types
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+  const invalidFiles = files.filter((file) => !allowedTypes.includes(file.type));
+  if (invalidFiles.length > 0) {
+    setDocumentError('Only PDF and Word documents are allowed');
+    setTimeout(() => setDocumentError(null), 5000);
+    return;
+  }
+
+  // Validate file sizes (1GB limit)
+  const oversizedFiles = files.filter((file) => file.size > 1 * 1024 * 1024 * 1024);
+  if (oversizedFiles.length > 0) {
+    setDocumentError('Files must be smaller than 1GB');
+    setTimeout(() => setDocumentError(null), 5000);
+    return;
+  }
+
+  // Convert files to base64-encoded objects
+  const readFilesAsBase64 = async (files: File[]) => {
+    return Promise.all(
+      files.map(
+        (file) =>
+          new Promise<{ name: string; type: string; size: number; content: string }>(
+            (resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                resolve({
+                  name: file.name,
+                  type: file.type,
+                  size: file.size,
+                  content: reader.result as string,
+                });
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            }
+          )
+      )
+    );
   };
+
+  const base64Files = await readFilesAsBase64(files);
+  const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
+
+  if (type === 'document') {
+    const updatedDocs = [...documents, ...files];
+    const existingBase64Docs = storedData.labGuides || [];
+    const updatedData = {
+      ...storedData,
+      labGuides: [...existingBase64Docs, ...base64Files],
+    };
+    localStorage.setItem('formData', JSON.stringify(updatedData));
+    setDocuments(updatedDocs);
+    onDocumentsChange(updatedDocs);
+  } else {
+    const updatedGuides = [...userGuides, ...files];
+    const existingBase64Guides = storedData.userGuides || [];
+    const updatedData = {
+      ...storedData,
+      userGuides: [...existingBase64Guides, ...base64Files],
+    };
+    localStorage.setItem('formData', JSON.stringify(updatedData));
+    setUserGuides(updatedGuides);
+    onUserGuidesChange(updatedGuides);
+  }
+};
+
 
   const handleRemoveDocument = (index: number, type: 'document' | 'guide') => {
     if (type === 'document') {
