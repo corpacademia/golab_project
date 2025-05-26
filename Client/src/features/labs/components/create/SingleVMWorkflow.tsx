@@ -110,6 +110,7 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
           <DocumentUploader
             onDocumentsChange={handleDocumentsChange}
             onUserGuidesChange={handleUserGuidesChange}
+            onNext={() => setStep(prev => prev + 1)}
           />
         );
       case 5:
@@ -117,6 +118,7 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
           <DocumentUploader
             onDocumentsChange={handleDocumentsChange}
             onUserGuidesChange={handleUserGuidesChange}
+            onNext={() => setStep(prev => prev + 1)}
           />
         ) : (
           <AIRecommendations 

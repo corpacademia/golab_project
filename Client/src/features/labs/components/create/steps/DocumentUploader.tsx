@@ -4,11 +4,13 @@ import { Upload, X, FileText, AlertCircle } from 'lucide-react';
 interface DocumentUploaderProps {
   onDocumentsChange: (documents: File[]) => void;
   onUserGuidesChange: (guides: File[]) => void;
+  onNext?: () => void; // Added onNext prop
 }
 
 export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   onDocumentsChange,
-  onUserGuidesChange
+  onUserGuidesChange,
+  onNext
 }) => {
   const [documents, setDocuments] = useState<File[]>([]);
   const [userGuides, setUserGuides] = useState<File[]>([]);
@@ -107,6 +109,12 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }
   };
 
+  const handleContinue = () => {
+    if (onNext) {
+      onNext();
+    }
+  };
+
   const renderDocumentUploader = (type: 'document' | 'guide') => {
     const files = type === 'document' ? documents : userGuides;
     const inputRef = type === 'document' ? fileInputRef : guideInputRef;
@@ -200,6 +208,17 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         <div className="space-y-4">
           {renderDocumentUploader('guide')}
         </div>
+      </div>
+
+      {/* Continue button */}
+      <div className="mt-8 flex justify-end">
+        <button
+          type="button"
+          onClick={handleContinue}
+          className="btn-primary"
+        >
+          Continue
+        </button>
       </div>
     </div>
   );
