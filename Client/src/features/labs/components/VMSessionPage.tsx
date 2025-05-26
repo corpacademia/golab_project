@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { GradientText } from '../../../components/ui/GradientText';
 import { 
@@ -39,17 +39,14 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   const [currentDocIndex, setCurrentDocIndex] = useState(0);
   const [isLoadingDocs, setIsLoadingDocs] = useState(true);
   const [splitRatio, setSplitRatio] = useState(70); // Default 70% for VM, 30% for docs
-  const containerRef = useRef<HTMLDivElement>(null);
-  const resizerRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const startWidth = useRef(0);
   const [showDocuments, setShowDocuments] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [showCredentials, setShowCredentials] = useState(false);
   const [selectedResolution, setSelectedResolution] = useState('1280x720');
   const [isControlsOpen, setIsControlsOpen] = useState(false);
   const [isPowerMenuOpen, setIsPowerMenuOpen] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Get the guacUrl from location state
   const { guacUrl, vmTitle } = location.state || {};
@@ -70,6 +67,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     '1600x900',
     '1920x1080'
   ];
+  
   useEffect(() => {
     // Check if we have the necessary data
     if (!guacUrl) {
@@ -120,67 +118,6 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
     const match = filePath.match(/[^\\\/]+$/);
     return match ? match[0] : null;
   }
-  
-  // Handle resizing functionality
-  useEffect(() => {
-    const resizer = resizerRef.current;
-    const container = containerRef.current;
-    
-    if (!resizer || !container) return;
-    
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      isDragging.current = true;
-      startX.current = e.clientX;
-      
-      // Get the initial width of the VM panel
-      const vmPanel = container.firstElementChild as HTMLElement;
-      if (vmPanel) {
-        startWidth.current = vmPanel.offsetWidth;
-      }
-      
-      // Add event listeners
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      // Change cursor and add active state
-      document.body.style.cursor = 'col-resize';
-      resizer.classList.add('bg-primary-500');
-    };
-    
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current || !container) return;
-      
-      // Calculate the new width based on mouse movement
-      const containerWidth = container.offsetWidth;
-      const delta = e.clientX - startX.current;
-      const newWidth = Math.min(Math.max(startWidth.current + delta, containerWidth * 0.3), containerWidth * 0.9);
-      
-      // Set the new ratio
-      const newRatio = (newWidth / containerWidth) * 100;
-      setSplitRatio(newRatio);
-    };
-    
-    const handleMouseUp = () => {
-      isDragging.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      if (resizer) {
-        resizer.classList.remove('bg-primary-500');
-      }
-    };
-    
-    // Add event listener to the resizer
-    resizer.addEventListener('mousedown', handleMouseDown);
-    
-    // Cleanup
-    return () => {
-      resizer.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -201,9 +138,44 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
   const handleResolutionChange = (resolution: string) => {
     setSelectedResolution(resolution);
     setIsControlsOpen(false);
-    // In a real implementation, you would update the VM resolution
-    // This could involve sending a message to the Guacamole server
+    
+    // Apply resolution to the iframe
+    if (iframeRef.current && containerRef.current) {
+      const [width, height] = resolution.split('x').map(Number);
+      const iframe = iframeRef.current;
+      const container = containerRef.current;
+      
+      // Set the iframe dimensions
+      iframe.style.width = `${width}px`;
+      iframe.style.height = `${height}px`;
+      
+      // Ensure container has scrollbars if needed
+      container.style.overflow = 'auto';
+    }
   };
+
+  // Function to make the iframe fit the container
+  const fitToContainer = () => {
+    if (iframeRef.current && containerRef.current) {
+      const iframe = iframeRef.current;
+      
+      // Reset any explicit dimensions
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+    }
+  };
+
+  // Apply fit to container when component mounts
+  useEffect(() => {
+    if (!isLoading && iframeRef.current) {
+      // Set a small timeout to ensure the iframe is loaded
+      const timer = setTimeout(() => {
+        fitToContainer();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, showDocuments, splitRatio, isFullscreen]);
 
   const handlePowerAction = (action: 'restart' | 'shutdown') => {
     // In a real implementation, you would call an API to perform the action
@@ -385,10 +357,12 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
               <Minimize2 className="h-5 w-5 text-gray-400" />
             </button>
           </div>
-          <div className="w-full h-[calc(100%-40px)] overflow-auto">
+          <div className="w-full h-[calc(100%-40px)] overflow-auto" ref={containerRef}>
             <iframe 
+              ref={iframeRef}
               src={guacUrl} 
-              className="w-full h-full border-0"
+              style={{ width: '100%', height: '100%' }}
+              className="border-0"
               title="VM Remote Access"
               allow="fullscreen"
             />
@@ -396,15 +370,31 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
         </div>
       ) : (
         // Split view mode with resizable panels
-        <div 
-          ref={containerRef}
-          className="glass-panel p-0 overflow-hidden h-[calc(100vh-120px)] flex relative"
+        <Split
+          sizes={[splitRatio, 100 - splitRatio]}
+          minSize={300}
+          expandToMin={false}
+          gutterSize={8}
+          gutterAlign="center"
+          snapOffset={30}
+          dragInterval={1}
+          direction="horizontal"
+          cursor="col-resize"
+          className="glass-panel p-0 overflow-hidden h-[calc(100vh-120px)] flex"
+          onDragEnd={(sizes) => {
+            setSplitRatio(sizes[0]);
+          }}
+          gutter={() => {
+            const gutter = document.createElement('div');
+            gutter.className = "h-full w-2 bg-primary-500/20 hover:bg-primary-500/40 cursor-col-resize flex items-center justify-center z-10 transition-colors";
+            const gripIcon = document.createElement('div');
+            gripIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-primary-500/50"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>`;
+            gutter.appendChild(gripIcon);
+            return gutter;
+          }}
         >
           {/* VM Panel */}
-          <div 
-            className="h-full overflow-hidden flex flex-col"
-            style={{ width: `${splitRatio}%` }}
-          >
+          <div className="h-full overflow-hidden flex flex-col">
             {/* VM Controls */}
             <div className="bg-dark-400 p-2 flex justify-between items-center">
               <div className="flex items-center space-x-3">
@@ -539,31 +529,21 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
                 </button>
               </div>
             </div>
-            <div className="w-full h-[calc(100%-40px)] overflow-auto">
+            <div className="w-full h-[calc(100%-40px)] overflow-auto" ref={containerRef}>
               <iframe 
+                ref={iframeRef}
                 src={guacUrl} 
-                className="w-full h-full border-0"
+                style={{ width: '100%', height: '100%' }}
+                className="border-0"
                 title="VM Remote Access"
                 allow="fullscreen"
               />
             </div>
           </div>
           
-          {/* Resizer */}
-          <div 
-            ref={resizerRef}
-            className="absolute h-full w-4 bg-primary-500/20 hover:bg-primary-500/40 cursor-col-resize flex items-center justify-center z-10 transition-colors"
-            style={{ left: `calc(${splitRatio}% - 8px)` }}
-          >
-            <GripVertical className="h-6 w-6 text-primary-500/50" />
-          </div>
-          
           {/* Documents Panel */}
           {showDocuments && (
-            <div 
-              className="h-full flex flex-col overflow-hidden"
-              style={{ width: `${100 - splitRatio}%` }}
-            >
+            <div className="h-full flex flex-col overflow-hidden">
               <div className="flex justify-between items-center p-4 border-b border-primary-500/10 bg-dark-300">
                 <h2 className="text-lg font-semibold text-primary-300">
                   Lab Documents
@@ -657,7 +637,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
               </div>
             </div>
           )}
-        </div>
+        </Split>
       )}
     </div>
   );
