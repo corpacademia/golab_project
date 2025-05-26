@@ -12,14 +12,7 @@ export const LoginForm: React.FC = () => {
   const { formData, errors, loading, handleChange, handleSubmit } = useLoginForm();
 
   
-  //   useEffect(()=>{
-  //     const test = async ()=>{
-  //     const result = await axios.get('http://localhost:3000/')
-  //     console.log(result.data);
-  //     }
-  //     test();
-  // },[])
-  
+ 
   
  return (
     <div className="min-h-screen neural-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
