@@ -180,7 +180,9 @@ export const DatacenterConfig: React.FC<DatacenterConfigProps> = ({ config, onCh
   const handleSubmit = () => {
 
     if (validateForm()) {
-      console.log('Form submitted:', formData);
+      const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
+      const updatedData = { ...storedData, datacenterConfig: formData };
+      localStorage.setItem('formData', JSON.stringify(updatedData));
       onChange(formData);
     }
   };

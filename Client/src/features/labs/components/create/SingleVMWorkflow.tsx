@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PlatformSelector } from './steps/PlatformSelector';
 import { CloudProviderSelector } from './steps/CloudProviderSelector';
 import { VMSizeSelector } from './steps/VMSizeSelector';
@@ -7,7 +7,8 @@ import { DeploymentStatus } from './steps/DeploymentStatus';
 import { LabDetailsInput } from './steps/LabDetailsInput';
 import { DocumentUploader } from './steps/DocumentUploader';
 import { DatacenterConfig } from './steps/DatacenterConfig';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader } from 'lucide-react';
+import axios from 'axios';
 
 interface SingleVMWorkflowProps {
   onBack: () => void;
@@ -15,6 +16,8 @@ interface SingleVMWorkflowProps {
 
 export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) => {
   const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>({});
   const [config, setConfig] = useState({
     title: '',
     description: '',
@@ -35,6 +38,18 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
       users: [{ ip: '', port: '3389', username: '', password: '' }]
     }
   });
+
+  useEffect(() => {
+    const getUserDetails = async () => {  
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setUser(response.data.user);
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
+    }
+    getUserDetails();
+  }, []);
 
   const updateConfig = (updates: Partial<typeof config>) => {
     setConfig(prev => ({ ...prev, ...updates }));
@@ -116,6 +131,45 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     setStep(prev => prev + 1);
   };
 
+  const handleDocumentUploadNext = async () => {
+    if (config.platform === 'datacenter') {
+      setIsLoading(true);
+    const data = JSON.parse(localStorage.getItem("formData") || "{}");
+      try {
+        // Make API call for datacenter platform
+        const response = await axios.post('http://localhost:3000/api/v1/lab_ms/createSingleVmDatacenterLab', {
+          data:data,
+          user:user.id
+        });
+        
+        if (response.data.success) {
+          // Navigate to cloud VMs page on success
+          window.location.href = '/dashboard/labs/cloud-vms';
+          return;
+        } else {
+          return;
+        }
+      } catch (error) {
+        const raw = localStorage.getItem('formData');
+
+         if (raw) {
+         const parsed = JSON.parse(raw);
+        delete parsed.labGuides;
+        delete parsed.userGuides;
+       localStorage.setItem('formData', JSON.stringify(parsed));
+      }
+
+        console.error('Error configuring datacenter:', error);
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // For other platforms, just go to next step
+      setStep(prev => prev + 1);
+    }
+  };
+
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -163,7 +217,7 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
             <DocumentUploader
               onDocumentsChange={handleDocumentsChange}
               onUserGuidesChange={handleUserGuidesChange}
-              onNext={() => setStep(prev => prev + 1)}
+              onNext={handleDocumentUploadNext}
             />
           );
         } else {
@@ -228,6 +282,15 @@ export const SingleVMWorkflow: React.FC<SingleVMWorkflowProps> = ({ onBack }) =>
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader className="h-12 w-12 text-primary-400 animate-spin mb-4" />
+        <p className="text-lg text-gray-300">Processing datacenter configuration...</p>
+        <p className="text-sm text-gray-400 mt-2">This may take a few moments</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
