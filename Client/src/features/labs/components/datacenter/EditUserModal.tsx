@@ -61,8 +61,8 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>Edit User</GradientText>
