@@ -54,9 +54,11 @@ export const DatacenterConfig: React.FC<DatacenterConfigProps> = ({ config, onCh
                         formData.protocol === 'ssh' ? '22' : 
                         formData.protocol === 'vnc' ? '5900' : '3389';
     
+    const updatedUsers = [...formData.users, { ip: '', port: defaultPort, username: '', password: '' }];
     setFormData(prev => ({
       ...prev,
-      users: [...prev.users, { ip: '', port: defaultPort, username: '', password: '' }]
+      users: updatedUsers,
+      numberOfUsers: updatedUsers.length // Update numberOfUsers to match the actual count
     }));
   };
 
@@ -64,7 +66,11 @@ export const DatacenterConfig: React.FC<DatacenterConfigProps> = ({ config, onCh
     if (formData.users.length <= 1) return;
     
     const updatedUsers = formData.users.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, users: updatedUsers }));
+    setFormData(prev => ({
+      ...prev,
+      users: updatedUsers,
+      numberOfUsers: updatedUsers.length // Update numberOfUsers to match the actual count
+    }));
   };
 
   const updateNumberOfUsers = (num: number) => {
@@ -172,7 +178,9 @@ export const DatacenterConfig: React.FC<DatacenterConfigProps> = ({ config, onCh
   };
 
   const handleSubmit = () => {
+
     if (validateForm()) {
+      console.log('Form submitted:', formData);
       onChange(formData);
     }
   };
