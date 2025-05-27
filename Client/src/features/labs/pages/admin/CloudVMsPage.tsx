@@ -77,8 +77,8 @@ export const AdminCloudVMsPage: React.FC = () => {
 
         // Fetch datacenter VMs
         try {
-          const dcResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterVMs', {
-            admin_id: admin.id
+          const dcResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabOnAdminId', {
+            adminId: admin?.id
           });
           
           if (dcResponse.data.success) {
