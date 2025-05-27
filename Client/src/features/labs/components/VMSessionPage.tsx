@@ -52,7 +52,7 @@ export const VMSessionPage: React.FC<VMSessionPageProps> = () => {
  
 
 useEffect(() => {
-  const docs = location.state?.document || null;
+  const docs = location.state?.doc || location.state?.document || [];
   if (docs) {
     setDocuments(docs);
     setIsLoadingDocs(false);

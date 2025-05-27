@@ -528,7 +528,8 @@ export const MyLabs: React.FC = () => {
             state: { 
               guacUrl,
               vmTitle: lab.title,
-              vmId: lab.lab_id
+              vmId: lab.lab_id,
+              doc:lab.userguide
             }
           });
         }
@@ -572,7 +573,8 @@ export const MyLabs: React.FC = () => {
             state: { 
               guacUrl,
               vmTitle: lab.title,
-              vmId: lab.lab_id
+              vmId: lab.lab_id,
+              doc:lab.userguide
             }
           });
             }

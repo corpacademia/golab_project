@@ -301,7 +301,7 @@ useEffect(() => {
               guacUrl,
               vmTitle: vm.title,
               vmId: vm.lab_id,
-              document:vm.labguide,
+              doc:vm.labguide,
             }
           });
         }
