@@ -244,7 +244,7 @@ export const AdminCloudVMsPage: React.FC = () => {
               {filteredVMs.length > 0 && (filters.type === 'all' || filters.type === 'cloud') && (
                 <div className="mb-8">
                   <div className="flex items-center mb-4">
-                    <h2 className="text-xl font-semibold text-gray-200 mr-3">Cloud VMs</h2>
+                    <h2 className="text-xl font-semibold text-gray-400 mr-3">Cloud VMs</h2>
                     <div className="px-2 py-1 bg-primary-500/20 rounded-full text-xs text-primary-300">
                       {filteredVMs.length} VMs
                     </div>
@@ -262,7 +262,7 @@ export const AdminCloudVMsPage: React.FC = () => {
                 <div>
                   <div className="flex items-center mb-4">
                     <Server className="h-5 w-5 text-secondary-400 mr-2" />
-                    <h2 className="text-xl font-semibold text-gray-200 mr-3">Datacenter VMs</h2>
+                    <h2 className="text-xl font-semibold text-gray-400 mr-3">Datacenter VMs</h2>
                     <div className="px-2 py-1 bg-secondary-500/20 rounded-full text-xs text-secondary-300">
                       {filteredDatacenterVMs.length} VMs
                     </div>

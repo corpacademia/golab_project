@@ -43,12 +43,81 @@ interface DatacenterVMCardProps {
   vm: DatacenterVM;
 }
 
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+  vmTitle: string;
+}
+
+const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isDeleting,
+  vmTitle
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]\" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <GradientText>Confirm Deletion</GradientText>
+          </h2>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Are you sure you want to delete <span className="font-semibold text-white">{vmTitle}</span>? This action cannot be undone.
+          </p>
+
+          <div className="flex justify-end space-x-4 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="btn-primary bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <Loader className="animate-spin h-4 w-4 mr-2" />
+                  Deleting...
+                </span>
+              ) : (
+                'Delete VM'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [isUserListModalOpen, setIsUserListModalOpen] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -97,6 +166,30 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     setIsEditModalOpen(true);
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await axios.delete(`http://localhost:3000/api/v1/lab_ms/deleteDatacenterVM/${vm.id}`);
+      
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'VM deleted successfully' });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete VM');
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete VM'
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
@@ -124,13 +217,27 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               </h3>
               <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
             </div>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-              vm.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
-              vm.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
-              'bg-amber-500/20 text-amber-300'
-            }`}>
-              {vm.status}
-            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {/* Handle edit VM */}}
+                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+              >
+                <Pencil className="h-4 w-4 text-primary-400" />
+              </button>
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+              >
+                <Trash2 className="h-4 w-4 text-red-400" />
+              </button>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                vm.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                vm.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
+                'bg-amber-500/20 text-amber-300'
+              }`}>
+                {vm.status}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -159,14 +266,14 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
           </div>
 
-          <div className="mt-auto pt-3 border-t border-secondary-500/10 flex justify-between">
+          <div className="mt-auto pt-3 border-t border-secondary-500/10 flex flex-col space-y-2">
             <button
               onClick={() => setIsUserListModalOpen(true)}
-              className="flex-1 h-9 px-4 rounded-lg text-sm font-medium
+              className="w-full h-9 px-4 rounded-lg text-sm font-medium
                        bg-dark-400/80 hover:bg-dark-300/80
                        border border-secondary-500/20 hover:border-secondary-500/30
                        text-secondary-300
-                       flex items-center justify-center mr-2"
+                       flex items-center justify-center"
             >
               <Users className="h-4 w-4 mr-2" />
               User List
@@ -175,7 +282,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             <button
               onClick={handleConvertToCatalogue}
               disabled={isConverting}
-              className="flex-1 h-9 px-4 rounded-lg text-sm font-medium
+              className="w-full h-9 px-4 rounded-lg text-sm font-medium
                        bg-gradient-to-r from-secondary-500 to-accent-500
                        hover:from-secondary-400 hover:to-accent-400
                        transform hover:scale-105 transition-all duration-300
@@ -237,6 +344,14 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
           }}
         />
       )}
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+        vmTitle={vm.title}
+      />
     </>
   );
 };
