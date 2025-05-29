@@ -11,32 +11,36 @@ interface EditUserModalProps {
     password: string;
     ip: string;
     port: string;
+    protocol: string;
   };
   vmId: string;
   onSave: (userData: any) => Promise<void>;
 }
 
-export const EditUserModal: React.FC<EditUserModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  user, 
-  vmId, 
-  onSave 
+export const EditUserModal: React.FC<EditUserModalProps> = ({
+  isOpen,
+  onClose,
+  user,
+  vmId,
+  onSave,
 }) => {
   const [formData, setFormData] = useState({
     id: user.id,
     username: user.username,
     password: user.password,
     ip: user.ip,
-    port: user.port
+    port: user.port,
+    protocol: user.protocol || 'RDP',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,13 +65,19 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-auto"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <div
+        className="bg-dark-200 rounded-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>Edit User</GradientText>
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
           >
@@ -85,8 +95,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
               required
             />
           </div>
@@ -100,8 +109,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
               required
             />
           </div>
@@ -115,8 +123,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               name="ip"
               value={formData.ip}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
               required
             />
           </div>
@@ -130,10 +137,26 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               name="port"
               value={formData.port}
               onChange={handleChange}
-              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Protocol
+            </label>
+            <select
+              name="protocol"
+              value={formData.protocol}
+              onChange={handleChange}
+              className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg text-gray-300 focus:border-primary-500/40 focus:outline-none"
+              required
+            >
+              <option value="RDP">RDP</option>
+              <option value="SSH">SSH</option>
+              <option value="VNC">VNC</option>
+            </select>
           </div>
 
           {error && (

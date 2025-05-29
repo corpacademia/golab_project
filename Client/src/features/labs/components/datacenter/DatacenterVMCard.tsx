@@ -20,6 +20,7 @@ import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
 import { UserListModal } from './UserListModal';
 import { EditUserModal } from './EditUserModal';
+import { ConvertToCatalogueModal } from '../cloudvm/ConvertToCatalogueModal';
 
 interface DatacenterVM {
   id: string;
@@ -61,13 +62,19 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]\" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-dark-200 rounded-lg w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <div
+        className="bg-dark-200 rounded-lg w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             <GradientText>Confirm Deletion</GradientText>
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
           >
@@ -77,7 +84,9 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
 
         <div className="space-y-4">
           <p className="text-gray-300">
-            Are you sure you want to delete <span className="font-semibold text-white">{vmTitle}</span>? This action cannot be undone.
+            Are you sure you want to delete{' '}
+            <span className="font-semibold text-white">{vmTitle}</span>? This
+            action cannot be undone.
           </p>
 
           <div className="flex justify-end space-x-4 pt-4">
@@ -110,8 +119,10 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   );
 };
 
+
 export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [isUserListModalOpen, setIsUserListModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -131,34 +142,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   };
 
   const handleConvertToCatalogue = async () => {
-    setIsConverting(true);
-    setNotification(null);
-
-    try {
-      const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/convertToCatalogue`, {
-        vmId: vm.id
-      });
-
-      if (response.data.success) {
-        setNotification({ 
-          type: 'success', 
-          message: 'Successfully converted to catalogue' 
-        });
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        throw new Error(response.data.message || 'Failed to convert to catalogue');
-      }
-    } catch (error: any) {
-      setNotification({
-        type: 'error',
-        message: error.response?.data?.message || 'Failed to convert to catalogue'
-      });
-    } finally {
-      setIsConverting(false);
-      setTimeout(() => setNotification(null), 3000);
-    }
+    setIsConvertModalOpen(true);
   };
 
   const handleEditUser = (user: any) => {
@@ -169,7 +153,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await axios.delete(`http://localhost:3000/api/v1/lab_ms/deleteDatacenterVM/${vm.id}`);
+      const response = await axios.delete(`http://localhost:3000/api/v1/lab_ms/deleteSingleVMDatacenterLab/${vm.lab_id}`);
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'VM deleted successfully' });
@@ -251,11 +235,11 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Calendar className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">Start: {formatDate(vm.startDate)}</span>
+              <span className="truncate">Start: {formatDate(vm?.startdate)}</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Clock className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">End: {formatDate(vm.endDate)}</span>
+              <span className="truncate">End: {formatDate(vm?.enddate)}</span>
             </div>
           </div>
 
@@ -306,7 +290,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         <UserListModal
           isOpen={isUserListModalOpen}
           onClose={() => setIsUserListModalOpen(false)}
-          users={[JSON.parse(vm.userscredentials)]}
+          users={vm?.userscredentials}
           vmId={vm.id}
           vmTitle={vm.title}
           onEditUser={handleEditUser}
@@ -321,11 +305,12 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
           vmId={vm.id}
           onSave={async (userData) => {
             try {
-              const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/updateDatacenterUser`, {
-                vmId: vm.id,
-                userId: userData.id,
+              const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/editSingleVmDatacenterCreds`, {
+                labId: vm.lab_id,
+                id: userData.id,
                 username: userData.username,
                 password: userData.password,
+                protocol:userData.protocol,
                 ip: userData.ip,
                 port: userData.port
               });
@@ -351,6 +336,13 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         onConfirm={handleDelete}
         isDeleting={isDeleting}
         vmTitle={vm.title}
+      />
+
+      <ConvertToCatalogueModal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        vmId={vm?.lab_id}
+        isDatacenterVM={true}
       />
     </>
   );

@@ -8,6 +8,7 @@ interface ConvertToCatalogueModalProps {
   onClose: () => void;
   vmId: string;
   amiId?: string;
+  isDatacenterVM?: boolean;
 }
 
 interface Organization {
@@ -126,7 +127,8 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   isOpen,
   onClose,
   vmId,
-  amiId
+  amiId,
+  isDatacenterVM = false
 }) => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +140,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
   const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
 
   const [admin,setAdmin] = useState({});
-
   useEffect(() => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
@@ -217,17 +218,19 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       setError('Organization is required');
       return false;
     }
-    if (formData.numberOfDays < 1) {
-      setError('Number of days must be at least 1');
-      return false;
-    }
-    if (formData.hoursPerDay < 1) {
-      setError('Hours per day must be at least 1');
-      return false;
-    }
-    if (!formData.expiresIn) {
-      setError('Expiration date is required');
-      return false;
+    if (!isDatacenterVM) {
+      if (formData.numberOfDays < 1) {
+        setError('Number of days must be at least 1');
+        return false;
+      }
+      if (formData.hoursPerDay < 1) {
+        setError('Hours per day must be at least 1');
+        return false;
+      }
+      if (!formData.expiresIn) {
+        setError('Expiration date is required');
+        return false;
+      }
     }
     return true;
   };
@@ -246,8 +249,42 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
 
       if (org_details.data.success) {
         setOrg_details(org_details.data.data);
-
-        const batch = await axios.post('http://localhost:3000/api/v1/lab_ms/batchAssignment', {
+        if(isDatacenterVM){
+          console.log(vmId)
+            const labUpdate = await axios.post('http://localhost:3000/api/v1/lab_ms/updatesinglevmdatacenter', {
+                software:software.filter(s => s.trim() !== ''), 
+                catalogueType: formData.catalogueType, 
+                labId: vmId,
+            })
+            if(labUpdate.data.success){
+              const orgAssignment = await axios.post('http://localhost:3000/api/v1/lab_ms/singleVMDatacenterLabOrgAssignment',{
+                labId: vmId,
+                 orgId: formData.organizationId, 
+                 assignedBy: admin.id, 
+                 catalogueName: formData.catalogueName,
+              })
+              if(orgAssignment.data.success){
+                const assingCredsToOrg = await axios.post('http://localhost:3000/api/v1/lab_ms/assignLabCredsToOrg',{
+                labId: vmId,
+                orgAssigned: org_details.data.data.id, 
+                assignedBy: admin.id,
+              })
+              if(assingCredsToOrg.data.success){
+                setSuccess('Successfully converted to catalogue');
+                setTimeout(() => {
+                  onClose();
+                }, 2000);
+              } else {
+                throw new Error('Failed to assign lab credentials to organization');
+              }
+              }
+            }
+             else {
+            throw new Error('Failed to update lab configuration');
+          }
+         }
+        else{
+           const batch = await axios.post('http://localhost:3000/api/v1/lab_ms/batchAssignment', {
           lab_id: vmId,
           admin_id: org_details.data.data.org_admin,
           org_id: org_details.data.data.id,
@@ -279,6 +316,8 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
         } else {
           throw new Error(batch.data.message || 'Failed to create batch assignment');
         }
+        }
+       
       } else {
         throw new Error('Failed to fetch organization details');
       }
@@ -357,55 +396,59 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Number of Days
-                </label>
-                <input
-                  type="number"
-                  name="numberOfDays"
-                  min="1"
-                  value={formData.numberOfDays}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Hours per Day
-                </label>
-                <input
-                  type="number"
-                  name="hoursPerDay"
-                  min="1"
-                  max="24"
-                  value={formData.hoursPerDay}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-              </div>
-            </div>
+            {!isDatacenterVM && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Number of Days
+                    </label>
+                    <input
+                      type="number"
+                      name="numberOfDays"
+                      min="1"
+                      value={formData.numberOfDays}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Hours per Day
+                    </label>
+                    <input
+                      type="number"
+                      name="hoursPerDay"
+                      min="1"
+                      max="24"
+                      value={formData.hoursPerDay}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Expires In
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  name="expiresIn"
-                  value={formData.expiresIn}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
-                         text-gray-300 focus:border-primary-500/40 focus:outline-none"
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
-              </div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Expires In
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="expiresIn"
+                      value={formData.expiresIn}
+                      onChange={handleInputChange}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                    <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-500 pointer-events-none" />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
