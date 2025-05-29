@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { CloudSliceCard } from '../../labs/components/user/CloudSliceCard';
+import { DatacenterVMCard } from '../../labs/components/user/DatacenterVMCard';
 import { useNavigate } from 'react-router-dom';
 
 interface Instance {
@@ -91,11 +92,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
       } else {
         throw new Error(response?.data?.message || 'Failed to delete lab');
       }
-    } catch (error: any) {
+    } catch (error) {
       setTimeout(() => setNotification(null), 3000);
       setNotification({
         type: 'error',
-        message: error?.data?.message || 'Failed to delete lab',
+        message: error.message || 'Failed to delete lab',
       })
     } finally {
       setIsDeleting(false);
@@ -173,8 +174,10 @@ export const MyLabs: React.FC = () => {
   const navigate = useNavigate();
   const [labs, setLabs] = useState([]);
   const [cloudSliceLabs, setCloudSliceLabs] = useState([]);
+  const [datacenterVMs, setDatacenterVMs] = useState([]);
   const [filteredLabs, setFilteredLabs] = useState([]);
   const [filteredCloudSliceLabs, setFilteredCloudSliceLabs] = useState([]);
+  const [filteredDatacenterVMs, setFilteredDatacenterVMs] = useState([]);
   const [labStatus, setLabStatus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cloudInstanceDetails, setCloudInstanceDetails] = useState<LabDetails | undefined>(undefined);
@@ -208,18 +211,16 @@ export const MyLabs: React.FC = () => {
       if(labStatus.data.success){
         setUserLabStatus(labStatus?.data?.data)
       }
-      
-    
     };
     getUserDetails();
   }, []);
-
-
 
   // Combine all fetch calls into a single useEffect
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
+        
         // Fetch regular labs
         const [cataloguesRes, labsRes, softwareRes] = await Promise.all([
           axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues'),
@@ -249,24 +250,35 @@ export const MyLabs: React.FC = () => {
         setLabStatus(labss);
 
         // Fetch cloud slice labs
+        try {
+          const cloudSliceResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
+          if (cloudSliceResponse.data.success) {
+            const cloudSlices = cloudSliceResponse.data.data || [];
+            setCloudSliceLabs(cloudSlices);
+            setFilteredCloudSliceLabs(cloudSlices);
+          }
+        } catch (error) {
+          console.error('Error fetching cloud slice labs:', error);
+        }
         
+        // Fetch datacenter VMs
+        try {
+          const datacenterResponse = await axios.get(`http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterUserAssignment/${user.id}`);
+          if (datacenterResponse.data.success) {
+            const datacenterVMs = datacenterResponse.data.data || [];
+            setDatacenterVMs(datacenterVMs);
+            setFilteredDatacenterVMs(datacenterVMs);
+          }
+        } catch (error) {
+          console.error('Error fetching datacenter VMs:', error);
+        }
 
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
-      try {
-        const cloudSliceResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
-        if (cloudSliceResponse.data.success) {
-          const cloudSlices = cloudSliceResponse.data.data || [];
-          setCloudSliceLabs(cloudSlices);
-          setFilteredCloudSliceLabs(cloudSlices);
-        }
-      } catch (error) {
-        console.error('Error fetching cloud slice labs:', error);
-      }
-
+      
       // Check status for each lab
       for (const lab of updatedLabs) {
         await checkLabStatus(lab.lab_id);
@@ -327,7 +339,26 @@ export const MyLabs: React.FC = () => {
     }
 
     setFilteredCloudSliceLabs(cloudSliceResult);
-  }, [filters, labs, labStatus, cloudSliceLabs]);
+    
+    // Filter datacenter VMs
+    let datacenterResult = [...datacenterVMs];
+    
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      datacenterResult = datacenterResult.filter(lab => 
+        lab.title.toLowerCase().includes(searchTerm) ||
+        (lab.description && lab.description.toLowerCase().includes(searchTerm))
+      );
+    }
+    
+    if (filters.status) {
+      datacenterResult = datacenterResult.filter(lab => 
+        lab.status === filters.status
+      );
+    }
+    
+    setFilteredDatacenterVMs(datacenterResult);
+  }, [filters, labs, labStatus, cloudSliceLabs, datacenterVMs]);
 
   const checkLabStatus = async (labId: string) => {
     try {
@@ -637,31 +668,48 @@ export const MyLabs: React.FC = () => {
     return date.toISOString().slice(0, 19).replace('T', ' ');
   }
 
-  const handleDeleteCloudSlice =async (labId: string,labStatus:any) => {
+  const handleDeleteCloudSlice = async (labId: string, labStatus: any) => {
     // This function will be passed to the CloudSliceCard component
     // It will be called when the user clicks the delete button on a cloud slice lab
-   const acountDetails = labStatus.find((lab)=>lab.labid === labId)
+    const acountDetails = labStatus.find((lab) => lab.labid === labId)
     try {
       let response;
-      const deleteIam = await axios.post('http://localhost:3000/api/v1/aws_ms/deleteIamAccount',{
-                userName:acountDetails.username
-              })
-      if(deleteIam.data.success){
+      const deleteIam = await axios.post('http://localhost:3000/api/v1/aws_ms/deleteIamAccount', {
+        userName: acountDetails.username
+      })
+      if (deleteIam.data.success) {
         response = await axios.post('http://localhost:3000/api/v1/cloud_slice_ms/deleteUserCloudSlice', {
           userId: user.id,
           labId: labId
         })
-        if(response.data.success){
+        if (response.data.success) {
           setCloudSliceLabs(prev => prev.filter(lab => lab.labid !== labId));
-        setFilteredCloudSliceLabs(prev => prev.filter(lab => lab.labid !== labId));
+          setFilteredCloudSliceLabs(prev => prev.filter(lab => lab.labid !== labId));
         }
       }
-       
     } catch (error) {
       console.error('Error deleting cloud slice:', error);
     }
-   
-    
+  };
+  
+  const handleDeleteDatacenterVM = async (labId: string) => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/deleteSingleVmDatacenterUserAssignment', {
+        userId: user.id,
+        labId: labId
+      });
+      
+      if (response.data.success) {
+        setDatacenterVMs(prev => prev.filter(vm => vm.labid !== labId));
+        setFilteredDatacenterVMs(prev => prev.filter(vm => vm.labid !== labId));
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to delete datacenter VM');
+      }
+    } catch (error) {
+      console.error('Error deleting datacenter VM:', error);
+      throw error;
+    }
   };
 
   if (isLoading) {
@@ -733,18 +781,18 @@ export const MyLabs: React.FC = () => {
       </div>
 
       {/* Lab Cards */}
-      {filteredLabs.length === 0 && filteredCloudSliceLabs.length === 0 ? (
+      {filteredLabs.length === 0 && filteredCloudSliceLabs.length === 0 && filteredDatacenterVMs.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] glass-panel">
           <FolderX className="h-16 w-16 text-gray-400 mb-4" />
           <h2 className="text-xl font-semibold mb-2">
             <GradientText>No Labs Found</GradientText>
           </h2>
           <p className="text-gray-400 text-center max-w-md mb-6">
-            {labs.length === 0 && cloudSliceLabs.length === 0
+            {labs.length === 0 && cloudSliceLabs.length === 0 && datacenterVMs.length === 0
               ? "You haven't been assigned any labs yet. Check out our lab catalogue to get started."
               : "No labs match your current filters. Try adjusting your search criteria."}
           </p>
-          {labs.length === 0 && cloudSliceLabs.length === 0 && (
+          {labs.length === 0 && cloudSliceLabs.length === 0 && datacenterVMs.length === 0 && (
             <a 
               href="/dashboard/labs/catalogue"
               className="btn-primary"
@@ -887,6 +935,24 @@ export const MyLabs: React.FC = () => {
             </div>
           )}
 
+          {/* Datacenter VMs */}
+          {filteredDatacenterVMs.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold mb-4">
+                <GradientText>Datacenter VMs</GradientText>
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredDatacenterVMs.map((vm) => (
+                  <DatacenterVMCard 
+                    key={vm.id} 
+                    lab={vm}
+                    onDelete={handleDeleteDatacenterVM}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cloud Slice Labs */}
           {filteredCloudSliceLabs.length > 0 && (
             <div className="mt-8">
@@ -899,8 +965,8 @@ export const MyLabs: React.FC = () => {
                     key={lab.id} 
                     lab={lab} 
                     onDelete={handleDeleteCloudSlice} 
-                    labStatus = {userLabStatus}
-                    user = {user}
+                    labStatus={userLabStatus}
+                    user={user}
                   />
                 ))}
               </div>
