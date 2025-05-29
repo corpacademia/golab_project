@@ -22,11 +22,12 @@ interface UserListModalProps {
 export const UserListModal: React.FC<UserListModalProps> = ({ 
   isOpen, 
   onClose, 
-  users, 
+  users: initialUsers, 
   vmId, 
   vmTitle,
   onEditUser
 }) => {
+  const [users, setUsers] = useState<Array<any>>(initialUsers);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [disablingUser, setDisablingUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,12 @@ export const UserListModal: React.FC<UserListModalProps> = ({
       
       
       if (response.data.success) {
+        // Update the state to reflect the change
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, disabled: true } : user
+          )
+        );
         setSuccess('User disabled successfully');
         setTimeout(() => {
           setSuccess(null);
@@ -59,9 +66,6 @@ export const UserListModal: React.FC<UserListModalProps> = ({
       } else {
         throw new Error(response?.data.message || 'Failed to disable user');
       }
-      
-      // If successful, you might want to update the UI to reflect the disabled state
-      // This could be done by refreshing the user list or updating the local state
     } catch (error: any) {
       setError(error.message || 'An error occurred while disabling the user');
     } finally {
@@ -82,6 +86,12 @@ export const UserListModal: React.FC<UserListModalProps> = ({
       
       
       if (response.data.success) {
+        // Update the state to reflect the change
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, disabled: false } : user
+          )
+        );
         setSuccess('User enabled successfully');
         setTimeout(() => {
           setSuccess(null);

@@ -1,4 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '../../../../store/authStore';
+import { 
+  BeakerIcon, 
+  BookOpenIcon, 
+  UserIcon, 
+  LayoutDashboardIcon,
+  GraduationCapIcon,
+  AwardIcon,
+  CloudIcon,
+  LinkIcon
+} from 'lucide-react';
 import { 
   Server, 
   Users, 
@@ -11,7 +23,6 @@ import {
   Check, 
   AlertCircle, 
   Loader,
-  Link as LinkIcon,
   Power,
   Eye,
   EyeOff
@@ -131,6 +142,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showFullStartDate, setShowFullStartDate] = useState(false);
   const [showFullEndDate, setShowFullEndDate] = useState(false);
+  const [vmUsers, setVmUsers] = useState<Array<any>>(vm.userscredentials || []);
 
   function formatDate(dateString:string) {
     const date = new Date(dateString);
@@ -156,6 +168,36 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const handleEditUser = (user: any) => {
     setSelectedUser(user);
     setIsEditModalOpen(true);
+  };
+
+  const handleSaveUser = async (userData: any) => {
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/editSingleVmDatacenterCreds`, {
+        labId: vm.lab_id,
+        id: userData.id,
+        username: userData.username,
+        password: userData.password,
+        protocol: userData.protocol,
+        ip: userData.ip,
+        port: userData.port
+      });
+
+      if (response.data.success) {
+        // Update the user in the local state
+        setVmUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userData.id ? { ...user, ...userData } : user
+          )
+        );
+        
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to update user');
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   };
 
   const handleDelete = async () => {
@@ -211,12 +253,6 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => {/* Handle edit VM */}}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Pencil className="h-4 w-4 text-primary-400" />
-              </button>
-              <button
                 onClick={() => setIsDeleteModalOpen(true)}
                 className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
               >
@@ -266,7 +302,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
           <div className="mb-4">
             <div className="flex items-center text-sm text-gray-400 mb-2">
               <Users className="h-4 w-4 mr-2 text-secondary-400" />
-              <span>{vm.userscredentials.length} Users</span>
+              <span>{vmUsers.length} Users</span>
             </div>
           </div>
 
@@ -310,7 +346,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         <UserListModal
           isOpen={isUserListModalOpen}
           onClose={() => setIsUserListModalOpen(false)}
-          users={vm?.userscredentials}
+          users={vmUsers}
           vmId={vm.id}
           vmTitle={vm.title}
           onEditUser={handleEditUser}
@@ -320,28 +356,17 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
       {isEditModalOpen && selectedUser && (
         <EditUserModal
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedUser(null);
+          }}
           user={selectedUser}
           vmId={vm.id}
           onSave={async (userData) => {
             try {
-              const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/editSingleVmDatacenterCreds`, {
-                labId: vm.lab_id,
-                id: userData.id,
-                username: userData.username,
-                password: userData.password,
-                protocol:userData.protocol,
-                ip: userData.ip,
-                port: userData.port
-              });
-
-              if (response.data.success) {
-                setIsEditModalOpen(false);
-                setSelectedUser(null);
-                window.location.reload();
-              } else {
-                throw new Error(response.data.message || 'Failed to update user');
-              }
+              await handleSaveUser(userData);
+              // setIsEditModalOpen(false);
+              setSelectedUser(null);
             } catch (error) {
               console.error('Error updating user:', error);
               throw error;
