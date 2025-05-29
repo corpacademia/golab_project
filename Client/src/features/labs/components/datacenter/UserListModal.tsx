@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Pencil, Link as LinkIcon, Power, Eye, EyeOff } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
+import axios from 'axios';
 
 interface UserListModalProps {
   isOpen: boolean;
@@ -26,12 +27,38 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   onEditUser
 }) => {
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [disablingUser, setDisablingUser] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const togglePasswordVisibility = (userId: string) => {
     setShowPasswords(prev => ({
       ...prev,
       [userId]: !prev[userId]
     }));
+  };
+
+  const handleDisable = async (userId: string) => {
+    setDisablingUser(userId);
+    setError(null);
+    
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterLabCreds`, {
+          id:userId,
+          disable:true
+      });
+      
+      
+      if (!response.data.success) {
+        throw new Error(response?.data.message || 'Failed to disable user');
+      }
+      
+      // If successful, you might want to update the UI to reflect the disabled state
+      // This could be done by refreshing the user list or updating the local state
+    } catch (error: any) {
+      setError(error.message || 'An error occurred while disabling the user');
+    } finally {
+      setDisablingUser(null);
+    }
   };
 
   if (!isOpen) return null;
@@ -50,6 +77,12 @@ export const UserListModal: React.FC<UserListModalProps> = ({
             <X className="h-5 w-5 text-gray-400" />
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/20 border border-red-500/20 rounded-lg">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
         {users.length === 0 ? (
           <div className="p-6 text-center">
@@ -115,11 +148,10 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                         </button>
                         <button
                           className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                          onClick={() => {
-                            // Disable user logic
-                          }}
+                          onClick={() => handleDisable(user.id)}
+                          // disabled={disablingUser === user.id}
                         >
-                          <Power className="h-4 w-4 text-red-400" />
+                          <Power className={`h-4 w-4 ${disablingUser === user.id ? 'animate-pulse' : ''} text-red-400`} />
                         </button>
                       </div>
                     </td>

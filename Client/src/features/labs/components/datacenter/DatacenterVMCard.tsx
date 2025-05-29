@@ -129,18 +129,10 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showFullStartDate, setShowFullStartDate] = useState(false);
+  const [showFullEndDate, setShowFullEndDate] = useState(false);
 
-  // const formatDate = (dateString: string) => {
-  //   const date = new Date(dateString);
-  //   return date.toLocaleDateString('en-US', {
-  //     year: 'numeric',
-  //     month: 'short',
-  //     day: 'numeric',
-  //     hour: '2-digit',
-  //     minute: '2-digit'
-  //   });
-  // };
-  function formatDate(dateString) {
+  function formatDate(dateString:string) {
     const date = new Date(dateString);
   
     const year = date.getFullYear();
@@ -156,6 +148,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   
     return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
+
   const handleConvertToCatalogue = async () => {
     setIsConvertModalOpen(true);
   };
@@ -250,11 +243,23 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Calendar className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">Start: {formatDate(vm?.startdate)}</span>
+              <span 
+                className={`${showFullStartDate ? '' : 'truncate'} cursor-pointer`}
+                onClick={() => setShowFullStartDate(!showFullStartDate)}
+                title={showFullStartDate ? "Click to collapse" : "Click to expand"}
+              >
+                Start: {formatDate(vm?.startdate)}
+              </span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
               <Clock className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">End: {formatDate(vm?.enddate)}</span>
+              <span 
+                className={`${showFullEndDate ? '' : 'truncate'} cursor-pointer`}
+                onClick={() => setShowFullEndDate(!showFullEndDate)}
+                title={showFullEndDate ? "Click to collapse" : "Click to expand"}
+              >
+                End: {formatDate(vm?.enddate)}
+              </span>
             </div>
           </div>
 
