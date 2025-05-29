@@ -25,12 +25,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   onSave,
 }) => {
   const [formData, setFormData] = useState({
-    id: user.id,
-    username: user.username,
-    password: user.password,
-    ip: user.ip,
-    port: user.port,
-    protocol: user.protocol || 'RDP',
+    id: user?.id || '',
+    username: user?.username || '',
+    password: user?.password || '',
+    ip: user?.ip || '',
+    port: user?.port || '',
+    protocol: user?.protocol || 'RDP',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);

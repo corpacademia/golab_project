@@ -12,6 +12,7 @@ interface UserListModalProps {
     password: string;
     ip: string;
     port: string;
+    protocol?: string;
     disabled?: boolean;
   }>;
   vmId: string;
@@ -32,7 +33,6 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   const [disablingUser, setDisablingUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
   const togglePasswordVisibility = (userId: string) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -59,6 +59,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
             user.id === userId ? { ...user, disabled: true } : user
           )
         );
+        
         setSuccess('User disabled successfully');
         setTimeout(() => {
           setSuccess(null);
@@ -92,6 +93,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
             user.id === userId ? { ...user, disabled: false } : user
           )
         );
+        
         setSuccess('User enabled successfully');
         setTimeout(() => {
           setSuccess(null);
@@ -148,6 +150,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                   <th className="pb-4">Password</th>
                   <th className="pb-4">IP Address</th>
                   <th className="pb-4">Port</th>
+                  <th className="pb-4">Protocol</th>
                   <th className="pb-4">Actions</th>
                 </tr>
               </thead>
@@ -179,6 +182,9 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                     </td>
                     <td className="py-4">
                       <div className="font-mono text-gray-300">{user.port}</div>
+                    </td>
+                    <td className="py-4">
+                      <div className="font-mono text-gray-300">{user.protocol || 'RDP'}</div>
                     </td>
                     <td className="py-4">
                       <div className="flex items-center space-x-2">
