@@ -32,6 +32,7 @@ import axios from 'axios';
 import { UserListModal } from './UserListModal';
 import { EditUserModal } from './EditUserModal';
 import { ConvertToCatalogueModal } from '../cloudvm/ConvertToCatalogueModal';
+import { AssignUsersModal } from '../catalogue/AssignUsersModal';
 
 interface DatacenterVM {
   id: string;
@@ -134,6 +135,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
 export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [isUserListModalOpen, setIsUserListModalOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -176,6 +178,10 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
 
   const handleConvertToCatalogue = async () => {
     setIsConvertModalOpen(true);
+  };
+
+  const handleAssignUsers = () => {
+    setIsAssignModalOpen(true);
   };
 
   const handleEditUser = (user: any) => {
@@ -240,6 +246,32 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     }
   };
 
+  // For users who can't edit content (not the creator)
+  const handleUserDelete = async () => {
+    setIsDeleting(true);
+    try {
+      // Different API endpoint for users who didn't create the VM
+      const response = await axios.delete(`http://localhost:3000/api/v1/lab_ms/deleteAssignedSingleVMDatacenterLab/${vm.lab_id}`);
+      
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'VM deleted successfully' });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        throw new Error(response.data.message || 'Failed to delete VM');
+      }
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to delete VM'
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
   // Check if current user can edit content
   const canEditContent = () => {
     if (!currentUser) return false;
@@ -278,6 +310,14 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
             <div className="flex items-center space-x-2">
               {canEditContent() && (
+                <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 text-red-400" />
+                </button>
+              )}
+              {!canEditContent() && (
                 <button
                   onClick={() => setIsDeleteModalOpen(true)}
                   className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
@@ -346,7 +386,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               User List
             </button>
             
-            {canEditContent() && (
+            {canEditContent() ? (
               <button
                 onClick={handleConvertToCatalogue}
                 disabled={isConverting}
@@ -365,6 +405,19 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
                     Convert to Catalogue
                   </>
                 )}
+              </button>
+            ) : (
+              <button
+                onClick={handleAssignUsers}
+                className="w-full h-9 px-4 rounded-lg text-sm font-medium
+                         bg-gradient-to-r from-secondary-500 to-accent-500
+                         hover:from-secondary-400 hover:to-accent-400
+                         transform hover:scale-105 transition-all duration-300
+                         text-white shadow-lg shadow-secondary-500/20
+                         flex items-center justify-center"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Assign Lab
               </button>
             )}
           </div>
@@ -408,7 +461,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
+        onConfirm={canEditContent() ? handleDelete : handleUserDelete}
         isDeleting={isDeleting}
         vmTitle={vm.title}
       />
@@ -418,6 +471,13 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         onClose={() => setIsConvertModalOpen(false)}
         vmId={vm?.lab_id}
         isDatacenterVM={true}
+      />
+
+      <AssignUsersModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        lab={vm}
+        type="datacenter"
       />
     </>
   );

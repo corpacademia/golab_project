@@ -123,6 +123,28 @@ export const AssignUsersModal: React.FC<AssignUsersModalProps> = ({
         throw new Error(response.data.message || 'Failed to assign lab');
       }
     }
+
+    else if(type ==='datacenter'){
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignSingleVmDatacenterLabToUser', {
+        labId:lab?.lab_id,
+        orgId:users[0]?.org_id,
+        userId:selectedUsers,
+        assignedBy:admin.id,
+        startDate:lab?.startdate,
+        endDate:lab?.enddate
+      });
+      if (response.data.success) {
+        setNotification({ type: 'success', message: 'Lab assigned successfully' });
+        setTimeout(() => {
+          setNotification(null);
+          onClose();
+          setSelectedUsers([]);
+        }, 3000);
+      } else {
+        throw new Error(response.data.message || 'Failed to assign lab');
+      }
+    }
+
     else{
      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/assignlab', {
         lab: lab?.lab_id,
