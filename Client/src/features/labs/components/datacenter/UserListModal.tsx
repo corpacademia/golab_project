@@ -17,6 +17,7 @@ interface UserListModalProps {
   }>;
   vmId: string;
   vmTitle: string;
+  vm:any;
   onEditUser: (user: any) => void;
 }
 
@@ -26,6 +27,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   users: initialUsers, 
   vmId, 
   vmTitle,
+  vm,
   onEditUser
 }) => {
   const [users, setUsers] = useState<Array<any>>(initialUsers);
@@ -33,6 +35,21 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   const [disablingUser, setDisablingUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Fetch current user to check permissions
+  React.useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
   const togglePasswordVisibility = (userId: string) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -106,6 +123,14 @@ export const UserListModal: React.FC<UserListModalProps> = ({
     } finally {
       setDisablingUser(null);
     }
+  };
+
+  // Check if current user can edit content
+  const canEditContent = () => {
+    console.log(currentUser,vmId)
+    if (!currentUser || !vmId) return false;
+    // Check if the VM was created by the current user
+    return vm.user_id === currentUser.id;
   };
 
   if (!isOpen) return null;
@@ -188,12 +213,14 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                     </td>
                     <td className="py-4">
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => onEditUser(user)}
-                          className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                        >
-                          <Pencil className="h-4 w-4 text-primary-400" />
-                        </button>
+                        {canEditContent() && (
+                          <button
+                            onClick={() => onEditUser(user)}
+                            className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
+                          >
+                            <Pencil className="h-4 w-4 text-primary-400" />
+                          </button>
+                        )}
                         <button
                           className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
                           onClick={() => {
@@ -203,13 +230,14 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                         >
                           <LinkIcon className="h-4 w-4 text-primary-400" />
                         </button>
-                        <button
-                          className={`p-2 rounded-lg transition-colors ${user.disabled ? 'hover:bg-green-500/10' : 'hover:bg-red-500/10'}`}
-                          onClick={() => user.disabled ? handleEnable(user.id) : handleDisable(user.id)}
-                          // disabled={disablingUser === user.id}
-                        >
-                          <Power className={`h-4 w-4 ${disablingUser === user.id ? 'animate-pulse' : ''} ${user.disabled ? 'text-green-400' : 'text-red-400'}`} />
-                        </button>
+                        {canEditContent() && (
+                          <button
+                            className={`p-2 rounded-lg transition-colors ${user.disabled ? 'hover:bg-green-500/10' : 'hover:bg-red-500/10'}`}
+                            onClick={() => user.disabled ? handleEnable(user.id) : handleDisable(user.id)}
+                          >
+                            <Power className={`h-4 w-4 ${disablingUser === user.id ? 'animate-pulse' : ''} ${user.disabled ? 'text-green-400' : 'text-red-400'}`} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

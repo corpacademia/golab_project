@@ -250,7 +250,6 @@ export const ConvertToCatalogueModal: React.FC<ConvertToCatalogueModalProps> = (
       if (org_details.data.success) {
         setOrg_details(org_details.data.data);
         if(isDatacenterVM){
-          console.log(vmId)
             const labUpdate = await axios.post('http://localhost:3000/api/v1/lab_ms/updatesinglevmdatacenter', {
                 software:software.filter(s => s.trim() !== ''), 
                 catalogueType: formData.catalogueType, 

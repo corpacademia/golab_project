@@ -102,7 +102,7 @@ if (dcResponse.data.success) {
       }
     })
   );
-
+ console.log(vmsWithCreds)
   setDatacenterVMs(vmsWithCreds);
 }
 

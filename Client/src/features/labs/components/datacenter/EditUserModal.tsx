@@ -14,6 +14,7 @@ interface EditUserModalProps {
     protocol: string;
   };
   vmId: string;
+  vm:any;
   onSave: (userData: any) => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
   onClose,
   user,
   vmId,
+  vm,
   onSave,
 }) => {
   const [formData, setFormData] = useState({

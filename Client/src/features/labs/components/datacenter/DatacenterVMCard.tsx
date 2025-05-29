@@ -143,7 +143,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [showFullStartDate, setShowFullStartDate] = useState(false);
   const [showFullEndDate, setShowFullEndDate] = useState(false);
   const [vmUsers, setVmUsers] = useState<Array<any>>(vm.userscredentials || []);
-
+  const [currentUser, setCurrentUser] = useState<any>(null);
   function formatDate(dateString:string) {
     const date = new Date(dateString);
   
@@ -161,13 +161,29 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
 
+  // Fetch current user details
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
   const handleConvertToCatalogue = async () => {
     setIsConvertModalOpen(true);
   };
 
   const handleEditUser = (user: any) => {
-    setSelectedUser(user);
-    setIsEditModalOpen(true);
+    // Only allow editing if the current user created the VM
+    if (canEditContent()) {
+      setSelectedUser(user);
+      setIsEditModalOpen(true);
+    }
   };
 
   const handleSaveUser = async (userData: any) => {
@@ -224,6 +240,15 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     }
   };
 
+  // Check if current user can edit content
+  const canEditContent = () => {
+    if (!currentUser) return false;
+    
+    // Check if the current user created this VM
+    // This is where we implement the check for user_id matching
+    return vm.user_id === currentUser.id;
+  };
+
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
@@ -252,12 +277,14 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
             </div>
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
-              >
-                <Trash2 className="h-4 w-4 text-red-400" />
-              </button>
+              {canEditContent() && (
+                <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4 text-red-400" />
+                </button>
+              )}
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                 vm.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
                 vm.status === 'inactive' ? 'bg-red-500/20 text-red-300' :
@@ -319,25 +346,27 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               User List
             </button>
             
-            <button
-              onClick={handleConvertToCatalogue}
-              disabled={isConverting}
-              className="w-full h-9 px-4 rounded-lg text-sm font-medium
-                       bg-gradient-to-r from-secondary-500 to-accent-500
-                       hover:from-secondary-400 hover:to-accent-400
-                       transform hover:scale-105 transition-all duration-300
-                       text-white shadow-lg shadow-secondary-500/20
-                       flex items-center justify-center"
-            >
-              {isConverting ? (
-                <Loader className="animate-spin h-4 w-4" />
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Convert to Catalogue
-                </>
-              )}
-            </button>
+            {canEditContent() && (
+              <button
+                onClick={handleConvertToCatalogue}
+                disabled={isConverting}
+                className="w-full h-9 px-4 rounded-lg text-sm font-medium
+                         bg-gradient-to-r from-secondary-500 to-accent-500
+                         hover:from-secondary-400 hover:to-accent-400
+                         transform hover:scale-105 transition-all duration-300
+                         text-white shadow-lg shadow-secondary-500/20
+                         flex items-center justify-center"
+              >
+                {isConverting ? (
+                  <Loader className="animate-spin h-4 w-4" />
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Convert to Catalogue
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -347,8 +376,9 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
           isOpen={isUserListModalOpen}
           onClose={() => setIsUserListModalOpen(false)}
           users={vmUsers}
-          vmId={vm.id}
+          vmId={vm.lab_id}
           vmTitle={vm.title}
+          vm={vm}
           onEditUser={handleEditUser}
         />
       )}
@@ -361,11 +391,11 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             setSelectedUser(null);
           }}
           user={selectedUser}
-          vmId={vm.id}
+          vmId={vm?.lab_id}
+          vm={vm}
           onSave={async (userData) => {
             try {
               await handleSaveUser(userData);
-              // setIsEditModalOpen(false);
               setSelectedUser(null);
             } catch (error) {
               console.error('Error updating user:', error);

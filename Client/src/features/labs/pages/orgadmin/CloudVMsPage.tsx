@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import { CloudVMAssessmentCard } from '../../components/cloudvm/assessment/CloudVMAssessmentCard';
-import { Plus, Search, Filter, AlertCircle, FolderX } from 'lucide-react';
+import { DatacenterVMCard } from '../../components/datacenter/DatacenterVMCard';
+import { Plus, Search, Filter, AlertCircle, FolderX, Server } from 'lucide-react';
 import axios from 'axios';
 
 interface CloudVM {
@@ -20,6 +21,28 @@ interface CloudVM {
   software: string[];
   config_details?: any;
 }
+
+interface DatacenterVM {
+  id: string;
+  lab_id: string;
+  title: string;
+  description: string;
+  platform: string;
+  protocol: string;
+  startdate: string;
+  enddate: string;
+  status: 'active' | 'inactive' | 'pending';
+  userscredentials?: Array<{
+    id: string;
+    username: string;
+    password: string;
+    ip: string;
+    port: string;
+    protocol?: string;
+    disabled?: boolean;
+  }>;
+}
+
 interface User{
   id:string;
   name:string;
@@ -35,14 +58,17 @@ interface User{
 
 export const OrgAdminCloudVMsPage: React.FC = () => {
   const [vms, setVMs] = useState<CloudVM[]>([]);
+  const [datacenterVMs, setDatacenterVMs] = useState<DatacenterVM[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const[admin , setAdmin] = useState<User[]>([]);
   const [filters, setFilters] = useState({
     search: '',
     provider: '',
-    status: ''
+    status: '',
+    type: 'all' // Filter for VM type (assessment, datacenter, or all)
   });
+  
   useEffect(() => {
     const getUserDetails = async () => {
       const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
@@ -55,8 +81,8 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
     const fetchVMs = async () => {
       try {
         const admin = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        console.log(admin.data?.user?.id)
         
+        // Fetch assessment VMs
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssessments', {
           admin_id: admin.data?.user?.id
         });
@@ -65,6 +91,45 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
           setVMs(response.data.data);
         } else {
           setError('Failed to fetch VMs');
+        }
+
+        // Fetch datacenter VMs
+        try {
+          const datacenterResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getOrgAssignedSingleVMDatacenterLab', {
+            orgId: admin.data?.user?.org_id
+          });
+
+          if (datacenterResponse.data.success) {
+            const vmDetails = await Promise.all(
+              datacenterResponse.data.data.map(async (assignment: any) => {
+                try {
+                  const vmResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
+                    labId: assignment.labid,
+                  });
+                  if (vmResponse.data.success) {
+                    // Get credentials for each VM
+                    const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabCreds', {
+                      labId: assignment.labid
+                    });
+                    
+                    return {
+                      ...vmResponse.data.data,
+                      userscredentials: credsResponse.data.success ? credsResponse.data.data : []
+                    };
+                  }
+                  return null;
+                } catch (err) {
+                  console.error(`Error fetching details for lab ${assignment.labid}:`, err);
+                  return null;
+                }
+              })
+            );
+            // Filter out null values and set datacenter VMs
+            console.log(vmDetails)
+            setDatacenterVMs(vmDetails.filter(Boolean));
+          }
+        } catch (dcErr) {
+          console.error('Error fetching datacenter VMs:', dcErr);
         }
       } catch (err) {
         console.error('Error fetching VMs:', err);
@@ -75,7 +140,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
     };
 
     fetchVMs();
-  }, [admin.id]);
+  }, []);
 
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
@@ -83,7 +148,17 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
       vm.description.toLowerCase().includes(filters.search.toLowerCase());
     const matchesProvider = !filters.provider || vm.provider === filters.provider;
     const matchesStatus = !filters.status || vm.status === filters.status;
-    return matchesSearch && matchesProvider && matchesStatus;
+    const matchesType = filters.type === 'all' || filters.type === 'assessment';
+    return matchesSearch && matchesProvider && matchesStatus && matchesType;
+  });
+
+  const filteredDatacenterVMs = datacenterVMs.filter(vm => {
+    const matchesSearch = !filters.search || 
+      vm.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      vm.description.toLowerCase().includes(filters.search.toLowerCase());
+    const matchesStatus = !filters.status || vm.status === filters.status;
+    const matchesType = filters.type === 'all' || filters.type === 'datacenter';
+    return matchesSearch && matchesStatus && matchesType;
   });
 
   return (
@@ -142,6 +217,17 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
               <option value="pending">Pending</option>
             </select>
 
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+              className="px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg 
+                       text-gray-300 focus:border-primary-500/40 focus:outline-none"
+            >
+              <option value="all">All Types</option>
+              <option value="assessment">Assessments</option>
+              <option value="datacenter">Datacenter VMs</option>
+            </select>
+
             <button className="btn-secondary">
               <Filter className="h-4 w-4 mr-2" />
               Advanced Filters
@@ -169,28 +255,59 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {filteredVMs.length === 0 ? (
+          {filteredVMs.length === 0 && filteredDatacenterVMs.length === 0 ? (
             <div className="glass-panel p-8 text-center">
               <div className="flex flex-col items-center space-y-4">
                 <div className="p-4 rounded-full bg-dark-300/50">
                   <FolderX className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-300">
-                  No Assessments Available
+                  No VMs Available
                 </h3>
                 <p className="text-gray-400 max-w-md">
-                  {filters.search || filters.provider || filters.status
-                    ? "No assessments match your current filters. Try adjusting your search criteria."
-                    : "You haven't created any assessments yet. Click 'New Assessment' to get started."}
+                  {filters.search || filters.provider || filters.status || filters.type !== 'all'
+                    ? "No VMs match your current filters. Try adjusting your search criteria."
+                    : "You don't have any VMs yet. Click 'New Assessment' to get started."}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVMs.map((vm) => (
-                <CloudVMAssessmentCard key={vm.lab_id || vm.assessment_id} assessment={vm} />
-              ))}
-            </div>
+            <>
+              {/* Assessment VMs Section */}
+              {filteredVMs.length > 0 && (filters.type === 'all' || filters.type === 'assessment') && (
+                <div className="mb-8">
+                  <div className="flex items-center mb-4">
+                    <h2 className="text-xl font-semibold text-gray-400 mr-3">Assessments</h2>
+                    <div className="px-2 py-1 bg-primary-500/20 rounded-full text-xs text-primary-300">
+                      {filteredVMs.length} VMs
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredVMs.map((vm) => (
+                      <CloudVMAssessmentCard key={vm.lab_id || vm.assessment_id} assessment={vm} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Datacenter VMs Section */}
+              {filteredDatacenterVMs.length > 0 && (filters.type === 'all' || filters.type === 'datacenter') && (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <Server className="h-5 w-5 text-secondary-400 mr-2" />
+                    <h2 className="text-xl font-semibold text-gray-400 mr-3">Datacenter VMs</h2>
+                    <div className="px-2 py-1 bg-secondary-500/20 rounded-full text-xs text-secondary-300">
+                      {filteredDatacenterVMs.length} VMs
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredDatacenterVMs.map((vm) => (
+                      <DatacenterVMCard key={vm.id} vm={vm} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
