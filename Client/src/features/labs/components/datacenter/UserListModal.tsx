@@ -12,6 +12,7 @@ interface UserListModalProps {
     password: string;
     ip: string;
     port: string;
+    disabled?: boolean;
   }>;
   vmId: string;
   vmTitle: string;
@@ -21,14 +22,16 @@ interface UserListModalProps {
 export const UserListModal: React.FC<UserListModalProps> = ({ 
   isOpen, 
   onClose, 
-  users, 
+  users: initialUsers, 
   vmId, 
   vmTitle,
   onEditUser
 }) => {
+  const [users, setUsers] = useState<Array<any>>(initialUsers);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [disablingUser, setDisablingUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const togglePasswordVisibility = (userId: string) => {
     setShowPasswords(prev => ({
@@ -40,6 +43,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   const handleDisable = async (userId: string) => {
     setDisablingUser(userId);
     setError(null);
+    setSuccess(null);
     
     try {
       const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterLabCreds`, {
@@ -48,14 +52,57 @@ export const UserListModal: React.FC<UserListModalProps> = ({
       });
       
       
-      if (!response.data.success) {
+      if (response.data.success) {
+        // Update the state to reflect the change
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, disabled: true } : user
+          )
+        );
+        
+        setSuccess('User disabled successfully');
+        setTimeout(() => {
+          setSuccess(null);
+        }, 3000);
+      } else {
         throw new Error(response?.data.message || 'Failed to disable user');
       }
-      
-      // If successful, you might want to update the UI to reflect the disabled state
-      // This could be done by refreshing the user list or updating the local state
     } catch (error: any) {
       setError(error.message || 'An error occurred while disabling the user');
+    } finally {
+      setDisablingUser(null);
+    }
+  };
+
+  const handleEnable = async (userId: string) => {
+    setDisablingUser(userId);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterLabCreds`, {
+          id:userId,
+          disable:false
+      });
+      
+      
+      if (response.data.success) {
+        // Update the state to reflect the change
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, disabled: false } : user
+          )
+        );
+        
+        setSuccess('User enabled successfully');
+        setTimeout(() => {
+          setSuccess(null);
+        }, 3000);
+      } else {
+        throw new Error(response?.data.message || 'Failed to enable user');
+      }
+    } catch (error: any) {
+      setError(error.message || 'An error occurred while enabling the user');
     } finally {
       setDisablingUser(null);
     }
@@ -81,6 +128,12 @@ export const UserListModal: React.FC<UserListModalProps> = ({
         {error && (
           <div className="mb-4 p-3 bg-red-900/20 border border-red-500/20 rounded-lg">
             <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 p-3 bg-emerald-900/20 border border-emerald-500/20 rounded-lg">
+            <p className="text-emerald-400 text-sm">{success}</p>
           </div>
         )}
 
@@ -147,11 +200,11 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                           <LinkIcon className="h-4 w-4 text-primary-400" />
                         </button>
                         <button
-                          className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                          onClick={() => handleDisable(user.id)}
+                          className={`p-2 rounded-lg transition-colors ${user.disabled ? 'hover:bg-green-500/10' : 'hover:bg-red-500/10'}`}
+                          onClick={() => user.disabled ? handleEnable(user.id) : handleDisable(user.id)}
                           // disabled={disablingUser === user.id}
                         >
-                          <Power className={`h-4 w-4 ${disablingUser === user.id ? 'animate-pulse' : ''} text-red-400`} />
+                          <Power className={`h-4 w-4 ${disablingUser === user.id ? 'animate-pulse' : ''} ${user.disabled ? 'text-green-400' : 'text-red-400'}`} />
                         </button>
                       </div>
                     </td>
