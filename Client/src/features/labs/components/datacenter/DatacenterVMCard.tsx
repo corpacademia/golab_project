@@ -1,15 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuthStore } from '../../../../store/authStore';
-import { 
-  BeakerIcon, 
-  BookOpenIcon, 
-  UserIcon, 
-  LayoutDashboardIcon,
-  GraduationCapIcon,
-  AwardIcon,
-  CloudIcon
-} from 'lucide-react';
 import { 
   Server, 
   Users, 
@@ -20,17 +9,18 @@ import {
   Plus, 
   X, 
   Check, 
-  AlertCircle, 
+  AlertCircle,
   Loader,
   Power,
   Eye,
   EyeOff
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
-import axios from 'axios';
-import { UserListModal } from './UserListModal';
-import { EditUserModal } from './EditUserModal';
 import { ConvertToCatalogueModal } from '../cloudvm/ConvertToCatalogueModal';
+import { EditUserModal } from './EditUserModal';
+import { DeleteModal } from './DeleteModal';
+import { UserListModal } from './UserListModal';
+import axios from 'axios';
 
 interface DatacenterVM {
   id: string;
@@ -50,124 +40,34 @@ interface DatacenterVM {
   }>;
 }
 
-interface DatacenterVMCardProps {
-  vm: DatacenterVM;
-}
-
-interface DeleteConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  isDeleting: boolean;
-  vmTitle: string;
-}
-
-const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  isDeleting,
-  vmTitle
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-    >
-      <div
-        className="bg-dark-200 rounded-lg w-full max-w-md p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">
-            <GradientText>Confirm Deletion</GradientText>
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-gray-300">
-            Are you sure you want to delete{' '}
-            <span className="font-semibold text-white">{vmTitle}</span>? This
-            action cannot be undone.
-          </p>
-
-          <div className="flex justify-end space-x-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary"
-              disabled={isDeleting}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isDeleting}
-              className="btn-primary bg-red-500 hover:bg-red-600"
-            >
-              {isDeleting ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Deleting...
-                </span>
-              ) : (
-                'Delete VM'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
-  const [isUserListModalOpen, setIsUserListModalOpen] = useState(false);
-  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+export const DatacenterVMCard: React.FC<{ vm: DatacenterVM }> = ({ vm }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLaunchProcessing, setIsLaunchProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showFullStartDate, setShowFullStartDate] = useState(false);
-  const [showFullEndDate, setShowFullEndDate] = useState(false);
+  const [isConvertEnabled, setIsConvertEnabled] = useState(false);
+  const [amiId, setAmiId] = useState<string | undefined>(vm.ami_id);
+  const [instanceDetails, setInstance] = useState<Instance | undefined>(undefined);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [isInstance, setIsInstance] = useState(false);
+  const [isAmi, setIsAmi] = useState(false);
+  const [labDetails, setLabDetails] = useState<LabDetails | null>(null);
+  const [buttonLabel, setButtonLabel] = useState<'Launch Software' | 'Stop'>('Launch Software');
+  const [showFullAmiId, setShowFullAmiId] = useState(false);
+  const [isUserListModalOpen, setIsUserListModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [vmUsers, setVmUsers] = useState<Array<any>>(vm.userscredentials || []);
 
-  function formatDate(dateString:string) {
-    const date = new Date(dateString);
-  
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-  
-    let hours = date.getHours();
-    const minutes = `${date.getMinutes()}`.padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-  
-    hours = hours % 12 || 12; // Convert 0 to 12 for 12AM
-    hours = `${hours}`.padStart(1, '0');
-  
-    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
-  }
-
-  const handleConvertToCatalogue = async () => {
-    setIsConvertModalOpen(true);
-  };
-
-  const handleEditUser = (user: any) => {
-    setSelectedUser(user);
-    setIsEditModalOpen(true);
-  };
+  const [admin,setAdmin] = useState({});
+  useEffect(() => {
+    const getUserDetails = async () => {
+      const response = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+      setAdmin(response.data.user);
+    };
+    getUserDetails();
+  }, []);
 
   const handleSaveUser = async (userData: any) => {
     try {
@@ -223,6 +123,31 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     }
   };
 
+  const handleConvertToCatalogue = async () => {
+    setIsModalOpen(true);
+  };
+
+  const toggleDocumentsPanel = () => {
+    setShowDocuments(!showDocuments);
+  };
+
+  function formatDate(dateString:string) {
+    const date = new Date(dateString);
+  
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+  
+    let hours = date.getHours();
+    const minutes = `${date.getMinutes()}`.padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12AM
+    hours = `${hours}`.padStart(1, '0');
+  
+    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
+  }
+
   return (
     <>
       <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
@@ -273,7 +198,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               <span className="truncate">{vm.platform}</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
-              <LinkIcon className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
+              <Clock className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
               <span className="truncate">{vm.protocol}</span>
             </div>
             <div className="flex items-center text-sm text-gray-400">
@@ -320,7 +245,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             
             <button
               onClick={handleConvertToCatalogue}
-              disabled={isConverting}
+              disabled={isProcessing}
               className="w-full h-9 px-4 rounded-lg text-sm font-medium
                        bg-gradient-to-r from-secondary-500 to-accent-500
                        hover:from-secondary-400 hover:to-accent-400
@@ -328,7 +253,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
                        text-white shadow-lg shadow-secondary-500/20
                        flex items-center justify-center"
             >
-              {isConverting ? (
+              {isProcessing ? (
                 <Loader className="animate-spin h-4 w-4" />
               ) : (
                 <>
@@ -348,7 +273,10 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
           users={vmUsers}
           vmId={vm.id}
           vmTitle={vm.title}
-          onEditUser={handleEditUser}
+          onEditUser={(user) => {
+            setSelectedUser(user);
+            setIsEditModalOpen(true);
+          }}
         />
       )}
 
@@ -374,17 +302,16 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         />
       )}
 
-      <DeleteConfirmationModal
+      <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
-        vmTitle={vm.title}
       />
 
       <ConvertToCatalogueModal
-        isOpen={isConvertModalOpen}
-        onClose={() => setIsConvertModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         vmId={vm?.lab_id}
         isDatacenterVM={true}
       />
