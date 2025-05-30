@@ -44,43 +44,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
   const [isDeleting, setIsDeleting] = useState(false);
   const [credentials, setCredentials] = useState<any>(null);
   const [vmDetails, setVmDetails] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch VM details
-        const vmResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
-          labId: lab.labid
-        });
-        
-        if (vmResponse.data.success) {
-          setVmDetails(vmResponse.data.data);
-        }
-        
-        // Fetch credentials
-        const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabUserCredential', {
-          id: lab.creds_id
-        });
-        
-        if (credsResponse.data.success) {
-          setCredentials(credsResponse.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching VM details:', error);
-        setNotification({
-          type: 'error',
-          message: 'Failed to load VM details'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchDetails();
-  }, [lab.labid, lab.creds_id]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleStartLab = async () => {
     if (lab.isrunning) {
@@ -140,7 +104,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
               guacUrl: `rdp://${credentials.ip}:${credentials.port}`,
               vmTitle: lab.title,
               vmId: lab.labid,
-              doc: vmDetails?.document || []
+              doc: lab?.document || []
             }
           });
         } else {
@@ -173,35 +137,25 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
       setIsDeleting(false);
     }
   };
-
-  function formatDateTime(dateString: string) {
+ function formatDateTime(dateString:string) {
     const date = new Date(dateString);
-    
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    
-    return new Intl.DateTimeFormat('en-US', options).format(date);
+  
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+  
+    let hours = date.getHours();
+    const minutes = `${date.getMinutes()}`.padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+    hours = hours % 12 || 12; // Convert 0 to 12 for 12AM
+    hours = `${hours}`.padStart(1, '0');
+  
+    return `${year}-${month}-${day} ${hours}:${minutes} ${ampm}`;
   }
+  
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
-                    hover:border-secondary-500/30 bg-dark-200/80 backdrop-blur-sm
-                    transition-all duration-300 hover:shadow-lg hover:shadow-secondary-500/10 
-                    hover:translate-y-[-2px] group relative">
-        <div className="flex justify-center items-center h-full">
-          <Loader className="h-8 w-8 text-secondary-400 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
+console.log(lab)
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
                   hover:border-secondary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -226,7 +180,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
             <h3 className="text-lg font-semibold mb-1">
               <GradientText>{lab.title}</GradientText>
             </h3>
-            <p className="text-sm text-gray-400 line-clamp-2">{vmDetails?.description || 'No description available'}</p>
+            <p className="text-sm text-gray-400 line-clamp-2">{lab?.description || 'No description available'}</p>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -269,20 +223,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
           </div>
         </div>
 
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-400 mb-2">Credentials:</h4>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex items-center text-sm text-gray-400">
-              <User className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">Username: {credentials?.username || 'N/A'}</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-400">
-              <HardDrive className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-              <span className="truncate">IP: {credentials?.ip || 'N/A'}</span>
-            </div>
-          </div>
-        </div>
-
+      
         <div className="mt-auto pt-3 border-t border-secondary-500/10">
           <button
             onClick={handleStartLab}

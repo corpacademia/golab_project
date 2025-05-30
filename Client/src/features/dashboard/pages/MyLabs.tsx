@@ -263,9 +263,35 @@ export const MyLabs: React.FC = () => {
         
         // Fetch datacenter VMs
         try {
-          const datacenterResponse = await axios.get(`http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterUserAssignment/${user.id}`);
+          const datacenterResponse = await axios.post(`http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVmDatacenterLabs/${user.id}`);
           if (datacenterResponse.data.success) {
-            const datacenterVMs = datacenterResponse.data.data || [];
+            const vmDetails = await Promise.all(
+                          datacenterResponse.data.data.map(async (assignment: any) => {
+                            try {
+                              const vmResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
+                                labId: assignment.labid,
+                              });
+                              if (vmResponse.data.success) {
+                                // Get credentials for each VM
+                                const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVMDatacenterCredsToUser', {
+                                  labId: assignment.labid,
+                                  userId:user.id
+                                });
+                                
+                                return {
+                                  ...vmResponse.data.data,
+                                  userscredentials: credsResponse.data.success ? credsResponse.data.data : []
+                                };
+                              }
+                              return null;
+                            } catch (err) {
+                              console.error(`Error fetching details for lab ${assignment.labid}:`, err);
+                              return null;
+                            }
+                          })
+                        );
+                        console.log(vmDetails)
+            const datacenterVMs = vmDetails || [];
             setDatacenterVMs(datacenterVMs);
             setFilteredDatacenterVMs(datacenterVMs);
           }
@@ -819,11 +845,11 @@ export const MyLabs: React.FC = () => {
                                 hover:translate-y-[-2px] group relative">
                     {labControls[lab.lab_id]?.notification && (
                       <div className={`absolute top-2 right-2 px-4 py-2 rounded-lg flex items-center space-x-2 z-50 ${
-                        labControls[lab.lab_id].notification.type === 'success' 
+                        labControls[lab.lab_id]?.notification.type === 'success' 
                           ? 'bg-emerald-500/20 text-emerald-300' 
                           : 'bg-red-500/20 text-red-300'
                       }`}>
-                        {labControls[lab.lab_id].notification.type === 'success' ? (
+                        {labControls[lab.lab_id]?.notification.type === 'success' ? (
                           <Check className="h-4 w-4" />
                         ) : (
                           <AlertCircle className="h-4 w-4" />

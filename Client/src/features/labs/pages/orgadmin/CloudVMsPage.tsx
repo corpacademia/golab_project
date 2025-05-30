@@ -125,7 +125,6 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
               })
             );
             // Filter out null values and set datacenter VMs
-            console.log(vmDetails)
             setDatacenterVMs(vmDetails.filter(Boolean));
           }
         } catch (dcErr) {
