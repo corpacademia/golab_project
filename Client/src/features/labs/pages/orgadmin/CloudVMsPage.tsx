@@ -77,69 +77,103 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
     getUserDetails();
   }, []);
 
-  useEffect(() => {
-    const fetchVMs = async () => {
-      try {
-        const admin = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
-        
-        // Fetch assessment VMs
-        const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssessments', {
-          admin_id: admin.data?.user?.id
-        });
+ useEffect(() => {
+  const fetchAssessmentVMs = async (adminId: string) => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssessments', {
+        admin_id: adminId,
+      });
 
-        if (response.data.success) {
-          setVMs(response.data.data);
-        } else {
-          setError('Failed to fetch VMs');
-        }
-
-        // Fetch datacenter VMs
-        try {
-          const datacenterResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getOrgAssignedSingleVMDatacenterLab', {
-            orgId: admin.data?.user?.org_id
-          });
-
-          if (datacenterResponse.data.success) {
-            const vmDetails = await Promise.all(
-              datacenterResponse.data.data.map(async (assignment: any) => {
-                try {
-                  const vmResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
-                    labId: assignment.labid,
-                  });
-                  if (vmResponse.data.success) {
-                    // Get credentials for each VM
-                    const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabCreds', {
-                      labId: assignment.labid
-                    });
-                    
-                    return {
-                      ...vmResponse.data.data,
-                      userscredentials: credsResponse.data.success ? credsResponse.data.data : []
-                    };
-                  }
-                  return null;
-                } catch (err) {
-                  console.error(`Error fetching details for lab ${assignment.labid}:`, err);
-                  return null;
-                }
-              })
-            );
-            // Filter out null values and set datacenter VMs
-            setDatacenterVMs(vmDetails.filter(Boolean));
-          }
-        } catch (dcErr) {
-          console.error('Error fetching datacenter VMs:', dcErr);
-        }
-      } catch (err) {
-        console.error('Error fetching VMs:', err);
-        setError('Failed to fetch VMs');
-      } finally {
+      if (response.data.success) {
+        setVMs(response.data.data);
+      } else {
+        setError('Failed to fetch assessment VMs');
+      }
+    } catch (err) {
+      console.error('Error fetching assessment VMs:', err);
+      setError('Failed to fetch assessment VMs');
+      setTimeout(()=>{
+        setError(null)
+      },3000)
+    }
+    finally {
         setIsLoading(false);
       }
-    };
+  };
 
-    fetchVMs();
-  }, []);
+  const fetchDatacenterVMs = async (orgId: string) => {
+    try {
+      const datacenterResponse = await axios.post(
+        'http://localhost:3000/api/v1/lab_ms/getOrgAssignedSingleVMDatacenterLab',
+        { orgId }
+      );
+
+      if (datacenterResponse.data.success) {
+        const vmDetails = await Promise.all(
+          datacenterResponse.data.data.map(async (assignment: any) => {
+            try {
+              const vmResponse = await axios.post(
+                'http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId',
+                { labId: assignment.labid }
+              );
+
+              if (vmResponse.data.success) {
+                const credsResponse = await axios.post(
+                  'http://localhost:3000/api/v1/lab_ms/getDatacenterLabCreds',
+                  { labId: assignment.labid }
+                );
+
+                return {
+                  ...vmResponse.data.data,
+                  userscredentials: credsResponse.data.success ? credsResponse.data.data : [],
+                };
+              }
+
+              return null;
+            } catch (err) {
+              console.error(`Error fetching details for lab ${assignment.labid}:`, err);
+              return null;
+            }
+          })
+        );
+
+        setDatacenterVMs(vmDetails.filter(Boolean));
+      }
+    } catch (dcErr) {
+      console.error('Error fetching datacenter VMs:', dcErr);
+      setError('Failed to fetch datacenter VMs');
+      setTimeout(()=>{
+        setError(null)
+      },3000)
+    }
+    finally {
+        setIsLoading(false);
+      }
+  };
+
+  const fetchAllVMs = async () => {
+    try {
+      const admin = await axios.get('http://localhost:3000/api/v1/user_ms/user_profile');
+      const user = admin.data?.user;
+
+      if (user?.id && user?.org_id) {
+        fetchAssessmentVMs(user.id);
+        fetchDatacenterVMs(user.org_id);
+      }
+    } catch (err) {
+      console.error('Error fetching admin profile:', err);
+      setError('Failed to fetch user profile');
+      setTimeout(()=>{
+        setError(null)
+      },3000)
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchAllVMs();
+}, []);
+
 
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 

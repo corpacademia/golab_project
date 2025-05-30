@@ -216,105 +216,125 @@ export const MyLabs: React.FC = () => {
   }, []);
 
   // Combine all fetch calls into a single useEffect
-  useEffect(() => {
-    const fetchData = async () => {
+ useEffect(() => {
+  const fetchData = async () => {
+    setIsLoading(true);
+
+    try {
+      let cats: any[] = [];
+      let labss: any[] = [];
+      let softwareData: any[] = [];
+
+      // Fetch catalogues, assigned labs, and software - isolated per call
       try {
-        setIsLoading(true);
-        
-        // Fetch regular labs
-        const [cataloguesRes, labsRes, softwareRes] = await Promise.all([
-          axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues'),
-          axios.post('http://localhost:3000/api/v1/lab_ms/getAssignedLabs', { userId: user.id }),
-          axios.get('http://localhost:3000/api/v1/lab_ms/getSoftwareDetails')
-        ]);
-        const cats = cataloguesRes.data.data;
-        const labss = labsRes.data.data;
-        const softwareData = softwareRes.data.data;
+        const res = await axios.get('http://localhost:3000/api/v1/lab_ms/getCatalogues');
+        cats = res.data.data;
+      } catch (err) {
+        console.error('Failed to fetch catalogues:', err);
+      }
 
-        // Filter catalogues based on assigned labs
-        const filteredCatalogues = cats.filter((cat) => 
-          labss.some((lab) => lab.lab_id === cat.lab_id)
+      try {
+        const res = await axios.post('http://localhost:3000/api/v1/lab_ms/getAssignedLabs', { userId: user.id });
+        labss = res.data.data;
+        setLabStatus(labss); // safe to set even if others fail
+      } catch (err) {
+        console.error('Failed to fetch assigned labs:', err);
+      }
+
+      try {
+        const res = await axios.get('http://localhost:3000/api/v1/lab_ms/getSoftwareDetails');
+        softwareData = res.data.data;
+      } catch (err) {
+        console.error('Failed to fetch software details:', err);
+      }
+
+      // Safely process lab data if available
+      const filteredCatalogues = cats.filter((cat) =>
+        labss.some((lab) => lab.lab_id === cat.lab_id)
+      );
+
+      const updatedLabs = filteredCatalogues.map((lab) => {
+        const software = softwareData.find((s) => s.lab_id === lab.lab_id);
+        return {
+          ...lab,
+          software: software ? [software.software] : []
+        };
+      });
+
+      setLabs(updatedLabs);
+      setFilteredLabs(updatedLabs);
+
+      // Fetch cloud slice labs
+      try {
+        const res = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
+        if (res.data.success) {
+          const cloudSlices = res.data.data || [];
+          setCloudSliceLabs(cloudSlices);
+          setFilteredCloudSliceLabs(cloudSlices);
+        }
+      } catch (err) {
+        console.error('Error fetching cloud slice labs:', err);
+      }
+
+      // Fetch datacenter VMs
+      try {
+        const res = await axios.post(
+          `http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVmDatacenterLabs/${user.id}`
         );
+        if (res.data.success) {
+          const vmDetails = await Promise.all(
+            res.data.data.map(async (assignment: any) => {
+              try {
+                const vmRes = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
+                  labId: assignment.labid,
+                });
 
-        // Attach software details to each lab
-        const updatedLabs = filteredCatalogues.map((lab) => {
-          const software = softwareData.find((s) => s.lab_id === lab.lab_id);
-          return {
-            ...lab,
-            software: software ? [software.software] : []
-          };
-        });
+                if (vmRes.data.success) {
+                  const credsRes = await axios.post(
+                    'http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVMDatacenterCredsToUser',
+                    { labId: assignment.labid, userId: user.id }
+                  );
 
-        setLabs(updatedLabs);
-        setFilteredLabs(updatedLabs);
-        setLabStatus(labss);
+                  return {
+                    ...vmRes.data.data,
+                    userscredentials: credsRes.data.success ? credsRes.data.data : [],
+                  };
+                }
+              } catch (err) {
+                console.error(`Error fetching VM/creds for lab ${assignment.labid}:`, err);
+              }
+              return null;
+            })
+          );
 
-        // Fetch cloud slice labs
-        try {
-          const cloudSliceResponse = await axios.get(`http://localhost:3000/api/v1/cloud_slice_ms/getUserCloudSlices/${user.id}`);
-          if (cloudSliceResponse.data.success) {
-            const cloudSlices = cloudSliceResponse.data.data || [];
-            setCloudSliceLabs(cloudSlices);
-            setFilteredCloudSliceLabs(cloudSlices);
-          }
-        } catch (error) {
-          console.error('Error fetching cloud slice labs:', error);
+          const cleanVMs = vmDetails.filter(Boolean);
+          setDatacenterVMs(cleanVMs);
+          setFilteredDatacenterVMs(cleanVMs);
         }
-        
-        // Fetch datacenter VMs
-        try {
-          const datacenterResponse = await axios.post(`http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVmDatacenterLabs/${user.id}`);
-          if (datacenterResponse.data.success) {
-            const vmDetails = await Promise.all(
-                          datacenterResponse.data.data.map(async (assignment: any) => {
-                            try {
-                              const vmResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getSingleVmDatacenterLabOnId', {
-                                labId: assignment.labid,
-                              });
-                              if (vmResponse.data.success) {
-                                // Get credentials for each VM
-                                const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getUserAssignedSingleVMDatacenterCredsToUser', {
-                                  labId: assignment.labid,
-                                  userId:user.id
-                                });
-                                
-                                return {
-                                  ...vmResponse.data.data,
-                                  userscredentials: credsResponse.data.success ? credsResponse.data.data : []
-                                };
-                              }
-                              return null;
-                            } catch (err) {
-                              console.error(`Error fetching details for lab ${assignment.labid}:`, err);
-                              return null;
-                            }
-                          })
-                        );
-                        console.log(vmDetails)
-            const datacenterVMs = vmDetails || [];
-            setDatacenterVMs(datacenterVMs);
-            setFilteredDatacenterVMs(datacenterVMs);
-          }
-        } catch (error) {
-          console.error('Error fetching datacenter VMs:', error);
-        }
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching datacenter VMs:', err);
       }
-      
-      // Check status for each lab
+
+      // Optional: Check status of each lab
       for (const lab of updatedLabs) {
-        await checkLabStatus(lab.lab_id);
+        try {
+          await checkLabStatus(lab.lab_id);
+        } catch (err) {
+          console.error(`Failed checking status for lab ${lab.lab_id}:`, err);
+        }
       }
-    };
 
-    if (user.id) {
-      fetchData();
+    } catch (finalErr) {
+      console.error('Unhandled error during data fetch:', finalErr);
+    } finally {
+      setIsLoading(false);
     }
-  }, [user.id]);
+  };
+
+  if (user.id) {
+    fetchData();
+  }
+}, [user.id]);
 
   // Apply filters effect
   useEffect(() => {
@@ -721,8 +741,8 @@ export const MyLabs: React.FC = () => {
   const handleDeleteDatacenterVM = async (labId: string) => {
     try {
       const response = await axios.post('http://localhost:3000/api/v1/lab_ms/deleteSingleVmDatacenterUserAssignment', {
-        userId: user.id,
-        labId: labId
+        labId: labId,
+        userId: user.id
       });
       
       if (response.data.success) {

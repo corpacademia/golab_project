@@ -32,6 +32,7 @@ interface DatacenterVMCardProps {
     status: 'active' | 'inactive' | 'pending';
     creds_id: string;
     isrunning: boolean;
+    software?: string[];
   };
   onDelete: (labId: string) => void;
 }
@@ -45,7 +46,8 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
   const [credentials, setCredentials] = useState<any>(null);
   const [vmDetails, setVmDetails] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [showFullStartDate, setShowFullStartDate] = useState(false);
+  const [showFullEndDate, setShowFullEndDate] = useState(false);
   const handleStartLab = async () => {
     if (lab.isrunning) {
       // Stop the lab
@@ -54,8 +56,9 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
       
       try {
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterUserAssignment', {
-          id: lab.id,
-          isrunning: false
+           isrunning: false,
+          userId:lab.userscredentials[0].assigned_to,
+          labId: lab.lab_id
         });
         
         if (response.data.success) {
@@ -85,8 +88,10 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
       
       try {
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterUserAssignment', {
-          id: lab.id,
-          isrunning: true
+          
+          isrunning: true,
+          userId:lab.userscredentials[0].assigned_to,
+          labId: lab.lab_id
         });
         
         if (response.data.success) {
@@ -97,19 +102,33 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
           
           // Update local state
           lab.isrunning = true;
-          
+          console.log(lab)
           // Navigate to VM session page
-          navigate(`/dashboard/labs/vm-session/${lab.labid}`, {
+        const tokenResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/connectToDatacenterVm', {
+        Protocol: lab.protocol || 'RDP',
+        VmId:lab.userscredentials[0].id,
+        Ip: lab.userscredentials[0].ip,
+        userName: lab.userscredentials[0].username,
+        password: lab.userscredentials[0].password,
+        port: lab.userscredentials[0].port,
+        
+      });
+      
+      if (tokenResponse.data.success && tokenResponse.data.token) {
+        // Then connect to VM using the token
+        const guacUrl = `http://43.204.220.7:8080/guacamole/#/?token=${tokenResponse.data.token.result}`;
+          navigate(`/dashboard/labs/vm-session/${lab.lab_id}`, {
             state: { 
-              guacUrl: `rdp://${credentials.ip}:${credentials.port}`,
+              guacUrl,
               vmTitle: lab.title,
-              vmId: lab.labid,
-              doc: lab?.document || []
+              vmId: lab.lab_id,
+              doc:lab.userguide,
+              credentials:lab.userscredentials
             }
           });
         } else {
           throw new Error(response.data.message || 'Failed to start lab');
-        }
+        }}
       } catch (error: any) {
         setNotification({
           type: 'error',
@@ -126,7 +145,7 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
     setIsDeleting(true);
     
     try {
-      await onDelete(lab.labid);
+      await onDelete(lab.lab_id);
     } catch (error) {
       console.error('Error deleting lab:', error);
       setNotification({
@@ -155,7 +174,6 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
   }
   
 
-console.log(lab)
   return (
     <div className="flex flex-col h-[320px] overflow-hidden rounded-xl border border-secondary-500/10 
                   hover:border-secondary-500/30 bg-dark-200/80 backdrop-blur-sm
@@ -215,14 +233,39 @@ console.log(lab)
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Clock className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-            <span className="truncate">Start: {formatDateTime(lab.startdate)}</span>
+            <span 
+              className={`${showFullStartDate ? '' : 'truncate'} cursor-pointer`}
+              onClick={() => setShowFullStartDate(!showFullStartDate)}
+              title={showFullStartDate ? "Click to collapse" : "Click to expand"}
+            >
+              Start: {formatDateTime(lab.startdate)}
+            </span>
           </div>
           <div className="flex items-center text-sm text-gray-400">
             <Clock className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
-            <span className="truncate">End: {formatDateTime(lab.enddate)}</span>
+            <span 
+              className={`${showFullEndDate ? '' : 'truncate'} cursor-pointer`}
+              onClick={() => setShowFullEndDate(!showFullEndDate)}
+              title={showFullEndDate ? "Click to collapse" : "Click to expand"}
+            >
+              End: {formatDateTime(lab.enddate)}
+            </span>
           </div>
         </div>
 
+        {/* Software Section */}
+        {lab.software && lab.software.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-gray-400 mb-2">Software:</h4>
+            <div className="flex flex-wrap gap-2">
+              {lab.software.map((sw, index) => (
+                <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-secondary-500/20 text-secondary-300">
+                  {sw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       
         <div className="mt-auto pt-3 border-t border-secondary-500/10">
           <button

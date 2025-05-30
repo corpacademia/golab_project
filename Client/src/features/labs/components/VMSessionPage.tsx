@@ -58,14 +58,15 @@ useEffect(() => {
     setIsLoadingDocs(false);
   }
 }, [location.state]);
-  const { guacUrl, vmTitle } = location.state || {};
-  // Credentials for the VM - multiple credentials example
-  const credentialsList = [
-    { label: "Admin", username: 'admin', password: 'P@ssw0rd123' },
-    { label: "User", username: 'user', password: 'User@123' },
-    { label: "Database", username: 'dbuser', password: 'Db@123456' }
-  ];
 
+  const { guacUrl, vmTitle,credentials } = location.state || {};
+  // Credentials for the VM - multiple credentials example
+  // const credentialsList = [
+  //   { label: "Admin", username: 'admin', password: 'P@ssw0rd123' },
+  //   { label: "User", username: 'user', password: 'User@123' },
+  //   { label: "Database", username: 'dbuser', password: 'Db@123456' }
+  // ];
+const credentialsList = credentials;
   // Available resolutions
   const resolutions = [
     '800x600',
@@ -323,9 +324,9 @@ useEffect(() => {
                     <div className="space-y-3">
                       {credentialsList.map((cred, index) => (
                         <div key={index} className="p-2 bg-dark-300/50 rounded-lg">
-                          <div className="flex items-center justify-between mb-1">
+                          {/* <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-medium text-primary-400">{cred.label}</span>
-                          </div>
+                          </div> */}
                           <div className="flex items-center space-x-4">
                             <div className="flex-1">
                               <label className="text-xs text-gray-400 block">Username</label>

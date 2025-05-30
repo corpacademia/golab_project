@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Pencil, Link as LinkIcon, Power, Eye, EyeOff } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 interface UserListModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const navigate = useNavigate();
 
   // Fetch current user to check permissions
   React.useEffect(() => {
@@ -125,9 +127,45 @@ export const UserListModal: React.FC<UserListModalProps> = ({
     }
   };
 
+  // Function to connect to VM with JWT token
+  const handleConnectToVM = async (user: any) => {
+    try {
+      // First, get JWT token
+      const tokenResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/connectToDatacenterVm', {
+        Protocol: user.protocol || 'RDP',
+        VmId:user.id,
+        Ip: user.ip,
+        userName: user.username,
+        password: user.password,
+        port: user.port,
+        
+      });
+      if (tokenResponse.data.success && tokenResponse.data.token) {
+        // Then connect to VM using the token
+        const guacUrl = `http://43.204.220.7:8080/guacamole/#/?token=${tokenResponse.data.token.result}`;
+          navigate(`/dashboard/labs/vm-session/${vmId}`, {
+            state: { 
+              guacUrl,
+              vmTitle: vm.title,
+              vmId: vmId,
+              doc:vm.labguide,
+              credentials:Array.isArray(user) ? user : [user]
+            }
+          });
+      } else {
+        throw new Error('Failed to get connection token');
+      }
+    } catch (error: any) {
+      console.error('Error connecting to VM:', error);
+      setError(error.message || 'Failed to connect to VM');
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
+    }
+  };
+
   // Check if current user can edit content
   const canEditContent = () => {
-    console.log(currentUser,vmId)
     if (!currentUser || !vmId) return false;
     // Check if the VM was created by the current user
     return vm.user_id === currentUser.id;
@@ -223,10 +261,7 @@ export const UserListModal: React.FC<UserListModalProps> = ({
                         )}
                         <button
                           className="p-2 hover:bg-primary-500/10 rounded-lg transition-colors"
-                          onClick={() => {
-                            // Connect to VM logic
-                            window.open(`${user.protocol || 'rdp'}://${user.ip}:${user.port}`, '_blank');
-                          }}
+                          onClick={() => handleConnectToVM(user)}
                         >
                           <LinkIcon className="h-4 w-4 text-primary-400" />
                         </button>

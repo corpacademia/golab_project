@@ -62,67 +62,73 @@ export const AdminCloudVMsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchVMs = async () => {
-      try {
-        // Fetch cloud VMs
-        const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
-          admin_id: admin.id
-        });
+  const fetchCloudVMs = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/v1/lab_ms/getLabsConfigured', {
+        admin_id: admin.id,
+      });
 
-        if (response.data.success) {
-          setVMs(response.data.data);
-        } else {
-          setError('Failed to fetch VMs');
-        }
-
-        // Fetch datacenter VMs
-        try {
-         const dcResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabOnAdminId', {
-  adminId: admin?.id
-});
-
-if (dcResponse.data.success) {
-  const vmsWithCreds = await Promise.all(
-    dcResponse.data.data.map(async (vm: DatacenterVM) => {
-      try {
-        const credsResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabCreds', {
-          labId: vm.lab_id
-        });
-
-        return {
-          ...vm,
-          userscredentials: credsResponse.data.data || [] // Attach credentials to the VM
-        };
-      } catch (err) {
-        console.error(`Error fetching creds for lab_id ${vm.lab_id}:`, err);
-        return {
-          ...vm,
-          userscredentials: [] // Fallback to empty array
-        };
+      if (response.data.success) {
+        setVMs(response.data.data);
+      } else {
+        setError('Failed to fetch cloud VMs');
       }
-    })
-  );
- console.log(vmsWithCreds)
-  setDatacenterVMs(vmsWithCreds);
-}
-
-          
-        } catch (dcErr) {
-          console.error('Error fetching datacenter VMs:', dcErr);
-          // Don't set error here to avoid blocking cloud VMs display
-        }
-      } catch (err) {
-        console.error('Error fetching VMs:', err);
-        setError('Failed to fetch VMs');
-      } finally {
+    } catch (err) {
+      console.error('Error fetching cloud VMs:', err);
+      setError('Failed to fetch cloud VMs');
+      setTimeout(()=>
+      {
+        setError(null)
+      },3000
+      )
+    }
+    finally {
         setIsLoading(false);
       }
-    };
+  };
 
-    if (admin.id) {
-      fetchVMs();
+  const fetchDatacenterVMs = async () => {
+    try {
+      const dcResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/getDatacenterLabOnAdminId', {
+        adminId: admin?.id,
+      });
+
+      if (dcResponse.data.success) {
+        const vmsWithCreds = await Promise.all(
+          dcResponse.data.data.map(async (vm: DatacenterVM) => {
+            try {
+              const credsResponse = await axios.post(
+                'http://localhost:3000/api/v1/lab_ms/getDatacenterLabCreds',
+                { labId: vm.lab_id }
+              );
+
+              return {
+                ...vm,
+                userscredentials: credsResponse.data.data || [],
+              };
+            } catch (err) {
+              console.error(`Error fetching creds for lab_id ${vm.lab_id}:`, err);
+              return { ...vm, userscredentials: [] };
+            }
+            finally {
+        setIsLoading(false);
+      }
+          })
+        );
+
+        setDatacenterVMs(vmsWithCreds);
+      }
+    } catch (dcErr) {
+      console.error('Error fetching datacenter VMs:', dcErr);
     }
-  }, [admin.id]);
+  };
+
+  if (admin.id) {
+    fetchCloudVMs();
+    fetchDatacenterVMs();
+  }
+}, [admin.id]);
+
  
   const filteredVMs = vms.filter(vm => {
     const matchesSearch = !filters.search || 
