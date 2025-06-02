@@ -84,14 +84,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, labId, labTi
       }
   
       if (response?.data?.success) {
-        setNotification({ type: 'success', message: 'Lab deleted successfully' });
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 1500);
-      } else {
-        throw new Error(response?.data?.message || 'Failed to delete lab');
-      }
+        setNotification({
+        type: 'success',
+        message: response?.data?.message || 'Successfully deleted lab'
+      });
+      setTimeout(() => {
+        onClose();
+        window.location.reload();
+      }, 1500);
+          // onDelete(deletedId);
+        } else {
+          throw new Error(response?.data?.message || 'Failed to delete lab');
+        }
     } catch (error) {
       setTimeout(() => setNotification(null), 3000);
       setNotification({

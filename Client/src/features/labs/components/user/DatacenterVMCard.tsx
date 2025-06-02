@@ -48,7 +48,19 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
   const [isLoading, setIsLoading] = useState(false);
   const [showFullStartDate, setShowFullStartDate] = useState(false);
   const [showFullEndDate, setShowFullEndDate] = useState(false);
+
+  console.log(lab)
   const handleStartLab = async () => {
+    if(lab.userscredentials[0].disabled){
+         setNotification({
+          type: 'error',
+          message: 'The VM is disabled.'
+        });
+        setTimeout(()=>{
+          setNotification(null);
+        },2000)
+        return;
+    }
     if (lab.isrunning) {
       // Stop the lab
       setIsStopping(true);
@@ -102,7 +114,6 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
           
           // Update local state
           lab.isrunning = true;
-          console.log(lab)
           // Navigate to VM session page
         const tokenResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/connectToDatacenterVm', {
         Protocol: lab.protocol || 'RDP',

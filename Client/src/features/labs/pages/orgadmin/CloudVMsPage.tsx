@@ -94,7 +94,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
       setError('Failed to fetch assessment VMs');
       setTimeout(()=>{
         setError(null)
-      },3000)
+      },2000)
     }
     finally {
         setIsLoading(false);
@@ -144,7 +144,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
       setError('Failed to fetch datacenter VMs');
       setTimeout(()=>{
         setError(null)
-      },3000)
+      },2000)
     }
     finally {
         setIsLoading(false);
@@ -165,7 +165,7 @@ export const OrgAdminCloudVMsPage: React.FC = () => {
       setError('Failed to fetch user profile');
       setTimeout(()=>{
         setError(null)
-      },3000)
+      },2000)
     } finally {
       setIsLoading(false);
     }

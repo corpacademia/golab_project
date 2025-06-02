@@ -251,7 +251,10 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     setIsDeleting(true);
     try {
       // Different API endpoint for users who didn't create the VM
-      const response = await axios.delete(`http://localhost:3000/api/v1/lab_ms/deleteAssignedSingleVMDatacenterLab/${vm.lab_id}`);
+      const response = await axios.post(`http://localhost:3000/api/v1/lab_ms/deleteAssignedSingleVMDatacenterLab`,{
+        labId:vm.lab_id,
+        orgId:currentUser.org_id
+      });
       
       if (response.data.success) {
         setNotification({ type: 'success', message: 'VM deleted successfully' });
@@ -266,6 +269,9 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         type: 'error',
         message: error.response?.data?.message || 'Failed to delete VM'
       });
+      setTimeout(()=>{
+        setNotification(null)
+      },2000)
     } finally {
       setIsDeleting(false);
       setIsDeleteModalOpen(false);
