@@ -49,7 +49,6 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ lab, onDelet
   const [showFullStartDate, setShowFullStartDate] = useState(false);
   const [showFullEndDate, setShowFullEndDate] = useState(false);
 
-  console.log(lab)
   const handleStartLab = async () => {
     if(lab.userscredentials[0].disabled){
          setNotification({

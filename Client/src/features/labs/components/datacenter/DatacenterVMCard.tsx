@@ -584,7 +584,7 @@ function extractFileName(filePath: string) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-2 gap-4 mb-3">
             <div className="flex items-center text-sm text-gray-400">
               <Server className="h-4 w-4 mr-2 text-secondary-400 flex-shrink-0" />
               <span className="truncate">{vm.platform}</span>
@@ -615,10 +615,10 @@ function extractFileName(filePath: string) {
             </div>
           </div>
 
-          {/* Software Section */}
+          {/* Software Section - with fixed height and scrolling */}
           {vm.software && vm.software.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Software:</h4>
+            <div className="mb-3 max-h-[60px] overflow-y-auto">
+              <h4 className="text-sm font-medium text-gray-400 mb-1">Software:</h4>
               <div className="flex flex-wrap gap-2">
                 {vm.software.map((sw, index) => (
                   <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-secondary-500/20 text-secondary-300">
