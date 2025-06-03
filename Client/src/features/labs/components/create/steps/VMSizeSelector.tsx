@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cpu, HardDrive, Database, Server, AlertCircle } from 'lucide-react';
 import { GradientText } from '../../../../../components/ui/GradientText';
 import axios from 'axios';
