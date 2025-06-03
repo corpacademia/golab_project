@@ -25,7 +25,10 @@ import {
   Loader,
   Power,
   Eye,
-  EyeOff
+  EyeOff,
+  FileText,
+  Upload,
+  Download
 } from 'lucide-react';
 import { GradientText } from '../../../../components/ui/GradientText';
 import axios from 'axios';
@@ -33,6 +36,9 @@ import { UserListModal } from './UserListModal';
 import { EditUserModal } from './EditUserModal';
 import { ConvertToCatalogueModal } from '../cloudvm/ConvertToCatalogueModal';
 import { AssignUsersModal } from '../catalogue/AssignUsersModal';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DatacenterVM {
   id: string;
@@ -50,6 +56,9 @@ interface DatacenterVM {
     ip: string;
     port: string;
   }>;
+  software?: string[];
+  labguide?: string;
+  userguide?: string;
 }
 
 interface DatacenterVMCardProps {
@@ -62,6 +71,15 @@ interface DeleteConfirmationModalProps {
   onConfirm: () => void;
   isDeleting: boolean;
   vmTitle: string;
+}
+
+interface UserCredential {
+  id?: string;
+  username: string;
+  password: string;
+  ip: string;
+  port: string;
+  protocol: string;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
@@ -146,6 +164,25 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
   const [showFullEndDate, setShowFullEndDate] = useState(false);
   const [vmUsers, setVmUsers] = useState<Array<any>>(vm.userscredentials || []);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [software, setSoftware] = useState<string[]>(vm.software || []);
+  
+  // Edit lab modal states
+  const [isEditLabModalOpen, setIsEditLabModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: vm.title,
+    description: vm.description || '',
+    startDate: new Date(vm.startdate),
+    endDate: new Date(vm.enddate),
+    credentials: [] as UserCredential[],
+    software: vm.software || [],
+    labGuide: vm.labguide || '',
+    userGuide: vm.userguide || ''
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editNotification, setEditNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [labGuideFile, setLabGuideFile] = useState<File | null>(null);
+  const [userGuideFile, setUserGuideFile] = useState<File | null>(null);
+
   function formatDate(dateString:string) {
     const date = new Date(dateString);
   
@@ -175,6 +212,198 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     };
     fetchCurrentUser();
   }, []);
+
+  // Initialize edit form data with user credentials
+  useEffect(() => {
+    if (vm.userscredentials && vm.userscredentials.length > 0) {
+      setEditFormData(prev => ({
+        ...prev,
+        credentials: vm.userscredentials.map(cred => ({
+          id: cred.id,
+          username: cred.username,
+          password: cred.password,
+          ip: cred.ip,
+          port: cred.port,
+          protocol: cred.protocol || 'RDP'
+        }))
+      }));
+    } else {
+      // Add a default empty credential if none exist
+      setEditFormData(prev => ({
+        ...prev,
+        credentials: [{
+          username: '',
+          password: '',
+          ip: '',
+          port: '',
+          protocol: 'RDP'
+        }]
+      }));
+    }
+  }, [vm.userscredentials]);
+
+  const handleCredentialChange = (index: number, field: keyof UserCredential, value: string) => {
+    const updatedCredentials = [...editFormData.credentials];
+    updatedCredentials[index] = {
+      ...updatedCredentials[index],
+      [field]: value
+    };
+    setEditFormData({
+      ...editFormData,
+      credentials: updatedCredentials
+    });
+  };
+
+  const handleAddCredential = () => {
+    setEditFormData({
+      ...editFormData,
+      credentials: [
+        ...editFormData.credentials,
+        {
+          id: uuidv4(),
+          username: '',
+          password: '',
+          ip: '',
+          port: '',
+          protocol: 'RDP'
+        }
+      ]
+    });
+  };
+
+  const handleRemoveCredential = (index: number) => {
+    if (editFormData.credentials.length <= 1) return;
+    
+    const updatedCredentials = [...editFormData.credentials];
+    updatedCredentials.splice(index, 1);
+    setEditFormData({
+      ...editFormData,
+      credentials: updatedCredentials
+    });
+  };
+
+  const handleSoftwareChange = (index: number, value: string) => {
+    const updatedSoftware = [...editFormData.software];
+    updatedSoftware[index] = value;
+    setEditFormData({
+      ...editFormData,
+      software: updatedSoftware
+    });
+  };
+
+  const handleAddSoftware = () => {
+    setEditFormData({
+      ...editFormData,
+      software: [...editFormData.software, '']
+    });
+  };
+
+  const handleRemoveSoftware = (index: number) => {
+    const updatedSoftware = [...editFormData.software];
+    updatedSoftware.splice(index, 1);
+    setEditFormData({
+      ...editFormData,
+      software: updatedSoftware
+    });
+  };
+
+  const handleLabGuideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLabGuideFile(e.target.files[0]);
+    }
+  };
+
+  const handleUserGuideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUserGuideFile(e.target.files[0]);
+    }
+  };
+
+  const handleEditLabSubmit = async () => {
+    setIsEditing(true);
+    setEditNotification(null);
+
+    try {
+      // Format dates for API
+      const formattedStartDate = formatDate(editFormData.startDate);
+      const formattedEndDate = formatDate(editFormData.endDate);
+      
+      // Create FormData for file uploads
+      const formData = new FormData();
+      formData.append('labId', vm.lab_id);
+      formData.append('title', editFormData.title);
+      formData.append('description', editFormData.description);
+      formData.append('startDate', formattedStartDate);
+      formData.append('endDate', formattedEndDate);
+      const software = editFormData.software.filter(s => s.trim() !== '');
+      formData.append('software', JSON.stringify(software));
+      formData.append('credentials', JSON.stringify(editFormData.credentials));
+ 
+    // Always include existing file references if available
+if (editFormData.labGuide) {
+  formData.append('existingLabGuide', editFormData.labGuide); // string, e.g., filename or path
+}
+if (editFormData.userGuide) {
+  formData.append('existingUserGuide', editFormData.userGuide); // same
+}
+
+// Append new file if selected (optional overwrite or addition)
+if (labGuideFile) {
+  formData.append('labGuide', labGuideFile); // actual file
+}
+if (userGuideFile) {
+  formData.append('userGuide', userGuideFile); // actual file
+}
+
+      // Update lab details
+      const labResponse = await axios.post('http://localhost:3000/api/v1/lab_ms/updateSingleVmDatacenterLab', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (!labResponse.data.success) {
+        throw new Error(labResponse.data.message || 'Failed to update lab details');
+      }
+      // Update or create user credentials
+      // for (const cred of editFormData.credentials) {
+      //   if (cred.id) {
+      //     // Update existing credential
+      //     await axios.post('http://localhost:3000/api/v1/lab_ms/editSingleVmDatacenterCreds', {
+      //       labId: vm.lab_id,
+      //       id: cred.id,
+      //       username: cred.username,
+      //       password: cred.password,
+      //       protocol: cred.protocol,
+      //       ip: cred.ip,
+      //       port: cred.port
+      //     });
+      //   } else if (cred.username && cred.password && cred.ip && cred.port) {
+      //     // Create new credential only if all required fields are filled
+      //     await axios.post('http://localhost:3000/api/v1/lab_ms/addSingleVmDatacenterCreds', {
+      //       labId: vm.lab_id,
+      //       username: cred.username,
+      //       password: cred.password,
+      //       protocol: cred.protocol,
+      //       ip: cred.ip,
+      //       port: cred.port
+      //     });
+      //   }
+      // }
+
+      setEditNotification({ type: 'success', message: 'Lab updated successfully' });
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: any) {
+      setEditNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to update lab'
+      });
+    } finally {
+      setIsEditing(false);
+    }
+  };
 
   const handleConvertToCatalogue = async () => {
     setIsConvertModalOpen(true);
@@ -278,6 +507,12 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
     }
   };
 
+  // Extract filename from path
+function extractFileName(filePath: string) {
+    const match = filePath.match(/[^\\\/]+$/);
+    return match ? match[0] : null;
+  }
+
   // Check if current user can edit content
   const canEditContent = () => {
     if (!currentUser) return false;
@@ -315,6 +550,14 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
               <p className="text-sm text-gray-400 line-clamp-2">{vm.description}</p>
             </div>
             <div className="flex items-center space-x-2">
+              {canEditContent() && (
+                <button
+                  onClick={() => setIsEditLabModalOpen(true)}
+                  className="p-2 hover:bg-dark-300/50 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-4 w-4 text-primary-400" />
+                </button>
+              )}
               {canEditContent() && (
                 <button
                   onClick={() => setIsDeleteModalOpen(true)}
@@ -372,12 +615,19 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
             </div>
           </div>
 
-          <div className="mb-4">
-            <div className="flex items-center text-sm text-gray-400 mb-2">
-              <Users className="h-4 w-4 mr-2 text-secondary-400" />
-              <span>{vmUsers.length} Users</span>
+          {/* Software Section */}
+          {vm.software && vm.software.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Software:</h4>
+              <div className="flex flex-wrap gap-2">
+                {vm.software.map((sw, index) => (
+                  <span key={index} className="px-2 py-1 text-xs font-medium rounded-full bg-secondary-500/20 text-secondary-300">
+                    {sw}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-auto pt-3 border-t border-secondary-500/10 flex flex-col space-y-2">
             <button
@@ -485,6 +735,359 @@ export const DatacenterVMCard: React.FC<DatacenterVMCardProps> = ({ vm }) => {
         lab={vm}
         type="datacenter"
       />
+
+      {/* Edit Lab Modal */}
+      {isEditLabModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-dark-200 rounded-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">
+                <GradientText>Edit Lab</GradientText>
+              </h2>
+              <button 
+                onClick={() => setIsEditLabModalOpen(false)}
+                className="p-2 hover:bg-dark-300 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+
+            {editNotification && (
+              <div className={`mb-4 p-4 rounded-lg flex items-center space-x-2 ${
+                editNotification.type === 'success' 
+                  ? 'bg-emerald-500/20 border border-emerald-500/20' 
+                  : 'bg-red-500/20 border border-red-500/20'
+              }`}>
+                {editNotification.type === 'success' ? (
+                  <Check className="h-5 w-5 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                )}
+                <span className={`text-sm ${
+                  editNotification.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+                }`}>
+                  {editNotification.message}
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Lab Title
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({...editFormData, title: e.target.value})}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                           text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Start Date & Time
+                  </label>
+                  <DatePicker
+                    selected={editFormData.startDate}
+                    onChange={(date: Date) => setEditFormData({...editFormData, startDate: date})}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="MMMM d, yyyy h:mm aa"
+                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    End Date & Time
+                  </label>
+                  <DatePicker
+                    selected={editFormData.endDate}
+                    onChange={(date: Date) => setEditFormData({...editFormData, endDate: date})}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    dateFormat="MMMM d, yyyy h:mm aa"
+                    className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                             text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Software Section */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Software
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddSoftware}
+                    className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Software
+                  </button>
+                </div>
+                
+                {editFormData.software.map((sw, index) => (
+                  <div key={index} className="flex items-center space-x-2 mb-2">
+                    <input
+                      type="text"
+                      value={sw}
+                      onChange={(e) => handleSoftwareChange(index, e.target.value)}
+                      placeholder="Enter software name"
+                      className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                               text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSoftware(index)}
+                      className="p-2 hover:bg-red-500/10 rounded-lg text-red-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Lab Guide and User Guide Upload */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Lab Guide
+                  </label>
+                  <div className="flex flex-col space-y-2">
+                    {vm.labguide && editFormData.labGuide.map((labguide)=>(
+                      (
+                      <div className="flex items-center justify-between p-2 bg-dark-300/50 rounded-lg">
+                        <span className="text-sm text-gray-300 truncate">{extractFileName(labguide)}</span>
+                        <div className="flex items-center space-x-1">
+                          <a 
+                            href={`http://localhost:3000/uploads/${extractFileName(labguide)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 hover:bg-primary-500/10 rounded-lg"
+                          >
+                            <Download className="h-4 w-4 text-primary-400" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setEditFormData({...editFormData, labGuide: []})}
+                            className="p-1 hover:bg-red-500/10 rounded-lg"
+                          >
+                            <X className="h-4 w-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                    ))}
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        id="labGuide"
+                        onChange={handleLabGuideChange}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt"
+                      />
+                      <label
+                        htmlFor="labGuide"
+                        className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 cursor-pointer hover:bg-dark-400 transition-colors
+                                 flex items-center justify-center"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {labGuideFile ? labGuideFile.name : 'Upload New Lab Guide'}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    User Guide
+                  </label>
+                  <div className="flex flex-col space-y-2">
+                    {vm.userguide && editFormData.userGuide.map((userguide)=>(
+                      (
+                      <div className="flex items-center justify-between p-2 bg-dark-300/50 rounded-lg">
+                        <span className="text-sm text-gray-300 truncate">{extractFileName(userguide)}</span>
+                        <div className="flex items-center space-x-1">
+                          <a 
+                            href={`http://localhost:3000/uploads/${extractFileName(userguide)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 hover:bg-primary-500/10 rounded-lg"
+                          >
+                            <Download className="h-4 w-4 text-primary-400" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setEditFormData({...editFormData, userGuide: []})}
+                            className="p-1 hover:bg-red-500/10 rounded-lg"
+                          >
+                            <X className="h-4 w-4 text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                    )) }
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        id="userGuide"
+                        onChange={handleUserGuideChange}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt"
+                      />
+                      <label
+                        htmlFor="userGuide"
+                        className="flex-1 px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                 text-gray-300 cursor-pointer hover:bg-dark-400 transition-colors
+                                 flex items-center justify-center"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {userGuideFile ? userGuideFile.name : 'Upload New User Guide'}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-300">
+                    User Credentials
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddCredential}
+                    className="text-sm text-primary-400 hover:text-primary-300 flex items-center"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Credential
+                  </button>
+                </div>
+                
+                {editFormData.credentials.map((cred, index) => (
+                  <div key={index} className="p-4 bg-dark-300/50 rounded-lg mb-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-sm font-medium text-gray-300">Credential {index + 1}</h4>
+                      {editFormData.credentials.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCredential(index)}
+                          className="p-1 hover:bg-red-500/10 rounded-lg text-red-400"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Username</label>
+                        <input
+                          type="text"
+                          value={cred.username}
+                          onChange={(e) => handleCredentialChange(index, 'username', e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Password</label>
+                        <input
+                          type="text"
+                          value={cred.password}
+                          onChange={(e) => handleCredentialChange(index, 'password', e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">IP Address</label>
+                        <input
+                          type="text"
+                          value={cred.ip}
+                          onChange={(e) => handleCredentialChange(index, 'ip', e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Port</label>
+                        <input
+                          type="text"
+                          value={cred.port}
+                          onChange={(e) => handleCredentialChange(index, 'port', e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Protocol</label>
+                        <select
+                          value={cred.protocol || 'RDP'}
+                          onChange={(e) => handleCredentialChange(index, 'protocol', e.target.value)}
+                          className="w-full px-3 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                                   text-gray-300 focus:border-primary-500/40 focus:outline-none"
+                        >
+                          <option value="RDP">RDP</option>
+                          <option value="SSH">SSH</option>
+                          <option value="VNC">VNC</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                onClick={() => setIsEditLabModalOpen(false)}
+                className="btn-secondary"
+                disabled={isEditing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditLabSubmit}
+                disabled={isEditing}
+                className="btn-primary"
+              >
+                {isEditing ? (
+                  <span className="flex items-center">
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Saving...
+                  </span>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
