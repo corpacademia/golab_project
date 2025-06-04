@@ -33,12 +33,7 @@ export const VMClusterWorkflow: React.FC<VMClusterWorkflowProps> = ({ onBack }) 
       numberOfVMs: 2,
       vms: [
         { name: 'VM 1', username: '', password: '', ip: '', port: '22' },
-        { name: 'VM 2', username: '', password: '', ip: '', port: '22' }
       ],
-      network: {
-        type: 'private',
-        subnet: '10.0.0.0/24'
-      }
     }
   });
 
@@ -139,6 +134,7 @@ export const VMClusterWorkflow: React.FC<VMClusterWorkflowProps> = ({ onBack }) 
       setIsLoading(true);
       const data = JSON.parse(localStorage.getItem("formData") || "{}");
       try {
+        console.log(data);
         // Make API call for datacenter platform
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/createClusterLab', {
           data: data,
