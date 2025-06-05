@@ -105,8 +105,6 @@ export const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
     setSuccess(null);
 
     try {
-      
-
       const formDataToSend = new FormData();
       formDataToSend.append('organization_name', formData.name);
       formDataToSend.append('admin_name', formData.adminName);

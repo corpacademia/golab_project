@@ -9,6 +9,8 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
+   organization:any;
+   isNewOrganization:boolean;
 }
 
 interface FormErrors {
@@ -17,6 +19,8 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   submit?: string;
+  organization?:any;
+  isNewOrganization?:boolean;
 }
 
 export const useSignupForm = () => {
@@ -28,6 +32,8 @@ export const useSignupForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    organization:'',
+    isNewOrganization:false
   });
   
   const [errors, setErrors] = useState<FormErrors>({});
@@ -70,19 +76,35 @@ export const useSignupForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
     
     setLoading(true);
     try {
+
       // const response = await authApi.login(formData.email, formData.password);
       const res = await axios.post('http://localhost:3000/api/v1/user_ms/signup',{
          name:formData.name,
          email:formData.email,
          password:formData.password,
+         organization:formData.organization,
+         isNewOrganization:formData.isNewOrganization
       })
+      if(res.data.success){
+        if(formData.isNewOrganization){
+          const updateOrgAdmin = await axios.post('http://localhost:3000/api/v1/organization_ms/updateOrgAdmin',{
+          orgAdmin:res.data.result.id,
+          Id:formData.organization.id
+        })
+
+        if(updateOrgAdmin.data.success){
+           navigate('/login');
+           return
+        }
+        }
+        
+      }
       // login(response.user);
-      navigate('/dashboard');
+      navigate('/login');
     } catch (error) {
       setErrors(prev => ({
         ...prev,
@@ -95,6 +117,7 @@ export const useSignupForm = () => {
 
   return {
     formData,
+    setFormData,
     errors,
     loading,
     handleChange,
