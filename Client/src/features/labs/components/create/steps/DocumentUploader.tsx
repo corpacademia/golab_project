@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, FileText, AlertCircle } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 interface DocumentUploaderProps {
   onDocumentsChange: (documents: File[]) => void;
@@ -17,6 +18,8 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   const [documentError, setDocumentError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const guideInputRef = useRef<HTMLInputElement>(null);
+  const [documentText, setDocumentText] = useState<string>('');
+  const [userGuideText, setUserGuideText] = useState<string>('');
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -141,7 +144,6 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   }
 };
 
-
   const handleRemoveDocument = (index: number, type: 'document' | 'guide') => {
     if (type === 'document') {
       const updatedDocs = documents.filter((_, i) => i !== index);
@@ -160,6 +162,103 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }
   };
 
+  const convertTextToPdf = (text: string, type: 'document' | 'guide'): File => {
+    const doc = new jsPDF();
+    const title = type === 'document' ? 'Lab Document' : 'User Guide';
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.text(title, 20, 20);
+    
+    // Add content with word wrapping
+    doc.setFontSize(12);
+    const splitText = doc.splitTextToSize(text, 170);
+    doc.text(splitText, 20, 30);
+    
+    // Generate file name
+    const fileName = type === 'document' 
+      ? `lab-document-${Date.now()}.pdf` 
+      : `user-guide-${Date.now()}.pdf`;
+    
+    // Convert to blob and then to File
+    const pdfBlob = doc.output('blob');
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    
+    return pdfFile;
+  };
+
+  const handleTextSubmit = (type: 'document' | 'guide') => {
+    const text = type === 'document' ? documentText : userGuideText;
+    
+    if (!text.trim()) {
+      setDocumentError(`Please enter some text for the ${type === 'document' ? 'document' : 'guide'}`);
+      setTimeout(() => setDocumentError(null), 5000);
+      return;
+    }
+    
+    try {
+      const pdfFile = convertTextToPdf(text, type);
+      
+      if (type === 'document') {
+        const updatedDocs = [...documents, pdfFile];
+        setDocuments(updatedDocs);
+        onDocumentsChange(updatedDocs);
+        setDocumentText('');
+        
+        // Update localStorage
+        const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Content = reader.result as string;
+          const existingBase64Docs = storedData.labGuides || [];
+          const newFileData = {
+            name: pdfFile.name,
+            type: pdfFile.type,
+            size: pdfFile.size,
+            content: base64Content
+          };
+          
+          const updatedData = {
+            ...storedData,
+            labGuides: [...existingBase64Docs, newFileData],
+          };
+          localStorage.setItem('formData', JSON.stringify(updatedData));
+        };
+        reader.readAsDataURL(pdfFile);
+      } else {
+        const updatedGuides = [...userGuides, pdfFile];
+        setUserGuides(updatedGuides);
+        onUserGuidesChange(updatedGuides);
+        setUserGuideText('');
+        
+        // Update localStorage
+        const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64Content = reader.result as string;
+          const existingBase64Guides = storedData.userGuides || [];
+          const newFileData = {
+            name: pdfFile.name,
+            type: pdfFile.type,
+            size: pdfFile.size,
+            content: base64Content
+          };
+          
+          const updatedData = {
+            ...storedData,
+            userGuides: [...existingBase64Guides, newFileData],
+          };
+          localStorage.setItem('formData', JSON.stringify(updatedData));
+        };
+        reader.readAsDataURL(pdfFile);
+      }
+    } catch (error) {
+      console.error('Error creating PDF:', error);
+      setDocumentError('Failed to create PDF from text');
+      setTimeout(() => setDocumentError(null), 5000);
+    }
+  };
+
   const renderDocumentUploader = (type: 'document' | 'guide') => {
     const files = type === 'document' ? documents : userGuides;
     const inputRef = type === 'document' ? fileInputRef : guideInputRef;
@@ -167,10 +266,12 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     const description = type === 'document' 
       ? 'Upload lab materials, exercises, and reference documents' 
       : 'Upload user guides and instructions for lab participants';
+    const textValue = type === 'document' ? documentText : userGuideText;
+    const setTextValue = type === 'document' ? setDocumentText : setUserGuideText;
 
     return (
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-400 mb-3">{title}</h3>
+        <h3 className="text-sm font-medium text-gray-400 mb-3">{title}</h3>
         <div 
           className="border-2 border-dashed border-primary-500/20 rounded-lg p-6 mb-4 hover:border-primary-500/40 transition-colors"
           onDragOver={handleDragOver}
@@ -205,6 +306,30 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           </div>
         </div>
 
+        {/* Text to PDF converter */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-400 mb-2">Or create from text:</h4>
+          <textarea
+            value={textValue}
+            onChange={(e) => setTextValue(e.target.value)}
+            placeholder={`Enter text for ${type === 'document' ? 'lab document' : 'user guide'}`}
+            className="w-full px-4 py-2 bg-dark-400/50 border border-primary-500/20 rounded-lg
+                     text-gray-300 focus:border-primary-500/40 focus:outline-none
+                     min-h-[150px] resize-y"
+          />
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={() => handleTextSubmit(type)}
+              className="px-4 py-2 bg-primary-500/20 text-primary-300 rounded-lg 
+                       hover:bg-primary-500/30 transition-colors"
+            >
+              Convert to PDF
+            </button>
+          </div>
+        </div>
+
+        {/* File List */}
         {files.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-400">Uploaded files:</h4>
@@ -239,9 +364,9 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       
       {documentError && (
         <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg mb-6">
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="h-5 w-5 text-red-200" />
-            <span className="text-white-600">{documentError}</span>
+          <div className="flex items-center space-x-2 text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            <p>{documentError}</p>
           </div>
         </div>
       )}
