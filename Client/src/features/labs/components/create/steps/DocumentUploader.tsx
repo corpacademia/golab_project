@@ -144,17 +144,38 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   }
 };
 
-  const handleRemoveDocument = (index: number, type: 'document' | 'guide') => {
-    if (type === 'document') {
-      const updatedDocs = documents.filter((_, i) => i !== index);
-      setDocuments(updatedDocs);
-      onDocumentsChange(updatedDocs);
-    } else {
-      const updatedGuides = userGuides.filter((_, i) => i !== index);
-      setUserGuides(updatedGuides);
-      onUserGuidesChange(updatedGuides);
-    }
-  };
+const handleRemoveDocument = (index: number, type: 'document' | 'guide') => {
+  const storedData = JSON.parse(localStorage.getItem('formData') || '{}');
+
+  if (type === 'document') {
+    const updatedDocs = documents.filter((_, i) => i !== index);
+    setDocuments(updatedDocs);
+    onDocumentsChange(updatedDocs);
+
+    // Remove from localStorage
+    const base64Docs = storedData.labGuides || [];
+    base64Docs.splice(index, 1); // remove the file at the same index
+    const updatedData = {
+      ...storedData,
+      labGuides: base64Docs,
+    };
+    localStorage.setItem('formData', JSON.stringify(updatedData));
+  } else {
+    const updatedGuides = userGuides.filter((_, i) => i !== index);
+    setUserGuides(updatedGuides);
+    onUserGuidesChange(updatedGuides);
+
+    // Remove from localStorage
+    const base64Guides = storedData.userGuides || [];
+    base64Guides.splice(index, 1); // remove the file at the same index
+    const updatedData = {
+      ...storedData,
+      userGuides: base64Guides,
+    };
+    localStorage.setItem('formData', JSON.stringify(updatedData));
+  }
+};
+
 
   const handleContinue = () => {
     if (onNext) {

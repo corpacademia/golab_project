@@ -134,7 +134,6 @@ export const VMClusterWorkflow: React.FC<VMClusterWorkflowProps> = ({ onBack }) 
       setIsLoading(true);
       const data = JSON.parse(localStorage.getItem("formData") || "{}");
       try {
-        console.log(data);
         // Make API call for datacenter platform
         const response = await axios.post('http://localhost:3000/api/v1/lab_ms/createClusterLab', {
           data: data,
