@@ -10,6 +10,8 @@ lerna-debug.log*
 Backend/
 Client/node_modules copy
 
+public
+
 node_modules
 dist
 dist-ssr
