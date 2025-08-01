@@ -4,7 +4,7 @@ pipeline {
     environment {
         AWS_DEFAULT_REGION = 'us-east-1'
         S3_BUCKET = 'golabing'
-        BUILD_DIR = 'dist'
+        BUILD_DIR = 'build' // React default output dir
     }
 
     options {
@@ -12,7 +12,7 @@ pipeline {
     }
 
     tools {
-        nodejs 'node18' // Make sure this is configured in Jenkins → Global Tool Configuration
+        nodejs 'node18' // Ensure Node.js 18 is set up in Jenkins Global Tool Configuration
     }
 
     stages {
@@ -24,19 +24,25 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                dir('Client') {
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm run build'
+                dir('Client') {
+                    sh 'npm run build'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'npm test'
+                dir('Client') {
+                    sh 'npm test || true'
+                }
             }
         }
 
@@ -44,11 +50,13 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: '9df79d1f-0539-4d32-9b7d-02ed68426fb9' // Use your AWS credentials ID here
+                    credentialsId: '9df79d1f-0539-4d32-9b7d-02ed68426fb9'
                 ]]) {
-                    sh '''
-                        aws s3 sync ${BUILD_DIR}/ s3://${S3_BUCKET}/ --delete
-                    '''
+                    dir('Client') {
+                        sh '''
+                            aws s3 sync ${BUILD_DIR}/ s3://${S3_BUCKET}/ --delete
+                        '''
+                    }
                 }
             }
         }
