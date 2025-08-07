@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "react-scripts": "^5.0.1",
     "react-split": "^2.0.14",
-    "react-scripts": "^5.0.1"
+    "stripe": "^18.4.0"
   },
   "scripts": {
     "start": "react-scripts start",

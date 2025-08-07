@@ -8,10 +8,11 @@
 # lerna-debug.log*
 
 # Backend/
-# Client/node_modules copy
+Client/node_modules copy
 
 
-# node_modules
+
+node_modules
 # dist
 # dist-ssr
 # *.local
