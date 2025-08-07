@@ -1,0 +1,275 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-300 text-gray-100 font-sans antialiased;
+    background-image: radial-gradient(circle at 50% 50%, rgba(0, 119, 255, 0.15) 0%, rgba(123, 0, 255, 0.15) 25%, rgba(255, 0, 197, 0.15) 50%, transparent 70%), url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230077FF' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply relative overflow-hidden inline-flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base text-white font-medium
+    bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500
+    hover:from-primary-600 hover:via-secondary-600 hover:to-accent-600
+    shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30
+    border border-white/10 backdrop-blur-sm
+    transition-all duration-300 whitespace-nowrap min-w-0;
+  }
+
+  .btn-primary::before {
+    @apply content-[''] absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
+    translate-x-[-200%] animate-shimmer;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base text-primary-100 font-medium
+    bg-dark-400/80 hover:bg-dark-300/80 backdrop-blur-sm
+    border border-primary-500/20 hover:border-primary-500/30
+    shadow-lg shadow-primary-900/10 hover:shadow-primary-500/20
+    transition-all duration-300 whitespace-nowrap min-w-0;
+  }
+
+  .btn-icon {
+    @apply p-2 sm:p-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center min-w-0;
+  }
+
+  .btn-icon-primary {
+    @apply btn-icon hover:bg-primary-500/10 text-primary-400 hover:text-primary-300;
+  }
+
+  .btn-icon-red {
+    @apply btn-icon hover:bg-red-500/10 text-red-400 hover:text-red-300;
+  }
+
+  .btn-icon-gray {
+    @apply btn-icon hover:bg-dark-300/50 text-gray-400 hover:text-gray-300;
+  }
+
+  .glass-panel {
+    @apply relative overflow-hidden bg-dark-200/80 backdrop-blur-md
+    border border-white/[0.05] rounded-xl p-4 sm:p-6
+    before:absolute before:inset-0 before:bg-gradient-radial before:from-primary-500/5 before:to-transparent
+    after:absolute after:inset-0 after:bg-mesh-pattern after:opacity-5
+    shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]
+    hover:shadow-glow hover:shadow-primary-500/10
+    transition-all duration-300;
+  }
+
+  .data-card {
+    @apply relative overflow-hidden
+    bg-gradient-to-br from-dark-200/90 to-dark-300/90
+    backdrop-blur-md rounded-xl p-4 sm:p-6
+    border border-white/[0.05]
+    before:absolute before:inset-0 before:bg-gradient-conic 
+    before:from-primary-500/10 before:via-secondary-500/10 before:to-accent-500/10
+    after:absolute after:inset-0 after:bg-neural-pattern after:opacity-5
+    hover:border-primary-500/20 hover:shadow-glow hover:shadow-primary-500/10
+    transition-all duration-300 cursor-pointer;
+  }
+
+  .stat-value {
+    @apply relative text-2xl sm:text-3xl lg:text-4xl font-display font-bold
+    bg-gradient-to-r from-primary-400 via-secondary-400 to-accent-400
+    bg-clip-text text-transparent
+    after:absolute after:inset-0 after:bg-gradient-to-r 
+    after:from-primary-400/20 after:via-secondary-400/20 after:to-accent-400/20
+    after:blur-lg after:opacity-0 hover:after:opacity-100
+    transition-all duration-300;
+  }
+
+  .nav-item {
+    @apply flex items-center px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg
+    text-sm font-medium text-gray-400
+    hover:text-primary-400 hover:bg-primary-500/10
+    transition-all duration-200;
+  }
+
+  .nav-item.active {
+    @apply text-primary-400 bg-primary-500/15
+    border border-primary-500/20
+    shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)];
+  }
+
+  .dashboard-grid {
+    @apply grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4;
+  }
+
+  .responsive-table {
+    @apply w-full overflow-x-auto;
+  }
+
+  .responsive-table table {
+    @apply w-full min-w-[600px] text-sm;
+  }
+
+  .responsive-table th {
+    @apply px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm;
+  }
+
+  .responsive-table td {
+    @apply px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm;
+  }
+
+  .card-content {
+    @apply space-y-3 sm:space-y-4;
+  }
+
+  .card-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4;
+  }
+
+  .card-title {
+    @apply text-lg sm:text-xl font-semibold text-gray-100 truncate;
+  }
+
+  .card-subtitle {
+    @apply text-sm text-gray-200 line-clamp-2;
+  }
+
+  .card-actions {
+    @apply flex items-center gap-1 sm:gap-2;
+  }
+
+  .status-badge {
+    @apply px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap;
+  }
+
+  .metric-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4;
+  }
+
+  .metric-item {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg bg-dark-300/50;
+  }
+
+  .metric-label {
+    @apply text-xs sm:text-sm text-gray-200 mb-1 sm:mb-0;
+  }
+
+  .metric-value {
+    @apply text-sm sm:text-base font-semibold text-gray-100;
+  }
+
+  .ellipsis-content {
+    @apply truncate cursor-pointer hover:text-primary-400 transition-colors;
+  }
+
+  .ellipsis-content:hover {
+    @apply overflow-visible whitespace-normal;
+  }
+
+  .glow-effect {
+    @apply relative isolate;
+  }
+
+  .glow-effect::before {
+    @apply content-[''] absolute -inset-1
+    bg-gradient-to-r from-primary-500 via-secondary-500 to-accent-500
+    blur-lg opacity-0 -z-10
+    transition-opacity duration-300;
+  }
+
+  .glow-effect:hover::before {
+    @apply opacity-20;
+  }
+
+  /* Responsive utilities */
+  .responsive-grid {
+    @apply grid gap-4 sm:gap-6;
+  }
+
+  .responsive-grid-1 {
+    @apply grid-cols-1;
+  }
+
+  .responsive-grid-2 {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+
+  .responsive-grid-3 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .responsive-grid-4 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .responsive-padding {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+
+  .responsive-margin {
+    @apply m-4 sm:m-6 lg:m-8;
+  }
+
+  .responsive-gap {
+    @apply gap-4 sm:gap-6;
+  }
+
+  .responsive-text {
+    @apply text-sm sm:text-base;
+  }
+
+  .responsive-text-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  .responsive-text-xl {
+    @apply text-lg sm:text-xl;
+  }
+
+  .responsive-text-2xl {
+    @apply text-xl sm:text-2xl;
+  }
+}
+
+/* Fixed layout styles */
+body {
+  overflow-x: hidden;
+}
+
+/* Ensure main content scrolls properly */
+.dashboard-main {
+  height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+/* Smooth scrolling for better UX */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Mobile-first responsive breakpoints */
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .glass-panel {
+    padding: 1rem;
+  }
+  
+  .data-card {
+    padding: 1rem;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+}
