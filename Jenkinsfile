@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = 'us-east-1'
-        S3_BUCKET = 'golabing'
+        S3_BUCKET = 'project-golabing'
         BUILD_DIR = 'dist' // ✅ Vite default build output
-        CLOUDFRONT_DISTRIBUTION_ID = 'E3NMMRVKLGI4PK' // ✅ CloudFront Distribution ID
+        CLOUDFRONT_DISTRIBUTION_ID = 'EZ8M10K3BEIHP' // ✅ CloudFront Distribution ID
     }
 
     options {
@@ -52,7 +52,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: '9df79d1f-0539-4d32-9b7d-02ed68426fb9'
+                    credentialsId: 'a9cd0d04-49fd-4ec3-8fd0-29122149b3b6'
                 ]]) {
                     dir('Client') {
                         sh '''
@@ -67,7 +67,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: '9df79d1f-0539-4d32-9b7d-02ed68426fb9'
+                    credentialsId: 'a9cd0d04-49fd-4ec3-8fd0-29122149b3b6'
                 ]]) {
                     sh '''
                         aws cloudfront create-invalidation \
